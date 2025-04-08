@@ -29,12 +29,52 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
         
         print(f"Usuário registrado com sucesso: {auth_user}")
         
-        # Os dados de profiles são gerenciados automaticamente pelo Supabase quando 
-        # usamos a função auth.users() e temos uma trigger RLS configurada
+        # Obter o ID do usuário recém-criado - corrigindo a obtenção do ID
+        user_id = None
+        if 'id' in auth_user:
+            user_id = auth_user['id']
+            print(f"ID do usuário extraído: {user_id}")
+        else:
+            print("Erro: Estrutura da resposta de autenticação inesperada")
+            print(f"Chaves em auth_user: {list(auth_user.keys())}")
+        
+        if not user_id:
+            print("Erro: Não foi possível obter o ID do usuário")
+            raise HTTPException(
+                status_code=500,
+                detail="Erro ao criar perfil: ID de usuário não encontrado"
+            )
+        
+        # Agora vamos inserir os dados na tabela profiles manualmente
+        try:
+            # Dados para a tabela profiles
+            clinics_data = {
+                "id": user_id,  # Usar o ID do usuário autenticado
+                "email": user.email,
+                "name": user.name,
+                "phone": user.phone,
+                "password": user.password  # Adicionando a senha, pois a coluna existe na tabela profiles
+            }
+            
+            print(f"Tentando inserir dados na tabela clinics: {clinics_data}")
+            
+            # Inserir dados na tabela profiles
+            profile_result = await supabase_admin._request(
+                "POST", 
+                "/rest/v1/clinics", 
+                json=clinics_data
+            )
+            
+            print(f"Perfil criado com sucesso: {profile_result}")
+            
+        except Exception as profile_error:
+            print(f"Erro ao criar perfil: {str(profile_error)}")
+            # Mesmo se falhar a criação do perfil, o usuário já foi criado na autenticação
+            # então retornamos os dados do usuário
         
         # Retornar a resposta
         return {
-            "id": auth_user.get("id", ""),
+            "id": user_id,
             "name": user.name,
             "email": user.email,
             "phone": user.phone,
@@ -88,4 +128,4 @@ async def login(email: EmailStr = Body(...),
         raise HTTPException(
             status_code=401,
             detail="Credenciais inválidas"
-        ) 
+        )

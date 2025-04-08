@@ -1,0 +1,34 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Regra para Criação de Pastas/Arquivos no Terminal
+
+## Problema:
+Comandos como `mkdir -p` (estilo Unix) ou múltiplas pastas em uma única linha não funcionam no PowerShell do Windows.
+
+## Solução:
+Sempre gerar comandos individuais para cada pasta/arquivo, usando a sintaxe correta do PowerShell.
+
+### Exemplo Correto:
+```powershell
+# Criar pastas individualmente
+mkdir backend -Force
+mkdir backend/app -Force
+mkdir backend/app/api -Force
+mkdir backend/app/core -Force
+mkdir backend/app/db -Force
+mkdir backend/app/models -Force
+
+# Criar arquivos
+New-Item -Path "backend/app/main.py" -ItemType File
+New-Item -Path "backend/app/__init__.py" -ItemType File
+
+### Observações:
+- Substitua os nomes de pastas/arquivos conforme sua necessidade.
+- Se precisar criar vários arquivos, liste cada um em um comando separado.
+- Para ambientes Linux, ajuste a sintaxe para usar `mkdir -p` e `/` em vez de `\`.
+
+Isso garantirá que os comandos gerados sejam executáveis diretamente no seu terminal do Windows sem erros
