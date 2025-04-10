@@ -1,6 +1,4 @@
-# FinanceAI
-
-O **FinanceAI** éum sistema com  **FastAPI** com **Supabase** no backend. Este projeto foi desenvolvido para fornecer uma interface de autenticação robusta e segura, permitindo o registro e login de usuários.
+  **FastAPI** com **Supabase** no backend. Este projeto foi desenvolvido para fornecer uma interface de autenticação robusta e segura, permitindo o registro e login de usuários.
 
 ## Estrutura do Projeto~
 
