@@ -12,7 +12,7 @@ class AnimalCreate(BaseModel):
 
 class AnimalResponse(BaseModel):
     id: UUID4
-    clinics_id: UUID4
+    clinic_id: UUID4
     name: str
     species: str
     breed: Optional[str] = None

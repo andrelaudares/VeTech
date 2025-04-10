@@ -16,6 +16,11 @@ class SupabaseClient:
     async def _request(self, method, endpoint, json=None, params=None):
         url = f"{self.url}{endpoint}"
         print(f"Fazendo requisição {method} para {url}")
+        print(f"Headers: {self.headers}")
+        if params:
+            print(f"Params: {params}")
+        if json:
+            print(f"JSON: {json}")
         
         async with httpx.AsyncClient() as client:
             try:
@@ -100,6 +105,11 @@ class SupabaseClient:
         if filters:
             for key, value in filters.items():
                 params[key] = value
+        
+        url = f"{self.url}/rest/v1/{table}"
+        print(f"Fazendo consulta para URL: {url}")
+        print(f"Parâmetros: {params}")
+        
         return await self._request("GET", f"/rest/v1/{table}", params=params)
 
     async def get_by_eq(self, table, column, value, select="*"):

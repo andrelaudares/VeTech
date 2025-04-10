@@ -16,16 +16,16 @@ async def create_animal(
     # Recebe os dados do animal do corpo da requisição
     animal: AnimalCreate = Body(...), 
     # Recebe clinics_id como parâmetro de query obrigatório
-    clinics_id: UUID = Query(..., description="ID da clínica que está cadastrando o animal")
+    clinic_id: UUID = Query(..., description="ID da clínica que está cadastrando o animal")
 ) -> Dict[str, Any]:
-    logger.info(f"Requisição recebida para criar animal para clinic_id: {clinics_id}")
+    logger.info(f"Requisição recebida para criar animal para clinic_id: {clinic_id}")
     logger.info(f"Dados do animal recebidos: {animal.model_dump()}")
     
     try:
         # Preparar os dados do animal para inserção
         # Garantindo que apenas os campos esperados pela tabela `animals` (com clinics_id) sejam enviados
         animal_data = {
-            "clinics_id": str(clinics_id),  # ID da clínica logada
+            "clinic_id": str(clinic_id),  # ID da clínica logada
             "name": animal.name,
             "species": animal.species,
             "breed": animal.breed,
