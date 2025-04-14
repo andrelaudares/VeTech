@@ -10,6 +10,15 @@ class AnimalCreate(BaseModel):
     weight: Optional[float] = None
     medical_history: Optional[str] = None
 
+# Novo modelo para atualização, permitindo campos opcionais
+class AnimalUpdate(BaseModel):
+    name: Optional[str] = None
+    species: Optional[str] = None
+    breed: Optional[str] = None
+    age: Optional[int] = None
+    weight: Optional[float] = None
+    medical_history: Optional[str] = None
+
 class AnimalResponse(BaseModel):
     id: UUID4
     clinic_id: UUID4

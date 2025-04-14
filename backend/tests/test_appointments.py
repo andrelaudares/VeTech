@@ -41,7 +41,9 @@ def test_create_appointment(appointment_data):
     data = response.json()
     assert data["animal_id"] == ANIMAL_ID
     assert data["clinic_id"] == CLINIC_ID
-    return data["id"]  # Retorna o ID para usar em outros testes
+    # return data["id"]  # Comentado ou removido - Testes não devem retornar valores
+    # Para usar o ID em outros testes, vamos salvá-lo em uma variável de fixture ou global
+    # Por simplicidade agora, vamos apenas criar e verificar
 
 def test_get_appointments():
     """Testa a listagem de agendamentos"""

@@ -101,6 +101,62 @@ Cadastra um novo animal vinculado a uma clínica.
   ```
 - `500 Internal Server Error`: Erro ao criar animal
 
+### `PATCH /api/v1/animals/{animal_id}`
+
+Atualiza um animal existente.
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Query Parameters:**
+- `clinic_id`: ID UUID da clínica (obrigatório)
+
+**Request Body:**
+```json
+{
+  "name": "Rex Atualizado",
+  "breed": "Labrador Retriever",
+  "age": 6,
+  "weight": 26.0,
+  "medical_history": "Atualização do histórico médico."
+}
+```
+
+**Responses:**
+- `200 OK`: Animal atualizado com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "clinics_id": "uuid",
+    "name": "Rex Atualizado",
+    "species": "Cachorro",
+    "breed": "Labrador Retriever",
+    "age": 6,
+    "weight": 26.0,
+    "medical_history": "Atualização do histórico médico.",
+    "created_at": "2023-04-07T23:50:00.000Z",
+    "updated_at": "2023-04-08T11:00:00.000Z"
+  }
+  ```
+- `400 Bad Request`: Nenhum dado fornecido para atualização
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao atualizar animal
+
+### `DELETE /api/v1/animals/{animal_id}`
+
+Remove um animal pelo ID.
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Query Parameters:**
+- `clinic_id`: ID UUID da clínica (obrigatório)
+
+**Responses:**
+- `204 No Content`: Animal removido com sucesso.
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao deletar animal
+
 ## Agendamentos
 
 ### `POST /api/v1/appointments`
@@ -259,4 +315,113 @@ Atualiza um agendamento existente.
   ```
 - `400 Bad Request`: Horário já ocupado ou dados inválidos
 - `404 Not Found`: Agendamento não encontrado ou não pertence à clínica
-- `500 Internal Server Error`: Erro ao atualizar agendamento 
+- `500 Internal Server Error`: Erro ao atualizar agendamento
+
+## Consultas
+
+### `POST /api/v1/consultations`
+
+Cria uma nova consulta para um animal.
+
+**Query Parameters:**
+- `clinic_id`: ID UUID da clínica que está criando a consulta (obrigatório)
+
+**Request Body:**
+```json
+{
+  "animal_id": "uuid",
+  "description": "Consulta inicial, exame físico completo.",
+  "date": "2023-10-26T10:00:00Z" // Opcional, padrão para data/hora atual
+}
+```
+
+**Responses:**
+- `200 OK`: Consulta criada com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "clinic_id": "uuid",
+    "animal_id": "uuid",
+    "date": "2023-10-26T10:00:00Z",
+    "description": "Consulta inicial, exame físico completo.",
+    "created_at": "2023-10-26T10:00:00Z",
+    "updated_at": "2023-10-26T10:00:00Z"
+  }
+  ```
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao criar consulta
+
+### `GET /api/v1/consultations`
+
+Obtém todas as consultas de uma clínica, opcionalmente filtradas por animal.
+
+**Query Parameters:**
+- `clinic_id`: ID UUID da clínica (obrigatório)
+- `animal_id`: Filtrar consultas por ID do animal (opcional)
+
+**Responses:**
+- `200 OK`: Lista de consultas
+  ```json
+  [
+    {
+      "id": "uuid",
+      "clinic_id": "uuid",
+      "animal_id": "uuid",
+      "date": "2023-10-26T10:00:00Z",
+      "description": "Consulta inicial, exame físico completo.",
+      "created_at": "2023-10-26T10:00:00Z",
+      "updated_at": "2023-10-26T10:00:00Z"
+    }
+  ]
+  ```
+- `500 Internal Server Error`: Erro ao buscar consultas
+
+### `PATCH /api/v1/consultations/{consultation_id}`
+
+Atualiza uma consulta existente.
+
+**Path Parameters:**
+- `consultation_id`: ID UUID da consulta (obrigatório)
+
+**Query Parameters:**
+- `clinic_id`: ID UUID da clínica (obrigatório)
+
+**Request Body:**
+```json
+{
+  "description": "Atualização da descrição da consulta.",
+  "date": "2023-10-27T11:00:00Z"
+}
+```
+
+**Responses:**
+- `200 OK`: Consulta atualizada com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "clinic_id": "uuid",
+    "animal_id": "uuid",
+    "date": "2023-10-27T11:00:00Z",
+    "description": "Atualização da descrição da consulta.",
+    "created_at": "2023-10-26T10:00:00Z",
+    "updated_at": "2023-10-27T11:00:00Z"
+  }
+  ```
+- `400 Bad Request`: Nenhum dado fornecido para atualização
+- `404 Not Found`: Consulta não encontrada ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao atualizar consulta
+
+### `DELETE /api/v1/consultations/{consultation_id}`
+
+Remove uma consulta pelo ID.
+
+**Path Parameters:**
+- `consultation_id`: ID UUID da consulta (obrigatório)
+
+**Query Parameters:**
+- `clinic_id`: ID UUID da clínica (obrigatório)
+
+**Responses:**
+- `204 No Content`: Consulta removida com sucesso.
+- `404 Not Found`: Consulta não encontrada ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao deletar consulta 
