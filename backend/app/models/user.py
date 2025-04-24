@@ -16,6 +16,10 @@ class UserResponse(BaseModel):
     phone: str
     created_at: Optional[datetime] = None
 
+class ClinicProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    phone: Optional[str] = Field(None, min_length=10, max_length=15)
+
 def hash_password(password: str) -> str:
     """Gera o hash da senha usando bcrypt"""
     salt = bcrypt.gensalt()
