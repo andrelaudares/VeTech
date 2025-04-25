@@ -651,4 +651,628 @@ Remove uma consulta pelo ID.
 **Responses:**
 - `204 No Content`: Consulta removida com sucesso.
 - `404 Not Found`: Consulta não encontrada ou não pertence à clínica
-- `500 Internal Server Error`: Erro ao deletar consulta 
+- `500 Internal Server Error`: Erro ao deletar consulta
+
+## Nutrição e Dietas
+
+### `POST /api/v1/animals/{animal_id}/diets`
+
+Cria um plano de dieta para um animal.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Request Body:**
+```json
+{
+  "tipo": "ração",
+  "objetivo": "Emagrecimento",
+  "peso_atual_pet": 25.5,
+  "idade_pet": 5,
+  "raca_pet": "Labrador",
+  "tamanho_pet": "grande",
+  "observacoes": "Animal com sobrepeso, precisa reduzir calorias diárias",
+  "data_inicio": "2023-08-01",
+  "data_fim": "2023-10-01",
+  "status": "ativa"
+}
+```
+
+**Responses:**
+- `200 OK`: Dieta criada com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "pet_id": "uuid",
+    "clinica_id": "uuid",
+    "tipo": "ração",
+    "objetivo": "Emagrecimento",
+    "peso_atual_pet": 25.5,
+    "idade_pet": 5,
+    "raca_pet": "Labrador",
+    "tamanho_pet": "grande",
+    "observacoes": "Animal com sobrepeso, precisa reduzir calorias diárias",
+    "data_inicio": "2023-08-01",
+    "data_fim": "2023-10-01",
+    "status": "ativa",
+    "created_at": "2023-08-01T10:00:00.000Z",
+    "updated_at": "2023-08-01T10:00:00.000Z",
+    "opcoes_dieta": []
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao criar dieta
+
+### `GET /api/v1/animals/{animal_id}/diets`
+
+Lista todas as dietas de um animal.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Responses:**
+- `200 OK`: Lista de dietas
+  ```json
+  [
+    {
+      "id": "uuid",
+      "pet_id": "uuid",
+      "clinica_id": "uuid",
+      "tipo": "ração",
+      "objetivo": "Emagrecimento",
+      "peso_atual_pet": 25.5,
+      "idade_pet": 5,
+      "raca_pet": "Labrador",
+      "tamanho_pet": "grande",
+      "observacoes": "Animal com sobrepeso, precisa reduzir calorias diárias",
+      "data_inicio": "2023-08-01",
+      "data_fim": "2023-10-01",
+      "status": "ativa",
+      "created_at": "2023-08-01T10:00:00.000Z",
+      "updated_at": "2023-08-01T10:00:00.000Z",
+      "opcoes_dieta": [
+        {
+          "id": "uuid",
+          "dieta_id": "uuid",
+          "nome": "Ração Premium Light",
+          "valor_mensal_estimado": 300.0,
+          "calorias_totais_dia": 1200,
+          "porcao_refeicao": "200g por refeição",
+          "refeicoes_por_dia": 2,
+          "indicacao": "Recomendada para cães com sobrepeso",
+          "created_at": "2023-08-01T10:05:00.000Z",
+          "updated_at": "2023-08-01T10:05:00.000Z"
+        }
+      ]
+    }
+  ]
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `500 Internal Server Error`: Erro ao listar dietas
+
+### `GET /api/v1/diets/{diet_id}`
+
+Obtém detalhes de uma dieta específica.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `diet_id`: ID UUID da dieta (obrigatório)
+
+**Responses:**
+- `200 OK`: Detalhes da dieta
+  ```json
+  {
+    "id": "uuid",
+    "pet_id": "uuid",
+    "clinica_id": "uuid",
+    "tipo": "ração",
+    "objetivo": "Emagrecimento",
+    "peso_atual_pet": 25.5,
+    "idade_pet": 5,
+    "raca_pet": "Labrador",
+    "tamanho_pet": "grande",
+    "observacoes": "Animal com sobrepeso, precisa reduzir calorias diárias",
+    "data_inicio": "2023-08-01",
+    "data_fim": "2023-10-01",
+    "status": "ativa",
+    "created_at": "2023-08-01T10:00:00.000Z",
+    "updated_at": "2023-08-01T10:00:00.000Z",
+    "opcoes_dieta": [
+      {
+        "id": "uuid",
+        "dieta_id": "uuid",
+        "nome": "Ração Premium Light",
+        "valor_mensal_estimado": 300.0,
+        "calorias_totais_dia": 1200,
+        "porcao_refeicao": "200g por refeição",
+        "refeicoes_por_dia": 2,
+        "indicacao": "Recomendada para cães com sobrepeso",
+        "created_at": "2023-08-01T10:05:00.000Z",
+        "updated_at": "2023-08-01T10:05:00.000Z"
+      }
+    ]
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Dieta não encontrada
+- `500 Internal Server Error`: Erro ao obter dieta
+
+### `PUT /api/v1/diets/{diet_id}`
+
+Atualiza uma dieta existente.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `diet_id`: ID UUID da dieta (obrigatório)
+
+**Request Body:**
+```json
+{
+  "tipo": "caseira",
+  "objetivo": "Manutenção",
+  "observacoes": "Dieta atualizada para manutenção de peso",
+  "status": "finalizada"
+}
+```
+
+**Responses:**
+- `200 OK`: Dieta atualizada com sucesso (com estrutura idêntica à resposta GET)
+- `400 Bad Request`: Nenhum dado fornecido para atualização
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Dieta não encontrada ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao atualizar dieta
+
+### `DELETE /api/v1/diets/{diet_id}`
+
+Remove uma dieta pelo ID.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `diet_id`: ID UUID da dieta (obrigatório)
+
+**Responses:**
+- `200 OK`: Dieta removida com sucesso
+  ```json
+  {
+    "message": "Dieta removida com sucesso"
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Dieta não encontrada ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao remover dieta
+
+### `POST /api/v1/diets/{diet_id}/options`
+
+Adiciona uma opção de dieta a um plano.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `diet_id`: ID UUID da dieta (obrigatório)
+
+**Request Body:**
+```json
+{
+  "nome": "Ração Premium Light",
+  "valor_mensal_estimado": 300.0,
+  "calorias_totais_dia": 1200,
+  "porcao_refeicao": "200g por refeição",
+  "refeicoes_por_dia": 2,
+  "indicacao": "Recomendada para cães com sobrepeso"
+}
+```
+
+**Responses:**
+- `200 OK`: Opção de dieta criada com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "dieta_id": "uuid",
+    "nome": "Ração Premium Light",
+    "valor_mensal_estimado": 300.0,
+    "calorias_totais_dia": 1200,
+    "porcao_refeicao": "200g por refeição",
+    "refeicoes_por_dia": 2,
+    "indicacao": "Recomendada para cães com sobrepeso",
+    "created_at": "2023-08-01T10:05:00.000Z",
+    "updated_at": "2023-08-01T10:05:00.000Z"
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Dieta não encontrada ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao criar opção de dieta
+
+### `POST /api/v1/animals/{animal_id}/restricted-foods`
+
+Adiciona um alimento que o pet deve evitar.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Request Body:**
+```json
+{
+  "nome": "Chocolate",
+  "motivo": "Tóxico para cães"
+}
+```
+
+**Responses:**
+- `200 OK`: Alimento a evitar adicionado com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "pet_id": "uuid",
+    "nome": "Chocolate",
+    "motivo": "Tóxico para cães",
+    "created_at": "2023-08-01T10:10:00.000Z",
+    "updated_at": "2023-08-01T10:10:00.000Z"
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao adicionar alimento a evitar
+
+### `GET /api/v1/animals/{animal_id}/restricted-foods`
+
+Lista todos os alimentos que o pet deve evitar.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Responses:**
+- `200 OK`: Lista de alimentos a evitar
+  ```json
+  [
+    {
+      "id": "uuid",
+      "pet_id": "uuid",
+      "nome": "Chocolate",
+      "motivo": "Tóxico para cães",
+      "created_at": "2023-08-01T10:10:00.000Z",
+      "updated_at": "2023-08-01T10:10:00.000Z"
+    }
+  ]
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao listar alimentos a evitar
+
+### `POST /api/v1/animals/{animal_id}/snacks`
+
+Adiciona um snack permitido entre refeições.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Request Body:**
+```json
+{
+  "nome": "Bifinho de Frango",
+  "frequencia_semanal": 3,
+  "quantidade": "1 unidade",
+  "observacoes": "Dar após exercícios"
+}
+```
+
+**Responses:**
+- `200 OK`: Snack adicionado com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "pet_id": "uuid",
+    "nome": "Bifinho de Frango",
+    "frequencia_semanal": 3,
+    "quantidade": "1 unidade",
+    "observacoes": "Dar após exercícios",
+    "created_at": "2023-08-01T10:15:00.000Z",
+    "updated_at": "2023-08-01T10:15:00.000Z"
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao adicionar snack
+
+### `GET /api/v1/animals/{animal_id}/snacks`
+
+Lista todos os snacks permitidos entre refeições.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Responses:**
+- `200 OK`: Lista de snacks
+  ```json
+  [
+    {
+      "id": "uuid",
+      "pet_id": "uuid",
+      "nome": "Bifinho de Frango",
+      "frequencia_semanal": 3,
+      "quantidade": "1 unidade",
+      "observacoes": "Dar após exercícios",
+      "created_at": "2023-08-01T10:15:00.000Z",
+      "updated_at": "2023-08-01T10:15:00.000Z"
+    }
+  ]
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `500 Internal Server Error`: Erro ao listar snacks
+
+### `POST /api/v1/diet-options/{option_id}/foods`
+
+Adiciona um alimento a uma opção de dieta.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `option_id`: ID UUID da opção de dieta (obrigatório)
+
+**Request Body:**
+```json
+{
+  "nome": "Ração Premium Light",
+  "tipo": "ração",
+  "quantidade": "200g",
+  "calorias": 600,
+  "horario": "Manhã"
+}
+```
+
+**Responses:**
+- `200 OK`: Alimento adicionado com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "opcao_dieta_id": "uuid",
+    "nome": "Ração Premium Light",
+    "tipo": "ração",
+    "quantidade": "200g",
+    "calorias": 600,
+    "horario": "Manhã",
+    "created_at": "2023-08-01T10:20:00.000Z",
+    "updated_at": "2023-08-01T10:20:00.000Z"
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `403 Forbidden`: Acesso negado a esta opção de dieta
+- `404 Not Found`: Opção de dieta não encontrada
+- `500 Internal Server Error`: Erro ao adicionar alimento
+
+### `GET /api/v1/diet-options/{option_id}/foods`
+
+Lista todos os alimentos de uma opção de dieta.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `option_id`: ID UUID da opção de dieta (obrigatório)
+
+**Responses:**
+- `200 OK`: Lista de alimentos
+  ```json
+  [
+    {
+      "id": "uuid",
+      "opcao_dieta_id": "uuid",
+      "nome": "Ração Premium Light",
+      "tipo": "ração",
+      "quantidade": "200g",
+      "calorias": 600,
+      "horario": "Manhã",
+      "created_at": "2023-08-01T10:20:00.000Z",
+      "updated_at": "2023-08-01T10:20:00.000Z"
+    }
+  ]
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `403 Forbidden`: Acesso negado a esta opção de dieta
+- `404 Not Found`: Opção de dieta não encontrada
+- `500 Internal Server Error`: Erro ao listar alimentos
+
+### `DELETE /api/v1/diet-options/{option_id}`
+
+Remove uma opção de dieta específica.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `option_id`: ID UUID da opção de dieta (obrigatório)
+
+**Responses:**
+- `204 No Content`: Opção de dieta removida com sucesso.
+- `401 Unauthorized`: Token inválido ou ausente
+- `403 Forbidden`: Acesso negado a esta opção de dieta
+- `404 Not Found`: Opção de dieta não encontrada
+- `500 Internal Server Error`: Erro ao remover opção de dieta
+
+### `PUT /api/v1/animals/{animal_id}/restricted-foods/{food_id}`
+
+Atualiza um alimento que o pet deve evitar.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+- `food_id`: ID UUID do alimento a evitar (obrigatório)
+
+**Request Body:**
+```json
+{
+  "nome": "Cebola",
+  "motivo": "Altamente tóxico para cães e gatos"
+}
+```
+
+**Responses:**
+- `200 OK`: Alimento atualizado com sucesso (estrutura idêntica à resposta GET)
+- `400 Bad Request`: Nenhum dado fornecido para atualização
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal ou alimento a evitar não encontrado
+- `500 Internal Server Error`: Erro ao atualizar alimento a evitar
+
+### `DELETE /api/v1/animals/{animal_id}/restricted-foods/{food_id}`
+
+Remove um alimento que o pet deve evitar.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+- `food_id`: ID UUID do alimento a evitar (obrigatório)
+
+**Responses:**
+- `204 No Content`: Alimento removido com sucesso.
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal ou alimento a evitar não encontrado
+- `500 Internal Server Error`: Erro ao remover alimento a evitar
+
+### `PUT /api/v1/animals/{animal_id}/snacks/{snack_id}`
+
+Atualiza um snack permitido.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+- `snack_id`: ID UUID do snack (obrigatório)
+
+**Request Body:**
+```json
+{
+  "frequencia_semanal": 2,
+  "quantidade": "Meio bifinho",
+  "observacoes": "Dar apenas após caminhadas longas"
+}
+```
+
+**Responses:**
+- `200 OK`: Snack atualizado com sucesso (estrutura idêntica à resposta GET)
+- `400 Bad Request`: Nenhum dado fornecido para atualização
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal ou snack não encontrado
+- `500 Internal Server Error`: Erro ao atualizar snack
+
+### `DELETE /api/v1/animals/{animal_id}/snacks/{snack_id}`
+
+Remove um snack permitido.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+- `snack_id`: ID UUID do snack (obrigatório)
+
+**Responses:**
+- `204 No Content`: Snack removido com sucesso.
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Animal ou snack não encontrado
+- `500 Internal Server Error`: Erro ao remover snack
+
+### `PUT /api/v1/diet-foods/{food_id}`
+
+Atualiza um alimento de uma opção de dieta.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `food_id`: ID UUID do alimento (obrigatório)
+
+**Request Body:**
+```json
+{
+  "quantidade": "250g",
+  "calorias": 700,
+  "horario": "Manhã e Noite"
+}
+```
+
+**Responses:**
+- `200 OK`: Alimento atualizado com sucesso (estrutura idêntica à resposta GET)
+- `400 Bad Request`: Nenhum dado fornecido para atualização
+- `401 Unauthorized`: Token inválido ou ausente
+- `403 Forbidden`: Acesso negado a este alimento
+- `404 Not Found`: Alimento não encontrado
+- `500 Internal Server Error`: Erro ao atualizar alimento
+
+### `DELETE /api/v1/diet-foods/{food_id}`
+
+Remove um alimento de uma opção de dieta.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `food_id`: ID UUID do alimento (obrigatório)
+
+**Responses:**
+- `204 No Content`: Alimento removido com sucesso.
+- `401 Unauthorized`: Token inválido ou ausente
+- `403 Forbidden`: Acesso negado a este alimento
+- `404 Not Found`: Alimento não encontrado
+- `500 Internal Server Error`: Erro ao remover alimento
+
+### `GET /api/v1/diet-foods/{food_id}`
+
+Obtém detalhes de um alimento de uma opção de dieta.
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `food_id`: ID UUID do alimento (obrigatório)
+
+**Responses:**
+- `200 OK`: Detalhes do alimento
+  ```json
+  {
+    "id": "uuid",
+    "opcao_dieta_id": "uuid",
+    "nome": "Ração Premium Light",
+    "tipo": "ração",
+    "quantidade": "250g",
+    "calorias": 700,
+    "horario": "Manhã e Noite",
+    "created_at": "2023-08-01T10:20:00.000Z",
+    "updated_at": "2023-08-01T10:20:00.000Z"
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `403 Forbidden`: Acesso negado a este alimento
+- `404 Not Found`: Alimento não encontrado
+- `500 Internal Server Error`: Erro ao obter detalhes do alimento 

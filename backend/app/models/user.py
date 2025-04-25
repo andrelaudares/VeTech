@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 import bcrypt
 
@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)  # Mantemos para validação, mas não será armazenado
     phone: str = Field(..., min_length=10, max_length=15)
+    subscription_tier: Literal["basic", "premium", "enterprise"] = "basic"
 
 class UserResponse(BaseModel):
     id: str

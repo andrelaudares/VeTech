@@ -93,9 +93,16 @@ class SupabaseClient:
         try:
             print(f"Inserindo na tabela {table}: {data}")
             result = await self._request("POST", f"/rest/v1/{table}", json=data)
+            print(f"Resultado da inserção: {result}")
             if isinstance(result, list):
                 return result[0] if result else None
             return result
+        except httpx.HTTPError as e:
+            error_msg = f"Erro HTTP ao inserir dados na tabela {table}: {str(e)}"
+            if hasattr(e, 'response') and e.response is not None:
+                error_msg += f" | Resposta: {e.response.text}"
+            print(error_msg)
+            raise
         except Exception as e:
             print(f"Erro ao inserir dados na tabela {table}: {str(e)}")
             raise

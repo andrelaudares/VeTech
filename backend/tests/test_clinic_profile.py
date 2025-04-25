@@ -11,6 +11,41 @@ API_URL = "http://127.0.0.1:8000/api/v1"
 LOGIN_EMAIL = "andrelaudares@hotmail.com"  # Substitua por email válido
 LOGIN_PASSWORD = "123456"  # Substitua por senha válida
 
+def test_register():
+    """Testa o registro de uma nova clínica"""
+    
+    # Gerar email único para evitar conflitos
+    unique_id = uuid.uuid4().hex[:8]
+    email = f"test_{unique_id}@example.com"
+    
+    # Dados para registro
+    register_data = {
+        "name": "Clínica Teste Automatizado",
+        "email": email,
+        "password": "123456",
+        "phone": "1199999999999",
+        "subscription_tier": "basic"
+    }
+    
+    # Fazendo a requisição POST para registro
+    print(f"\n🔍 Tentando registrar clínica com email: {email}")
+    response = requests.post(
+        f"{API_URL}/auth/register",
+        json=register_data
+    )
+    
+    # Mostrar detalhes da resposta para diagnóstico
+    print(f"Status: {response.status_code}")
+    print(f"Resposta: {response.text}")
+    
+    # Verificando se a requisição foi bem-sucedida
+    if response.status_code == 201 or response.status_code == 200:
+        print("✅ Registro realizado com sucesso!")
+        return True
+    else:
+        print(f"❌ Erro ao fazer registro: {response.status_code}")
+        return False
+
 def test_login():
     """Testa o login da clínica e retorna o token para os outros testes"""
     
@@ -31,9 +66,20 @@ def test_login():
         print("✅ Login realizado com sucesso!")
         data = response.json()
         
-        # Mostrar dados básicos do usuário (sem exibir o token completo)
-        print(f"Nome: {data.get('name')}")
-        print(f"Email: {data.get('email')}")
+        # Mostrar dados completos da resposta
+        print("\nResposta completa:")
+        print(json.dumps(data, indent=2))
+
+        # Informações específicas para verificação
+        print("\nInformações principais:")
+        print(f"Token: {data.get('access_token', 'NÃO ENCONTRADO')}")
+        print(f"Token Type: {data.get('token_type', 'NÃO ENCONTRADO')}")
+        
+        # Dados da clínica
+        clinic = data.get('clinic', {})
+        print(f"ID da Clínica: {clinic.get('id', 'NÃO ENCONTRADO')}")
+        print(f"Nome: {clinic.get('name', 'NÃO ENCONTRADO')}")
+        print(f"Email: {clinic.get('email', 'NÃO ENCONTRADO')}")
         
         # Retornar o token de acesso para os próximos testes
         token = data.get("access_token", "")
@@ -146,4 +192,21 @@ def run_tests():
     print("\n🏁 Testes concluídos!")
 
 if __name__ == "__main__":
-    run_tests() 
+    print("Executando testes da API...")
+    
+    # Testar registro
+    print("\n🧪 TESTE DE REGISTRO:")
+    test_register()
+    
+    # Testar login
+    print("\n🧪 TESTE DE LOGIN:")
+    token = test_login()
+    
+    if token:
+        print(f"\n🔑 Token obtido com sucesso.")
+    else:
+        print("\n❌ Não foi possível obter token.")
+    
+    # Testar testes de perfil
+    if token:
+        run_tests() 
