@@ -310,10 +310,10 @@ async def update_appointment(
             # Buscar outros agendamentos no mesmo dia para a clínica do agendamento original
             if clinic_id:
                 other_appointments_response = await supabase_admin._request(
-                    "GET",
-                    f"/rest/v1/appointments?clinic_id=eq.{str(clinic_id)}&date=eq.{new_date}&status=eq.scheduled&select=*"
-                )
-                
+                "GET",
+                f"/rest/v1/appointments?clinic_id=eq.{str(clinic_id)}&date=eq.{new_date}&status=eq.scheduled&select=*"
+            )
+            
                 # Tratar a resposta
                 other_appointments = []
                 if isinstance(other_appointments_response, list):
@@ -321,10 +321,10 @@ async def update_appointment(
                 elif isinstance(other_appointments_response, dict) and 'data' in other_appointments_response and isinstance(other_appointments_response['data'], list):
                     other_appointments = other_appointments_response['data']
                 
-                # Verificar conflitos
-                for app in other_appointments:
-                    if app["id"] == str(appointment_id):
-                        continue  # Pular o próprio agendamento
+            # Verificar conflitos
+            for app in other_appointments:
+                if app["id"] == str(appointment_id):
+                    continue  # Pular o próprio agendamento
                     
                     # Verificar se end_time existe e não é nulo em ambos os registros
                     app_end_time = app.get("end_time")
@@ -341,7 +341,7 @@ async def update_appointment(
                     # Verificação normal de conflito quando ambos end_time estão presentes
                     if (app["start_time"] <= new_end and app_end_time >= new_start):
                         logger.warning(f"Horário {new_start}-{new_end} conflita com agendamento existente {app['id']}")
-                        raise HTTPException(status_code=400, detail="Horário conflita com outro agendamento")
+                    raise HTTPException(status_code=400, detail="Horário conflita com outro agendamento")
         
         # Atualizar
         update_response = await supabase_admin._request(
@@ -378,7 +378,7 @@ async def update_appointment(
         if not updated or len(updated) == 0:
             logger.error(f"Agendamento {appointment_id} não encontrado após atualização")
             raise HTTPException(status_code=500, detail="Erro ao buscar agendamento atualizado")
-        
+            
         logger.info(f"Agendamento {appointment_id} atualizado com sucesso: {updated[0]}")
         return updated[0]
         

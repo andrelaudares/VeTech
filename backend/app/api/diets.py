@@ -479,19 +479,59 @@ async def create_restricted_food(
         # Criar alimento restrito
         food_data = {
             "animal_id": str(animal_id),
-            "nome": food.nome,
+            "name": food.nome,  # Ajustado de "nome" para "name" conforme schema do banco
             "motivo": food.motivo
         }
         
-        foods_response = await supabase_admin._request(
-            "POST",
-            "/rest/v1/alimentos_evitar",
-            json=food_data
-        )
+        # Adicionando cabeçalho Prefer para retornar representação
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
         
-        foods = supabase_admin.process_response(foods_response, single_item=True)
+        try:
+            # Primeiro, tente com 'name'
+            foods_response = await supabase_admin._request(
+                "POST",
+                "/rest/v1/alimentos_evitar",
+                json=food_data,
+                headers=headers
+            )
+            
+            foods = supabase_admin.process_response(foods_response, single_item=True)
+            if not foods:
+                raise Exception("Resposta vazia")
+                
+        except Exception as post_error:
+            print(f"Tentativa com 'name' falhou: {str(post_error)}")
+            
+            # Se falhar, tente com 'nome'
+            food_data = {
+                "animal_id": str(animal_id),
+                "nome": food.nome,  # Tente com "nome"
+                "motivo": food.motivo
+            }
+            
+            foods_response = await supabase_admin._request(
+                "POST",
+                "/rest/v1/alimentos_evitar",
+                json=food_data,
+                headers=headers
+            )
+            
+            foods = supabase_admin.process_response(foods_response, single_item=True)
+        
         if not foods:
-            raise HTTPException(status_code=500, detail="Erro ao criar registro de alimento a evitar")
+            # Se ainda não tiver resultado, verifique se foi criado mesmo assim
+            check_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/alimentos_evitar?animal_id=eq.{animal_id}&nome=eq.{food.nome}",
+                headers=supabase_admin.admin_headers
+            )
+            
+            check_result = supabase_admin.process_response(check_response)
+            if check_result and len(check_result) > 0:
+                return check_result[0]
+            
+            raise HTTPException(status_code=500, detail="Erro ao criar registro de alimento a evitar: resposta vazia")
             
         return foods
         
@@ -536,14 +576,15 @@ async def list_restricted_foods(
         print(f"Erro ao listar alimentos a evitar: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao listar alimentos a evitar: {str(e)}")
 
-@router.put("/restricted-foods/{food_id}", response_model=RestrictedFoodResponse)
+@router.put("/animals/{animal_id}/restricted-foods/{food_id}", response_model=RestrictedFoodResponse)
 async def update_restricted_food(
+    animal_id: UUID,
     food_id: UUID,
-    food_update: RestrictedFoodUpdate,
+    food: RestrictedFoodUpdate,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Atualiza um registro de alimento a ser evitado.
+    Atualiza um alimento na lista de alimentos restritos para um animal.
     """
     try:
         # Verificar se o usuário está autenticado
@@ -551,79 +592,7 @@ async def update_restricted_food(
         if not clinic_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
             
-        # Verificar se o alimento restrito existe
-        food_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_evitar?id=eq.{food_id}"
-        )
-        
-        food_data = supabase_admin.process_response(food_response)
-        if not food_data:
-            raise HTTPException(status_code=404, detail="Alimento restrito não encontrado")
-            
-        # Verificar se o animal pertence à clínica
-        animal_id = food_data[0].get("animal_id") if isinstance(food_data, list) else food_data.get("animal_id")
-        animal_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}"
-        )
-        
-        animal_data = supabase_admin.process_response(animal_response)
-        if not animal_data:
-            raise HTTPException(status_code=403, detail="Acesso negado: animal não pertence a esta clínica")
-            
-        # Preparar dados para atualização
-        update_data = food_update.dict(exclude_unset=True)
-        
-        # Atualizar o alimento restrito
-        updated_response = await supabase_admin._request(
-            "PATCH",
-            f"/rest/v1/alimentos_evitar?id=eq.{food_id}",
-            json=update_data
-        )
-        
-        # Buscar o alimento atualizado
-        result_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_evitar?id=eq.{food_id}"
-        )
-        
-        updated_food = supabase_admin.process_response(result_response, single_item=True)
-        if not updated_food:
-            raise HTTPException(status_code=404, detail="Alimento restrito não encontrado após atualização")
-            
-        return updated_food
-        
-    except Exception as e:
-        print(f"Erro ao atualizar alimento restrito: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar alimento restrito: {str(e)}")
-
-@router.delete("/restricted-foods/{food_id}", status_code=204)
-async def delete_restricted_food(
-    food_id: UUID,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> None:
-    """
-    Remove um alimento restrito.
-    """
-    try:
-        # Verificar autenticação
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se o alimento existe
-        food_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_evitar?id=eq.{food_id}"
-        )
-        
-        foods = supabase_admin.process_response(food_response)
-        if not foods:
-            raise HTTPException(status_code=404, detail="Alimento restrito não encontrado")
-            
-        # Verificar se o animal pertence à clínica
-        animal_id = foods[0].get("animal_id")
+        # Verificar se o animal existe e pertence à clínica
         animal_response = await supabase_admin._request(
             "GET",
             f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}"
@@ -631,18 +600,133 @@ async def delete_restricted_food(
         
         animals = supabase_admin.process_response(animal_response)
         if not animals:
-            raise HTTPException(status_code=403, detail="Acesso negado a este alimento restrito")
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence a esta clínica")
             
-        # Remover o alimento restrito
-        await supabase_admin._request(
-            "DELETE",
-            f"/rest/v1/alimentos_evitar?id=eq.{food_id}"
+        # Verificar se o alimento existe e pertence ao animal
+        food_response = await supabase_admin._request(
+            "GET", 
+            f"/rest/v1/alimentos_evitar?id=eq.{food_id}&animal_id=eq.{animal_id}"
         )
-        return None
+        
+        existing_food = supabase_admin.process_response(food_response)
+        if not existing_food:
+            raise HTTPException(
+                status_code=404, 
+                detail="Alimento restrito não encontrado ou não pertence a este animal"
+            )
+            
+        # Atualizar o alimento
+        food_data = {}
+        if food.nome is not None:
+            food_data["nome"] = food.nome
+        if food.motivo is not None:
+            food_data["motivo"] = food.motivo
+            
+        if not food_data:
+            raise HTTPException(
+                status_code=400, 
+                detail="Nenhum dado fornecido para atualização"
+            )
+            
+        # Adicionando cabeçalho Prefer para retornar representação
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+        
+        food_response = await supabase_admin._request(
+            "PATCH",
+            f"/rest/v1/alimentos_evitar?id=eq.{food_id}",
+            json=food_data,
+            headers=headers
+        )
+        
+        foods = supabase_admin.process_response(food_response, single_item=True)
+        if not foods:
+            raise HTTPException(
+                status_code=500, 
+                detail="Erro ao atualizar registro de alimento a evitar"
+            )
+            
+        return foods
         
     except Exception as e:
-        print(f"Erro ao remover alimento restrito: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao remover alimento restrito: {str(e)}")
+        print(f"Erro ao atualizar alimento a evitar: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro ao atualizar alimento a evitar: {str(e)}"
+        )
+
+@router.delete("/animals/{animal_id}/restricted-foods/{food_id}", response_model=RestrictedFoodResponse)
+async def delete_restricted_food(
+    animal_id: UUID,
+    food_id: UUID,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Remove um alimento da lista de alimentos restritos para um animal.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Verificar se o animal existe e pertence à clínica
+        animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}"
+        )
+        
+        animals = supabase_admin.process_response(animal_response)
+        if not animals:
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence a esta clínica")
+            
+        # Verificar se o alimento existe e pertence ao animal
+        food_response = await supabase_admin._request(
+            "GET", 
+            f"/rest/v1/alimentos_evitar?id=eq.{food_id}&animal_id=eq.{animal_id}"
+        )
+        
+        existing_food = supabase_admin.process_response(food_response)
+        if not existing_food:
+            raise HTTPException(
+                status_code=404, 
+                detail="Alimento restrito não encontrado ou não pertence a este animal"
+            )
+            
+        # Adicionando cabeçalho Prefer para retornar representação
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+        
+        # Excluir o alimento
+        food_response = await supabase_admin._request(
+            "DELETE",
+            f"/rest/v1/alimentos_evitar?id=eq.{food_id}",
+            headers=headers
+        )
+        
+        if not food_response:
+            # Verificar se o alimento ainda existe após a tentativa de exclusão
+            check_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/alimentos_evitar?id=eq.{food_id}",
+                headers=supabase_admin.admin_headers
+            )
+            
+            if supabase_admin.process_response(check_response):
+                raise HTTPException(
+                    status_code=500, 
+                    detail="Falha ao excluir o alimento restrito"
+                )
+        
+        # Retornar os dados do alimento que foi excluído
+        return existing_food[0]
+        
+    except Exception as e:
+        print(f"Erro ao excluir alimento a evitar: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro ao excluir alimento a evitar: {str(e)}"
+        )
 
 # Rotas para Snacks
 @router.post("/animals/{animal_id}/snacks", response_model=SnackResponse)
@@ -738,8 +822,9 @@ async def list_snacks(
         print(f"Erro ao listar snacks: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao listar snacks: {str(e)}")
 
-@router.put("/snacks/{snack_id}", response_model=SnackResponse)
+@router.put("/animals/{animal_id}/snacks/{snack_id}", response_model=SnackResponse)
 async def update_snack(
+    animal_id: UUID,
     snack_id: UUID,
     snack_update: SnackUpdate,
     current_user: Dict[str, Any] = Depends(get_current_user)
@@ -800,8 +885,9 @@ async def update_snack(
         print(f"Erro ao atualizar lanche: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar lanche: {str(e)}")
 
-@router.delete("/snacks/{snack_id}", status_code=204)
+@router.delete("/animals/{animal_id}/snacks/{snack_id}", status_code=204)
 async def delete_snack(
+    animal_id: UUID,
     snack_id: UUID,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> None:
