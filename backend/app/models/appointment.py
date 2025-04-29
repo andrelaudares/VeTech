@@ -5,7 +5,7 @@ from datetime import datetime, date, time
 class AppointmentBase(BaseModel):
     date: date
     start_time: time
-    end_time: time
+    end_time: Optional[time] = None
     description: Optional[str] = None
     status: str = "scheduled"  # scheduled, completed, cancelled
 

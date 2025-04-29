@@ -5,13 +5,8 @@ from datetime import datetime, date
 # Modelo para criação/atualização de dietas
 class DietCreate(BaseModel):
     """Modelo para criação de dietas para pets"""
-    animal_id: UUID4
     tipo: str = Field(..., description="'caseira' ou 'ração'")
     objetivo: str = Field(..., description="Ex: 'Emagrecimento', 'Doença Renal', 'Nutrição'")
-    peso_atual_pet: float
-    idade_pet: int
-    raca_pet: str
-    tamanho_pet: str = Field(..., description="'pequeno', 'médio', 'grande'")
     observacoes: Optional[str] = None
     data_inicio: date
     data_fim: Optional[date] = None
@@ -21,10 +16,6 @@ class DietUpdate(BaseModel):
     """Modelo para atualização de dietas para pets"""
     tipo: Optional[str] = None
     objetivo: Optional[str] = None
-    peso_atual_pet: Optional[float] = None
-    idade_pet: Optional[int] = None
-    raca_pet: Optional[str] = None
-    tamanho_pet: Optional[str] = None
     observacoes: Optional[str] = None
     data_inicio: Optional[date] = None
     data_fim: Optional[date] = None
@@ -145,10 +136,6 @@ class DietResponse(BaseModel):
     clinic_id: UUID4
     tipo: str
     objetivo: str
-    peso_atual_pet: float
-    idade_pet: int
-    raca_pet: str
-    tamanho_pet: str
     observacoes: Optional[str] = None
     data_inicio: date
     data_fim: Optional[date] = None

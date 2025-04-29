@@ -1,46 +1,99 @@
+import os
 import httpx
+import json
+from typing import Any, Dict, List, Optional
 from ..core.config import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY
 
 class SupabaseClient:
-    def __init__(self, use_service_key=False):
-        self.url = SUPABASE_URL
-        self.key = SUPABASE_SERVICE_KEY if use_service_key else SUPABASE_KEY
+    def __init__(self, url: str, key: str, service_key: Optional[str] = None):
+        self.url = url
+        self.key = key
+        self.service_key = service_key
         self.headers = {
-            "apikey": self.key,
-            "Authorization": f"Bearer {self.key}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"  # Isso garante que o Supabase retorne os dados inseridos
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json"
         }
-        print(f"Inicializando SupabaseClient com URL: {self.url}")
 
-    async def _request(self, method, endpoint, json=None, params=None):
+        if service_key:
+            self.admin_headers = {
+                "apikey": service_key,
+                "Authorization": f"Bearer {service_key}",
+                "Content-Type": "application/json"
+            }
+        else:
+            self.admin_headers = self.headers
+
+    async def _request(self, method, endpoint, json=None, params=None, headers=None):
+        """
+        Método para fazer requisições para a API do Supabase
+        """
         url = f"{self.url}{endpoint}"
-        print(f"Fazendo requisição {method} para {url}")
-        print(f"Headers: {self.headers}")
-        if params:
-            print(f"Params: {params}")
-        if json:
-            print(f"JSON: {json}")
         
-        async with httpx.AsyncClient() as client:
-            try:
+        # Use os cabeçalhos fornecidos ou os padrão
+        request_headers = headers or self.headers
+        if endpoint.startswith("/auth/") and self.service_key:
+            request_headers = self.admin_headers
+            
+        # Adicionar o header Prefer para retornar a representação
+        if "Prefer" not in request_headers:
+            request_headers["Prefer"] = "return=representation"
+        
+        try:
+            async with httpx.AsyncClient() as client:
                 response = await client.request(
-                    method,
-                    url,
-                    headers=self.headers,
+                    method=method,
+                    url=url,
                     json=json,
-                    params=params
+                    params=params,
+                    headers=request_headers,
+                    timeout=30.0
                 )
-                response.raise_for_status()  # Isso vai levantar uma exceção para códigos de erro HTTP
-                return response.json()
-            except httpx.HTTPError as e:
-                print(f"Erro na requisição HTTP: {str(e)}")
-                if hasattr(e, 'response') and e.response is not None:
-                    print(f"Resposta de erro: {e.response.text}")
-                raise
-            except Exception as e:
-                print(f"Erro inesperado: {str(e)}")
-                raise
+                
+                try:
+                    response.raise_for_status()
+                    return {"data": response.json()}
+                except httpx.HTTPStatusError as e:
+                    error_detail = response.text
+                    try:
+                        error_json = response.json()
+                        if 'error' in error_json:
+                            error_detail = error_json.get('error', {}).get('message', error_detail)
+                        elif 'msg' in error_json:
+                            error_detail = error_json['msg']
+                    except:
+                        pass
+                    
+                    return {"error": f"HTTP Error: {e.response.status_code} - {error_detail}"}
+        except Exception as e:
+            return {"error": f"Erro inesperado: {str(e)}"}
+
+    def process_response(self, response, single_item=False):
+        """
+        Processa a resposta do Supabase, lidando com diferentes formatos de resposta.
+        
+        Args:
+            response (dict): A resposta obtida de _request
+            single_item (bool): Se deve retornar apenas o primeiro item quando o resultado for uma lista
+            
+        Returns:
+            dict/list: Os dados da resposta processados
+            None: Se ocorrer um erro
+        """
+        if "error" in response:
+            return None
+            
+        data = response.get("data", {})
+        
+        if single_item:
+            if isinstance(data, list) and data:
+                return data[0]
+            elif isinstance(data, dict):
+                return data
+            else:
+                return None
+        else:
+            return data
 
     async def register_user(self, email, password, user_data=None):
         """
@@ -94,9 +147,7 @@ class SupabaseClient:
             print(f"Inserindo na tabela {table}: {data}")
             result = await self._request("POST", f"/rest/v1/{table}", json=data)
             print(f"Resultado da inserção: {result}")
-            if isinstance(result, list):
-                return result[0] if result else None
-            return result
+            return self.process_response(result, single_item=True)
         except httpx.HTTPError as e:
             error_msg = f"Erro HTTP ao inserir dados na tabela {table}: {str(e)}"
             if hasattr(e, 'response') and e.response is not None:
@@ -117,14 +168,16 @@ class SupabaseClient:
         print(f"Fazendo consulta para URL: {url}")
         print(f"Parâmetros: {params}")
         
-        return await self._request("GET", f"/rest/v1/{table}", params=params)
+        result = await self._request("GET", f"/rest/v1/{table}", params=params)
+        return self.process_response(result)
 
     async def get_by_eq(self, table, column, value, select="*"):
         params = {
             "select": select,
             f"{column}": f"eq.{value}"
         }
-        return await self._request("GET", f"/rest/v1/{table}", params=params)
+        result = await self._request("GET", f"/rest/v1/{table}", params=params)
+        return self.process_response(result)
         
     async def list_tables(self):
         """Lista todas as tabelas disponíveis no banco de dados."""
@@ -153,5 +206,5 @@ class SupabaseClient:
             return {"erro": str(e)}
 
 # Instância do cliente para uso em toda a aplicação
-supabase_client = SupabaseClient()
-supabase_admin = SupabaseClient(use_service_key=True) 
+supabase_client = SupabaseClient(SUPABASE_URL, SUPABASE_KEY)
+supabase_admin = SupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) 

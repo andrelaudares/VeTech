@@ -83,24 +83,12 @@ async def create_animal(
 @router.patch("/{animal_id}", response_model=AnimalResponse)
 async def update_animal(
     animal_id: UUID = Path(..., description="ID do animal a ser atualizado"),
-    animal_update: AnimalUpdate = Body(...),
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária do animal")
+    animal_update: AnimalUpdate = Body(...)
 ) -> Dict[str, Any]:
-    logger.info(f"Requisição recebida para atualizar animal ID: {animal_id} para clinic_id: {clinic_id}")
+    logger.info(f"Requisição recebida para atualizar animal ID: {animal_id}")
     logger.info(f"Dados de atualização recebidos: {animal_update.model_dump(exclude_unset=True)}")
 
     try:
-        # Verifica se o animal pertence à clínica
-        existing_animal = await supabase_admin.get_by_eq(
-            table="animals",
-            column="id",
-            value=str(animal_id),
-            select="id, clinic_id"
-        )
-        if not existing_animal or str(existing_animal[0]['clinic_id']) != str(clinic_id):
-            logger.warning(f"Animal {animal_id} não encontrado ou não pertence à clínica {clinic_id}")
-            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
-
         # Preparar os dados para atualização (apenas campos fornecidos)
         update_data = animal_update.model_dump(exclude_unset=True)
 
@@ -112,8 +100,7 @@ async def update_animal(
         # Atualizar o animal no banco de dados usando o método _request diretamente
         # O método `update` do Supabase requer filtros e dados
         params = {
-            "id": f"eq.{animal_id}",
-            "clinic_id": f"eq.{clinic_id}" # Garante que só atualize se pertencer à clínica
+            "id": f"eq.{animal_id}"
         }
         updated_animal_list = await supabase_admin._request(
             method="PATCH",
@@ -123,8 +110,8 @@ async def update_animal(
         )
 
         if not updated_animal_list:
-            logger.error(f"Falha ao atualizar animal {animal_id}. Resposta vazia do Supabase.")
-            raise HTTPException(status_code=404, detail="Falha ao atualizar o animal. Animal não encontrado ou erro interno.")
+            logger.error(f"Falha ao atualizar animal {animal_id}. Resposta vazia do Supabase ou animal não encontrado.")
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou falha ao atualizar.")
 
         # A resposta de PATCH geralmente retorna uma lista com o objeto atualizado
         updated_animal = updated_animal_list[0]
@@ -192,30 +179,35 @@ async def delete_animal(
 
 @router.get("", response_model=list[AnimalResponse])
 async def list_animals(
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária dos animais")
 ) -> list[Dict[str, Any]]:
-    logger.info(f"Requisição recebida para listar animais da clinic_id: {clinic_id}")
-    
+    logger.info(f"Requisição recebida para listar todos os animais")
+
     try:
-        # Buscar todos os animais associados à clínica
-        params = {"clinic_id": f"eq.{clinic_id}"}
-        
-        # Obter animais usando o método _request
-        animals = await supabase_admin._request(
+        # Buscar todos os animais sem filtro de clínica
+        response = await supabase_admin._request(
             method="GET",
-            endpoint="/rest/v1/animals",
-            params=params
+            endpoint="/rest/v1/animals"
         )
-        
-        if not animals:
-            logger.info(f"Nenhum animal encontrado para a clínica {clinic_id}")
+
+        # A resposta direta do _request pode ser a lista ou um dict {'data': [...]}
+        # Vamos garantir que retornamos a lista
+        animals_list = []
+        if isinstance(response, list):
+            animals_list = response
+        elif isinstance(response, dict) and 'data' in response and isinstance(response['data'], list):
+            # Caso comum onde Supabase retorna {'data': [...]}
+            animals_list = response['data']
+        # Adicione outras verificações se a estrutura da resposta puder variar mais
+
+        if not animals_list:
+            logger.info(f"Nenhum animal encontrado no banco de dados.")
             return []
-            
-        logger.info(f"Encontrados {len(animals)} animais para a clínica {clinic_id}")
-        return animals
-        
+
+        logger.info(f"Encontrados {len(animals_list)} animais.")
+        return animals_list # Retorna a lista diretamente
+
     except Exception as e:
-        logger.error(f"Erro ao buscar animais da clínica {clinic_id}: {e}", exc_info=True)
+        logger.error(f"Erro ao buscar animais: {e}", exc_info=True)
         error_detail = str(e)
         if hasattr(e, 'response') and e.response is not None:
             error_detail = f"{error_detail} - Response: {e.response.text}"
@@ -226,33 +218,44 @@ async def list_animals(
 
 @router.get("/{animal_id}", response_model=AnimalResponse)
 async def get_animal(
-    animal_id: UUID = Path(..., description="ID do animal a ser consultado"),
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária do animal")
+    animal_id: UUID = Path(..., description="ID do animal a ser consultado")
 ) -> Dict[str, Any]:
-    logger.info(f"Requisição recebida para consultar animal ID: {animal_id} da clinic_id: {clinic_id}")
-    
+    logger.info(f"Requisição recebida para consultar animal ID: {animal_id}")
+
     try:
-        # Buscar animal específico associado à clínica
+        # Buscar animal específico pelo ID
         params = {
             "id": f"eq.{animal_id}",
-            "clinic_id": f"eq.{clinic_id}"
+            "select": "*" # Garante que todos os campos sejam retornados
         }
-        
+
         # Obter animal usando o método _request
-        animal_result = await supabase_admin._request(
+        response = await supabase_admin._request(
             method="GET",
             endpoint="/rest/v1/animals",
             params=params
         )
-        
-        if not animal_result or len(animal_result) == 0:
-            logger.warning(f"Animal {animal_id} não encontrado ou não pertence à clínica {clinic_id}")
-            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
-            
-        logger.info(f"Animal {animal_id} encontrado: {animal_result[0]}")
-        return animal_result[0]
-        
+
+        # Verificar a estrutura da resposta e extrair o animal
+        animal_data = None
+        if isinstance(response, list) and len(response) > 0:
+             # Caso _request retorne a lista diretamente
+            animal_data = response[0]
+        elif isinstance(response, dict) and 'data' in response and isinstance(response['data'], list):
+            # Caso comum onde Supabase retorna {'data': [...]}
+            animal_list = response['data']
+            if animal_list: # Verifica se a lista não está vazia
+                animal_data = animal_list[0]
+
+        if animal_data:
+            logger.info(f"Animal {animal_id} encontrado: {animal_data}")
+            return animal_data # Retorna o dicionário do animal
+        else:
+            logger.warning(f"Animal {animal_id} não encontrado ou resposta inesperada: {response}")
+            raise HTTPException(status_code=404, detail="Animal não encontrado")
+
     except HTTPException as http_exc:
+        # Se já for um erro HTTP (como o 404 acima), apenas relança
         logger.error(f"Erro HTTP ao consultar animal {animal_id}: Status={http_exc.status_code}, Detalhe={http_exc.detail}")
         raise http_exc
     except Exception as e:
@@ -268,173 +271,164 @@ async def get_animal(
 @router.post("/{animal_id}/preferences", response_model=PetPreferencesResponse)
 async def create_animal_preferences(
     animal_id: UUID = Path(..., description="ID do animal"),
-    preferences: PetPreferencesCreate = Body(...),
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária do animal")
+    preferences: PetPreferencesCreate = Body(...)
 ) -> Dict[str, Any]:
     """
     Cadastra preferências alimentares para um animal
     """
     logger.info(f"Requisição para cadastrar preferências alimentares para animal {animal_id}")
-    
+
     try:
-        # Verificar se o animal existe e pertence à clínica
-        existing_animal = await supabase_admin.get_by_eq(
-            table="animals",
-            column="id",
-            value=str(animal_id),
-            select="id, clinic_id"
-        )
-        if not existing_animal or str(existing_animal[0]['clinic_id']) != str(clinic_id):
-            logger.warning(f"Animal {animal_id} não encontrado ou não pertence à clínica {clinic_id}")
-            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
-        
         # Verificar se já existem preferências para este animal
-        existing_preferences = await supabase_admin._request(
+        existing_preferences_response = await supabase_admin._request(
             method="GET",
             endpoint="/rest/v1/preferencias_pet",
-            params={"animal_id": f"eq.{animal_id}"}
+            params={"animal_id": f"eq.{animal_id}", "select": "id"} # Busca apenas o ID para verificar existência
         )
-        
-        if existing_preferences and len(existing_preferences) > 0:
+
+        # Tratar a resposta para verificar se a lista de preferências está realmente vazia
+        preferences_exist = False
+        if isinstance(existing_preferences_response, list) and len(existing_preferences_response) > 0:
+            preferences_exist = True
+        elif isinstance(existing_preferences_response, dict) and 'data' in existing_preferences_response and isinstance(existing_preferences_response['data'], list) and len(existing_preferences_response['data']) > 0:
+            preferences_exist = True
+
+        if preferences_exist:
             logger.warning(f"Já existem preferências para o animal {animal_id}")
             raise HTTPException(
-                status_code=400, 
-                detail="Já existem preferências cadastradas para este animal. Use o endpoint PUT para atualizar."
+                status_code=400,
+                detail="Já existem preferências cadastradas para este animal. Use o endpoint PUT ou PATCH para atualizar."
             )
-        
+
         # Preparar dados para inserção
         preferences_data = {
             "animal_id": str(animal_id),
             "gosta_de": preferences.gosta_de,
             "nao_gosta_de": preferences.nao_gosta_de
         }
-        
+
         # Inserir preferências
+        # A função insert agora retorna o objeto criado ou lança exceção
         created_preferences = await supabase_admin.insert(
             table="preferencias_pet",
             data=preferences_data
         )
-        
-        if isinstance(created_preferences, list) and created_preferences:
-            logger.info(f"Preferências criadas com sucesso: {created_preferences[0]}")
-            return created_preferences[0]
-        elif isinstance(created_preferences, dict):
+
+        # A função insert do supabase_admin agora deve retornar o dict diretamente ou lançar erro
+        if isinstance(created_preferences, dict):
             logger.info(f"Preferências criadas com sucesso: {created_preferences}")
             return created_preferences
         else:
-            logger.error(f"Resposta inesperada ao inserir preferências: {created_preferences}")
-            raise HTTPException(status_code=500, detail="Resposta inesperada do Supabase.")
-            
+             # Se chegou aqui, algo inesperado aconteceu no insert
+            logger.error(f"Resposta inesperada do Supabase ao inserir preferências: {created_preferences}")
+            raise HTTPException(status_code=500, detail="Resposta inesperada do Supabase ao criar preferências.")
+
     except HTTPException as http_exc:
+        # Repassa exceções HTTP conhecidas (como 400 ou 404)
         raise http_exc
     except Exception as e:
-        logger.error(f"Erro ao cadastrar preferências: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+        logger.error(f"Erro ao cadastrar preferências para animal {animal_id}: {str(e)}", exc_info=True)
+        error_detail = str(e)
+        if hasattr(e, 'response') and e.response is not None:
+            error_detail = f"{error_detail} - Response: {e.response.text}"
+        raise HTTPException(status_code=500, detail=f"Erro interno ao cadastrar preferências: {error_detail}")
 
 @router.get("/{animal_id}/preferences", response_model=PetPreferencesResponse)
 async def get_animal_preferences(
-    animal_id: UUID = Path(..., description="ID do animal"),
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária do animal")
+    animal_id: UUID = Path(..., description="ID do animal")
 ) -> Dict[str, Any]:
     """
     Obtém as preferências alimentares de um animal
     """
     logger.info(f"Requisição para obter preferências alimentares do animal {animal_id}")
-    
+
     try:
-        # Verificar se o animal existe e pertence à clínica
-        existing_animal = await supabase_admin.get_by_eq(
-            table="animals",
-            column="id",
-            value=str(animal_id),
-            select="id, clinic_id"
-        )
-        if not existing_animal or str(existing_animal[0]['clinic_id']) != str(clinic_id):
-            logger.warning(f"Animal {animal_id} não encontrado ou não pertence à clínica {clinic_id}")
-            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
-        
         # Buscar preferências
-        preferences = await supabase_admin._request(
+        response = await supabase_admin._request(
             method="GET",
             endpoint="/rest/v1/preferencias_pet",
-            params={"animal_id": f"eq.{animal_id}"}
+            params={"animal_id": f"eq.{animal_id}", "select": "*"}
         )
-        
-        if not preferences or len(preferences) == 0:
-            logger.warning(f"Preferências não encontradas para o animal {animal_id}")
+
+        # Tratar a resposta
+        preferences_data = None
+        if isinstance(response, list) and len(response) > 0:
+            preferences_data = response[0]
+        elif isinstance(response, dict) and 'data' in response and isinstance(response['data'], list) and len(response['data']) > 0:
+             preferences_data = response['data'][0]
+
+        if preferences_data:
+            logger.info(f"Preferências encontradas para animal {animal_id}: {preferences_data}")
+            return preferences_data
+        else:
+            logger.warning(f"Preferências não encontradas para o animal {animal_id}. Resposta: {response}")
             raise HTTPException(status_code=404, detail="Preferências não encontradas para este animal")
-        
-        logger.info(f"Preferências encontradas: {preferences[0]}")
-        return preferences[0]
-            
+
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        logger.error(f"Erro ao obter preferências: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+        logger.error(f"Erro ao obter preferências do animal {animal_id}: {str(e)}", exc_info=True)
+        error_detail = str(e)
+        if hasattr(e, 'response') and e.response is not None:
+            error_detail = f"{error_detail} - Response: {e.response.text}"
+        raise HTTPException(status_code=500, detail=f"Erro interno ao obter preferências: {error_detail}")
 
-@router.put("/{animal_id}/preferences", response_model=PetPreferencesResponse)
+@router.patch("/{animal_id}/preferences", response_model=PetPreferencesResponse)
 async def update_animal_preferences(
     animal_id: UUID = Path(..., description="ID do animal"),
-    preferences: PetPreferencesUpdate = Body(...),
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária do animal")
+    preferences: PetPreferencesUpdate = Body(...)
 ) -> Dict[str, Any]:
     """
-    Atualiza as preferências alimentares de um animal
+    Atualiza as preferências alimentares de um animal (parcialmente)
     """
     logger.info(f"Requisição para atualizar preferências alimentares do animal {animal_id}")
-    
+
     try:
-        # Verificar se o animal existe e pertence à clínica
-        existing_animal = await supabase_admin.get_by_eq(
-            table="animals",
-            column="id",
-            value=str(animal_id),
-            select="id, clinic_id"
-        )
-        if not existing_animal or str(existing_animal[0]['clinic_id']) != str(clinic_id):
-            logger.warning(f"Animal {animal_id} não encontrado ou não pertence à clínica {clinic_id}")
-            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
-        
-        # Buscar preferências existentes
-        existing_preferences = await supabase_admin._request(
-            method="GET",
-            endpoint="/rest/v1/preferencias_pet",
-            params={"animal_id": f"eq.{animal_id}"}
-        )
-        
-        if not existing_preferences or len(existing_preferences) == 0:
-            logger.warning(f"Preferências não encontradas para o animal {animal_id}")
-            raise HTTPException(
-                status_code=404, 
-                detail="Preferências não encontradas. Use o endpoint POST para criar."
-            )
-        
-        # Preparar dados para atualização
+        # Preparar dados para atualização (apenas campos não nulos enviados)
         preferences_data = preferences.model_dump(exclude_unset=True)
         if not preferences_data:
+            logger.info(f"Nenhum dado fornecido para atualização de preferências do animal {animal_id}")
             raise HTTPException(status_code=400, detail="Nenhum dado fornecido para atualização")
-        
-        # Atualizar preferências
-        updated_preferences = await supabase_admin._request(
+
+        # Verificar se existem preferências para atualizar
+        # Não precisamos buscar antes com PATCH, ele falhará se não encontrar (ou não fará nada)
+
+        # Atualizar preferências usando PATCH
+        # O método _request com PATCH/POST/PUT no Supabase costuma retornar os dados alterados em uma lista
+        update_response = await supabase_admin._request(
             method="PATCH",
             endpoint="/rest/v1/preferencias_pet",
-            params={"animal_id": f"eq.{animal_id}"},
-            json=preferences_data
+            params={"animal_id": f"eq.{animal_id}"}, # Filtro
+            json=preferences_data # Dados a atualizar
         )
-        
-        # Buscar dados atualizados
-        result = await supabase_admin._request(
-            method="GET",
-            endpoint="/rest/v1/preferencias_pet",
-            params={"animal_id": f"eq.{animal_id}"}
-        )
-        
-        logger.info(f"Preferências atualizadas: {result[0]}")
-        return result[0]
-            
+
+        # Tratar a resposta do PATCH
+        updated_data = None
+        if isinstance(update_response, list) and len(update_response) > 0:
+            updated_data = update_response[0]
+        elif isinstance(update_response, dict) and 'data' in update_response and isinstance(update_response['data'], list) and len(update_response['data']) > 0:
+             updated_data = update_response['data'][0]
+
+        if updated_data:
+            logger.info(f"Preferências do animal {animal_id} atualizadas com sucesso: {updated_data}")
+            return updated_data
+        else:
+             # Isso pode ocorrer se o animal_id não existir na tabela de preferências
+            logger.warning(f"Falha ao atualizar preferências para o animal {animal_id}. Preferências podem não existir. Resposta: {update_response}")
+            # Verificar se o animal existe na tabela 'animals' para dar um erro mais preciso
+            animal_exists_response = await supabase_admin._request("GET", "/rest/v1/animals", params={"id": f"eq.{animal_id}", "select": "id"})
+            animal_exists = (isinstance(animal_exists_response, list) and len(animal_exists_response) > 0) or \
+                            (isinstance(animal_exists_response, dict) and 'data' in animal_exists_response and len(animal_exists_response.get('data', [])) > 0)
+            if not animal_exists:
+                 raise HTTPException(status_code=404, detail=f"Animal com ID {animal_id} não encontrado.")
+            else:
+                raise HTTPException(status_code=404, detail="Preferências não encontradas para este animal. Use POST para criar.")
+
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        logger.error(f"Erro ao atualizar preferências: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+        logger.error(f"Erro ao atualizar preferências do animal {animal_id}: {str(e)}", exc_info=True)
+        error_detail = str(e)
+        if hasattr(e, 'response') and e.response is not None:
+            error_detail = f"{error_detail} - Response: {e.response.text}"
+        raise HTTPException(status_code=500, detail=f"Erro interno ao atualizar preferências: {error_detail}")

@@ -8,6 +8,11 @@ Esta documentação lista todas as rotas disponíveis na API VeTech, detalhando 
 
 Registra uma nova clínica na plataforma.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/auth/register
+```
+
 **Request Body:**
 ```json
 {
@@ -23,7 +28,7 @@ Registra uma nova clínica na plataforma.
 - `201 Created`: Clínica criada com sucesso
   ```json
   {
-    "id": "uuid",
+    "id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
     "name": "Clínica Veterinária Exemplo",
     "email": "clinica@exemplo.com",
     "phone": "11999999999",
@@ -39,6 +44,11 @@ Registra uma nova clínica na plataforma.
 
 Realiza login de uma clínica.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/auth/login
+```
+
 **Request Body:**
 ```json
 {
@@ -51,10 +61,10 @@ Realiza login de uma clínica.
 - `200 OK`: Login com sucesso
   ```json
   {
-    "access_token": "string",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "token_type": "bearer",
     "clinic": {
-      "id": "uuid",
+      "id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
       "name": "Clínica Veterinária Exemplo",
       "email": "clinica@exemplo.com"
     }
@@ -65,6 +75,11 @@ Realiza login de uma clínica.
 ### `POST /api/v1/auth/logout`
 
 Realiza logout de uma clínica, invalidando a sessão atual.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/auth/logout
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -84,6 +99,11 @@ Realiza logout de uma clínica, invalidando a sessão atual.
 
 Obtém os dados de perfil da clínica atualmente logada.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/clinic/profile
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -91,7 +111,7 @@ Obtém os dados de perfil da clínica atualmente logada.
 - `200 OK`: Perfil obtido com sucesso
   ```json
   {
-    "id": "uuid",
+    "id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
     "name": "Clínica Veterinária Exemplo",
     "email": "clinica@exemplo.com",
     "phone": "11999999999",
@@ -109,6 +129,11 @@ Obtém os dados de perfil da clínica atualmente logada.
 
 Atualiza os dados de perfil da clínica atualmente logada.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/clinic/profile
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -124,7 +149,7 @@ Atualiza os dados de perfil da clínica atualmente logada.
 - `200 OK`: Perfil atualizado com sucesso
   ```json
   {
-    "id": "uuid",
+    "id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
     "name": "Novo Nome da Clínica",
     "email": "clinica@exemplo.com",
     "phone": "11988888888",
@@ -146,6 +171,11 @@ Atualiza os dados de perfil da clínica atualmente logada.
 
 Cadastra um novo animal vinculado a uma clínica.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Query Parameters:**
 - `clinic_id`: ID UUID da clínica que está cadastrando o animal (obrigatório)
 
@@ -165,8 +195,8 @@ Cadastra um novo animal vinculado a uma clínica.
 - `200 OK`: Animal criado com sucesso
   ```json
   {
-    "id": "uuid",
-    "clinic_id": "uuid",
+    "id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
+    "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
     "name": "Rex",
     "species": "Cachorro",
     "breed": "Labrador",
@@ -183,6 +213,11 @@ Cadastra um novo animal vinculado a uma clínica.
 
 Obtém todos os animais vinculados a uma clínica.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Query Parameters:**
 - `clinic_id`: ID UUID da clínica (obrigatório)
 
@@ -191,8 +226,8 @@ Obtém todos os animais vinculados a uma clínica.
   ```json
   [
     {
-      "id": "uuid",
-      "clinic_id": "uuid",
+      "id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
+      "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
       "name": "Rex",
       "species": "Cachorro",
       "breed": "Labrador",
@@ -210,6 +245,11 @@ Obtém todos os animais vinculados a uma clínica.
 
 Obtém detalhes de um animal específico.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
 
@@ -220,8 +260,8 @@ Obtém detalhes de um animal específico.
 - `200 OK`: Detalhes do animal
   ```json
   {
-    "id": "uuid",
-    "clinic_id": "uuid",
+    "id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
+    "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
     "name": "Rex",
     "species": "Cachorro",
     "breed": "Labrador",
@@ -238,6 +278,11 @@ Obtém detalhes de um animal específico.
 ### `PATCH /api/v1/animals/{animal_id}`
 
 Atualiza um animal existente.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
 
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
@@ -260,8 +305,8 @@ Atualiza um animal existente.
 - `200 OK`: Animal atualizado com sucesso
   ```json
   {
-    "id": "uuid",
-    "clinic_id": "uuid",
+    "id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
+    "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
     "name": "Rex Atualizado",
     "species": "Cachorro",
     "breed": "Labrador Retriever",
@@ -280,6 +325,11 @@ Atualiza um animal existente.
 
 Remove um animal pelo ID.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
 
@@ -295,11 +345,16 @@ Remove um animal pelo ID.
 
 Cadastra preferências alimentares para um animal.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/preferences
+```
+
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
 
 **Request Body:**
 ```json
@@ -313,8 +368,8 @@ Cadastra preferências alimentares para um animal.
 - `200 OK`: Preferências criadas com sucesso
   ```json
   {
-    "id": "uuid",
-    "animal_id": "uuid",
+    "id": "45678901-23cf-443d-b7a6-529e7ea5f234",
+    "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
     "gosta_de": "Ração Premium, Frango, Cenoura",
     "nao_gosta_de": "Ração de baixa qualidade, Vegetais verdes",
     "created_at": "2023-05-10T14:30:00.000Z",
@@ -329,18 +384,23 @@ Cadastra preferências alimentares para um animal.
 
 Obtém as preferências alimentares de um animal.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/preferences
+```
+
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
 
 **Responses:**
 - `200 OK`: Preferências obtidas com sucesso
   ```json
   {
-    "id": "uuid",
-    "animal_id": "uuid",
+    "id": "45678901-23cf-443d-b7a6-529e7ea5f234",
+    "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
     "gosta_de": "Ração Premium, Frango, Cenoura",
     "nao_gosta_de": "Ração de baixa qualidade, Vegetais verdes",
     "created_at": "2023-05-10T14:30:00.000Z",
@@ -350,15 +410,20 @@ Obtém as preferências alimentares de um animal.
 - `404 Not Found`: Animal não encontrado ou não pertence à clínica / Preferências não encontradas
 - `500 Internal Server Error`: Erro ao obter preferências
 
-### `PUT /api/v1/animals/{animal_id}/preferences`
+### `PATCH /api/v1/animals/{animal_id}/preferences`
 
-Atualiza as preferências alimentares de um animal.
+Atualiza (parcialmente) as preferências alimentares de um animal. (Método alterado de PUT para PATCH).
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/preferences
+```
 
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
 
 **Request Body:**
 ```json
@@ -372,8 +437,8 @@ Atualiza as preferências alimentares de um animal.
 - `200 OK`: Preferências atualizadas com sucesso
   ```json
   {
-    "id": "uuid",
-    "animal_id": "uuid",
+    "id": "45678901-23cf-443d-b7a6-529e7ea5f234",
+    "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
     "gosta_de": "Ração Premium, Frango, Cenoura, Petiscos",
     "nao_gosta_de": "Ração de baixa qualidade, Brócolis, Couve-flor",
     "created_at": "2023-05-10T14:30:00.000Z",
@@ -390,13 +455,18 @@ Atualiza as preferências alimentares de um animal.
 
 Cria um novo agendamento para um animal.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/appointments?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Query Parameters:**
 - `clinic_id`: ID UUID da clínica que está criando o agendamento (obrigatório)
 
 **Request Body:**
 ```json
 {
-  "animal_id": "uuid",
+  "animal_id": "c7020821-b8fe-4608-9f7f-2bad17877ca4",
   "date": "2023-05-15",
   "start_time": "14:30:00",
   "end_time": "15:00:00",
@@ -409,9 +479,9 @@ Cria um novo agendamento para um animal.
 - `200 OK`: Agendamento criado com sucesso
   ```json
   {
-    "id": "uuid",
-    "clinic_id": "uuid",
-    "animal_id": "uuid",
+    "id": "12345678-23cf-443d-b7a6-529e7ea5f234",
+    "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
+    "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
     "date": "2023-05-15",
     "start_time": "14:30:00",
     "end_time": "15:00:00",
@@ -429,6 +499,11 @@ Cria um novo agendamento para um animal.
 
 Obtém todos os agendamentos de uma clínica, ordenados por data e hora.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/appointments?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234&date_from=2023-05-15&status=scheduled
+```
+
 **Query Parameters:**
 - `clinic_id`: ID UUID da clínica (obrigatório)
 - `date_from`: Filtrar agendamentos a partir desta data (opcional)
@@ -439,9 +514,9 @@ Obtém todos os agendamentos de uma clínica, ordenados por data e hora.
   ```json
   [
     {
-      "id": "uuid",
-      "clinic_id": "uuid",
-      "animal_id": "uuid",
+      "id": "12345678-23cf-443d-b7a6-529e7ea5f234",
+      "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
+      "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
       "date": "2023-05-15",
       "start_time": "14:30:00",
       "end_time": "15:00:00",
@@ -458,19 +533,24 @@ Obtém todos os agendamentos de uma clínica, ordenados por data e hora.
 
 Obtém um agendamento específico pelo ID.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Path Parameters:**
 - `appointment_id`: ID UUID do agendamento (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
 
 **Responses:**
 - `200 OK`: Detalhes do agendamento
   ```json
   {
-    "id": "uuid",
-    "clinic_id": "uuid",
-    "animal_id": "uuid",
+    "id": "12345678-23cf-443d-b7a6-529e7ea5f234",
+    "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
+    "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
     "date": "2023-05-15",
     "start_time": "14:30:00",
     "end_time": "15:00:00",
@@ -487,11 +567,16 @@ Obtém um agendamento específico pelo ID.
 
 Remove um agendamento pelo ID.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Path Parameters:**
 - `appointment_id`: ID UUID do agendamento (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
 
 **Responses:**
 - `200 OK`: Agendamento removido com sucesso
@@ -507,11 +592,16 @@ Remove um agendamento pelo ID.
 
 Atualiza um agendamento existente.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Path Parameters:**
 - `appointment_id`: ID UUID do agendamento (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
 
 **Request Body:**
 ```json
@@ -528,9 +618,9 @@ Atualiza um agendamento existente.
 - `200 OK`: Agendamento atualizado com sucesso
   ```json
   {
-    "id": "uuid",
-    "clinic_id": "uuid",
-    "animal_id": "uuid",
+    "id": "12345678-23cf-443d-b7a6-529e7ea5f234",
+    "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
+    "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
     "date": "2023-05-20",
     "start_time": "15:30:00",
     "end_time": "16:00:00",
@@ -550,13 +640,18 @@ Atualiza um agendamento existente.
 
 Cria uma nova consulta para um animal.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/consultations?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
+
 **Query Parameters:**
 - `clinic_id`: ID UUID da clínica que está criando a consulta (obrigatório)
 
 **Request Body:**
 ```json
 {
-  "animal_id": "uuid",
+  "animal_id": "c7020821-b8fe-4608-9f7f-2bad17877ca4",
   "description": "Consulta inicial, exame físico completo.",
   "date": "2023-10-26T10:00:00Z" // Opcional, padrão para data/hora atual
 }
@@ -566,9 +661,9 @@ Cria uma nova consulta para um animal.
 - `200 OK`: Consulta criada com sucesso
   ```json
   {
-    "id": "uuid",
-    "clinic_id": "uuid",
-    "animal_id": "uuid",
+    "id": "78901234-23cf-443d-b7a6-529e7ea5f234",
+    "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
+    "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
     "date": "2023-10-26T10:00:00Z",
     "description": "Consulta inicial, exame físico completo.",
     "created_at": "2023-10-26T10:00:00Z",
@@ -582,6 +677,11 @@ Cria uma nova consulta para um animal.
 
 Obtém todas as consultas de uma clínica, opcionalmente filtradas por animal.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/consultations?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234&animal_id=c7020821-b8fe-4608-9f7f-2bad17877ca4
+```
+
 **Query Parameters:**
 - `clinic_id`: ID UUID da clínica (obrigatório)
 - `animal_id`: Filtrar consultas por ID do animal (opcional)
@@ -591,9 +691,9 @@ Obtém todas as consultas de uma clínica, opcionalmente filtradas por animal.
   ```json
   [
     {
-      "id": "uuid",
-      "clinic_id": "uuid",
-      "animal_id": "uuid",
+      "id": "78901234-23cf-443d-b7a6-529e7ea5f234",
+      "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
+      "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
       "date": "2023-10-26T10:00:00Z",
       "description": "Consulta inicial, exame físico completo.",
       "created_at": "2023-10-26T10:00:00Z",
@@ -606,6 +706,11 @@ Obtém todas as consultas de uma clínica, opcionalmente filtradas por animal.
 ### `PATCH /api/v1/consultations/{consultation_id}`
 
 Atualiza uma consulta existente.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
 
 **Path Parameters:**
 - `consultation_id`: ID UUID da consulta (obrigatório)
@@ -625,9 +730,9 @@ Atualiza uma consulta existente.
 - `200 OK`: Consulta atualizada com sucesso
   ```json
   {
-    "id": "uuid",
-    "clinic_id": "uuid",
-    "animal_id": "uuid",
+    "id": "78901234-23cf-443d-b7a6-529e7ea5f234",
+    "clinic_id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
+    "animal_id": "3e2ce4a2-f75b-468c-9353-04ba4996f548",
     "date": "2023-10-27T11:00:00Z",
     "description": "Atualização da descrição da consulta.",
     "created_at": "2023-10-26T10:00:00Z",
@@ -641,6 +746,11 @@ Atualiza uma consulta existente.
 ### `DELETE /api/v1/consultations/{consultation_id}`
 
 Remove uma consulta pelo ID.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+```
 
 **Path Parameters:**
 - `consultation_id`: ID UUID da consulta (obrigatório)
@@ -658,6 +768,11 @@ Remove uma consulta pelo ID.
 ### `POST /api/v1/animals/{animal_id}/diets`
 
 Cria um plano de dieta para um animal.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/diets
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -711,6 +826,11 @@ Cria um plano de dieta para um animal.
 
 Lista todas as dietas de um animal.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/uuid/diets
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -761,6 +881,11 @@ Lista todas as dietas de um animal.
 
 Obtém detalhes de uma dieta específica.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diets/uuid
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -810,6 +935,11 @@ Obtém detalhes de uma dieta específica.
 
 Atualiza uma dieta existente.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diets/uuid
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -837,6 +967,11 @@ Atualiza uma dieta existente.
 
 Remove uma dieta pelo ID.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diets/uuid
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -857,6 +992,11 @@ Remove uma dieta pelo ID.
 ### `POST /api/v1/diets/{diet_id}/options`
 
 Adiciona uma opção de dieta a um plano.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diets/uuid/options
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -888,8 +1028,8 @@ Adiciona uma opção de dieta a um plano.
     "porcao_refeicao": "200g por refeição",
     "refeicoes_por_dia": 2,
     "indicacao": "Recomendada para cães com sobrepeso",
-    "created_at": "2023-08-01T10:05:00.000Z",
-    "updated_at": "2023-08-01T10:05:00.000Z"
+    "created_at": "2023-08-01T10:20:00.000Z",
+    "updated_at": "2023-08-01T10:20:00.000Z"
   }
   ```
 - `401 Unauthorized`: Token inválido ou ausente
@@ -899,6 +1039,11 @@ Adiciona uma opção de dieta a um plano.
 ### `POST /api/v1/animals/{animal_id}/restricted-foods`
 
 Adiciona um alimento que o pet deve evitar.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/restricted-foods
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -934,6 +1079,11 @@ Adiciona um alimento que o pet deve evitar.
 
 Lista todos os alimentos que o pet deve evitar.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/restricted-foods
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -961,6 +1111,11 @@ Lista todos os alimentos que o pet deve evitar.
 ### `POST /api/v1/animals/{animal_id}/snacks`
 
 Adiciona um snack permitido entre refeições.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/snacks
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -1000,6 +1155,11 @@ Adiciona um snack permitido entre refeições.
 
 Lista todos os snacks permitidos entre refeições.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/snacks
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -1026,99 +1186,14 @@ Lista todos os snacks permitidos entre refeições.
 - `404 Not Found`: Animal não encontrado ou não pertence à clínica
 - `500 Internal Server Error`: Erro ao listar snacks
 
-### `POST /api/v1/diet-options/{option_id}/foods`
-
-Adiciona um alimento a uma opção de dieta.
-
-**Header Parameters:**
-- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
-
-**Path Parameters:**
-- `option_id`: ID UUID da opção de dieta (obrigatório)
-
-**Request Body:**
-```json
-{
-  "nome": "Ração Premium Light",
-  "tipo": "ração",
-  "quantidade": "200g",
-  "calorias": 600,
-  "horario": "Manhã"
-}
-```
-
-**Responses:**
-- `200 OK`: Alimento adicionado com sucesso
-  ```json
-  {
-    "id": "uuid",
-    "opcao_dieta_id": "uuid",
-    "nome": "Ração Premium Light",
-    "tipo": "ração",
-    "quantidade": "200g",
-    "calorias": 600,
-    "horario": "Manhã",
-    "created_at": "2023-08-01T10:20:00.000Z",
-    "updated_at": "2023-08-01T10:20:00.000Z"
-  }
-  ```
-- `401 Unauthorized`: Token inválido ou ausente
-- `403 Forbidden`: Acesso negado a esta opção de dieta
-- `404 Not Found`: Opção de dieta não encontrada
-- `500 Internal Server Error`: Erro ao adicionar alimento
-
-### `GET /api/v1/diet-options/{option_id}/foods`
-
-Lista todos os alimentos de uma opção de dieta.
-
-**Header Parameters:**
-- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
-
-**Path Parameters:**
-- `option_id`: ID UUID da opção de dieta (obrigatório)
-
-**Responses:**
-- `200 OK`: Lista de alimentos
-  ```json
-  [
-    {
-      "id": "uuid",
-      "opcao_dieta_id": "uuid",
-      "nome": "Ração Premium Light",
-      "tipo": "ração",
-      "quantidade": "200g",
-      "calorias": 600,
-      "horario": "Manhã",
-      "created_at": "2023-08-01T10:20:00.000Z",
-      "updated_at": "2023-08-01T10:20:00.000Z"
-    }
-  ]
-  ```
-- `401 Unauthorized`: Token inválido ou ausente
-- `403 Forbidden`: Acesso negado a esta opção de dieta
-- `404 Not Found`: Opção de dieta não encontrada
-- `500 Internal Server Error`: Erro ao listar alimentos
-
-### `DELETE /api/v1/diet-options/{option_id}`
-
-Remove uma opção de dieta específica.
-
-**Header Parameters:**
-- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
-
-**Path Parameters:**
-- `option_id`: ID UUID da opção de dieta (obrigatório)
-
-**Responses:**
-- `204 No Content`: Opção de dieta removida com sucesso.
-- `401 Unauthorized`: Token inválido ou ausente
-- `403 Forbidden`: Acesso negado a esta opção de dieta
-- `404 Not Found`: Opção de dieta não encontrada
-- `500 Internal Server Error`: Erro ao remover opção de dieta
-
 ### `PUT /api/v1/animals/{animal_id}/restricted-foods/{food_id}`
 
 Atualiza um alimento que o pet deve evitar.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/restricted-foods/uuid
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -1146,6 +1221,11 @@ Atualiza um alimento que o pet deve evitar.
 
 Remove um alimento que o pet deve evitar.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/restricted-foods/uuid
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -1162,6 +1242,11 @@ Remove um alimento que o pet deve evitar.
 ### `PUT /api/v1/animals/{animal_id}/snacks/{snack_id}`
 
 Atualiza um snack permitido.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/snacks/uuid
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -1190,6 +1275,11 @@ Atualiza um snack permitido.
 
 Remove um snack permitido.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/snacks/uuid
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -1206,6 +1296,11 @@ Remove um snack permitido.
 ### `PUT /api/v1/diet-foods/{food_id}`
 
 Atualiza um alimento de uma opção de dieta.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diet-foods/uuid
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -1234,6 +1329,11 @@ Atualiza um alimento de uma opção de dieta.
 
 Remove um alimento de uma opção de dieta.
 
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diet-foods/uuid
+```
+
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
@@ -1250,6 +1350,11 @@ Remove um alimento de uma opção de dieta.
 ### `GET /api/v1/diet-foods/{food_id}`
 
 Obtém detalhes de um alimento de uma opção de dieta.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diet-foods/uuid
+```
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
@@ -1275,4 +1380,100 @@ Obtém detalhes de um alimento de uma opção de dieta.
 - `401 Unauthorized`: Token inválido ou ausente
 - `403 Forbidden`: Acesso negado a este alimento
 - `404 Not Found`: Alimento não encontrado
-- `500 Internal Server Error`: Erro ao obter detalhes do alimento 
+- `500 Internal Server Error`: Erro ao obter detalhes do alimento
+
+### `POST /api/v1/diet-options/{option_id}/foods`
+
+Adiciona um alimento a uma opção de dieta.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diet-options/uuid/foods
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `option_id`: ID UUID da opção de dieta (obrigatório)
+
+**Request Body:**
+```json
+{
+  "nome": "Ração Premium Light",
+  "valor_mensal_estimado": 300.0,
+  "calorias_totais_dia": 1200,
+  "porcao_refeicao": "200g por refeição",
+  "refeicoes_por_dia": 2,
+  "indicacao": "Recomendada para cães com sobrepeso"
+}
+```
+
+**Responses:**
+- `200 OK`: Alimento adicionado com sucesso
+  ```json
+  {
+    "id": "uuid",
+    "opcao_dieta_id": "uuid",
+    "nome": "Ração Premium Light",
+    "valor_mensal_estimado": 300.0,
+    "calorias_totais_dia": 1200,
+    "porcao_refeicao": "200g por refeição",
+    "refeicoes_por_dia": 2,
+    "indicacao": "Recomendada para cães com sobrepeso",
+    "created_at": "2023-08-01T10:20:00.000Z",
+    "updated_at": "2023-08-01T10:20:00.000Z"
+  }
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Opção de dieta não encontrada
+- `500 Internal Server Error`: Erro ao adicionar alimento
+
+### `GET /api/v1/diet-options/{option_id}/foods`
+
+Lista todos os alimentos de uma opção de dieta.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diet-options/uuid/foods
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `option_id`: ID UUID da opção de dieta (obrigatório)
+
+**Responses:**
+- `200 OK`: Lista de alimentos
+  ```json
+  [
+    {
+      "id": "uuid",
+      "opcao_dieta_id": "uuid",
+      "nome": "Ração Premium Light",
+      "valor_mensal_estimado": 300.0,
+      "calorias_totais_dia": 1200,
+      "porcao_refeicao": "200g por refeição",
+      "refeicoes_por_dia": 2,
+      "indicacao": "Recomendada para cães com sobrepeso",
+      "created_at": "2023-08-01T10:20:00.000Z",
+      "updated_at": "2023-08-01T10:20:00.000Z"
+    }
+  ]
+  ```
+- `401 Unauthorized`: Token inválido ou ausente
+- `404 Not Found`: Opção de dieta não encontrada
+- `500 Internal Server Error`: Erro ao listar alimentos
+
+### `DELETE /api/v1/diet-options/{option_id}`
+
+Remove uma opção de dieta específica.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/diet-options/uuid
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)

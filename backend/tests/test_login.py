@@ -1,69 +1,44 @@
 import requests
 import json
-import sys
 
-# URL base da API
-API_URL = "http://127.0.0.1:8000/api/v1"
+# URL do endpoint de login
+LOGIN_URL = "http://localhost:8000/api/v1/auth/login"
 
-# Credenciais para teste - utilizar um usuário que já exista no banco
-LOGIN_EMAIL = "teste@teste.com"
-LOGIN_PASSWORD = "123456"
-
-# Você também pode informar as credenciais via linha de comando
-if len(sys.argv) >= 3:
-    LOGIN_EMAIL = sys.argv[1]
-    LOGIN_PASSWORD = sys.argv[2]
-    print(f"Usando credenciais da linha de comando: {LOGIN_EMAIL}")
+# Credenciais (substitua pelas suas credenciais reais)
+credentials = {
+    "email": "admin@vetech.com",
+    "password": "password123"
+}
 
 def test_login():
-    # Dados para o login
-    data = {
-        "email": LOGIN_EMAIL,
-        "password": LOGIN_PASSWORD
-    }
+    print("Testando login...")
     
-    # Fazer a requisição
+    # Fazer requisição de login
     response = requests.post(
-        f"{API_URL}/auth/login",
-        json=data
+        LOGIN_URL,
+        json=credentials,
+        headers={"Content-Type": "application/json"}
     )
     
-    # Mostrar status da resposta
-    print(f"Status: {response.status_code}")
+    # Mostrar resultado
+    print(f"Status code: {response.status_code}")
     
-    # Se houve sucesso, mostrar detalhes
-    if response.status_code == 200:
-        # Obter JSON da resposta
-        resposta = response.json()
+    try:
+        response_data = response.json()
+        print(f"Response: {json.dumps(response_data, indent=2)}")
         
-        # Mostrar todos os campos
-        print("\nTodos os campos da resposta:")
-        print(json.dumps(resposta, indent=2))
-        
-        # Verificar campos específicos
-        print("\nVerificação detalhada:")
-        if "access_token" in resposta:
-            print(f"✅ access_token encontrado: {resposta['access_token'][:10]}...")
-        else:
-            print("❌ access_token NÃO encontrado!")
+        # Extrair o token caso o login tenha sido bem-sucedido
+        if "access_token" in response_data:
+            token = response_data["access_token"]
+            print("\n=== TOKEN PARA USAR NAS REQUISIÇÕES ===")
+            print(token)
+            print("=======================================\n")
             
-        if "token_type" in resposta:
-            print(f"✅ token_type: {resposta['token_type']}")
-        else:
-            print("❌ token_type NÃO encontrado!")
-            
-        if "clinic" in resposta:
-            clinic = resposta["clinic"]
-            print("✅ Dados da clínica encontrados:")
-            print(f"   - id: {clinic.get('id', 'NÃO ENCONTRADO')}")
-            print(f"   - name: {clinic.get('name', 'NÃO ENCONTRADO')}")
-            print(f"   - email: {clinic.get('email', 'NÃO ENCONTRADO')}")
-        else:
-            print("❌ Dados da clínica NÃO encontrados!")
-    else:
-        # Mostrar erro
-        print(f"Erro na resposta: {response.text}")
+            # Mostrar como usar o token em requisições futuras
+            print("Para usar o token, adicione o seguinte header nas requisições:")
+            print(f'Authorization: Bearer {token}')
+    except:
+        print(f"Response text: {response.text}")
 
 if __name__ == "__main__":
-    print("Testando login na API VeTech...")
     test_login() 

@@ -1,50 +1,65 @@
 import requests
 import json
-import uuid
 
-# URL base da API
-API_URL = "http://127.0.0.1:8000/api/v1"
+# URL do endpoint de registro
+REGISTER_URL = "http://localhost:8000/api/v1/auth/register"
+
+# Dados do usuário para registro
+user_data = {
+    "name": "Teste VeTech",
+    "email": "teste@vetech.com",
+    "password": "senha123",
+    "phone": "1234567890",
+    "subscription_tier": "basic"
+}
 
 def test_register():
-    # Gerar email único para evitar conflitos
-    unique_id = uuid.uuid4().hex[:8]
-    email = f"teste_{unique_id}@exemplo.com"
+    print("Testando registro de usuário...")
     
-    # Dados para registro
-    data = {
-        "name": "Clínica de Teste",
-        "email": email,
-        "password": "senha123",
-        "phone": "11999999999", 
-        "subscription_tier": "basic"
-    }
-    
-    print(f"Tentando registrar com email: {email}")
-    
-    # Fazer a requisição
+    # Fazer requisição de registro
     response = requests.post(
-        f"{API_URL}/auth/register",
-        json=data
+        REGISTER_URL,
+        json=user_data,
+        headers={"Content-Type": "application/json"}
     )
     
-    # Mostrar status da resposta
-    print(f"Status: {response.status_code}")
+    # Mostrar resultado
+    print(f"Status code: {response.status_code}")
     
-    # Se houve sucesso, mostrar detalhes
+    try:
+        response_data = response.json()
+        print(f"Response: {json.dumps(response_data, indent=2)}")
+    except:
+        print(f"Response text: {response.text}")
+    
+    # Se o registro for bem-sucedido, tentar fazer login
     if response.status_code == 201:
-        print("✅ Registro bem-sucedido!")
+        print("\nTentando fazer login com o usuário recém-criado...")
+        
+        login_data = {
+            "email": user_data["email"],
+            "password": user_data["password"]
+        }
+        
+        login_response = requests.post(
+            "http://localhost:8000/api/v1/auth/login",
+            json=login_data,
+            headers={"Content-Type": "application/json"}
+        )
+        
+        print(f"Status code do login: {login_response.status_code}")
+        
         try:
-            resposta = response.json()
-            print("\nDados retornados:")
-            print(json.dumps(resposta, indent=2))
-        except json.JSONDecodeError:
-            print("Resposta não é JSON válido:")
-            print(response.text)
-    else:
-        # Mostrar erro
-        print("❌ Erro no registro!")
-        print(f"Resposta: {response.text}")
+            login_response_data = login_response.json()
+            print(f"Response do login: {json.dumps(login_response_data, indent=2)}")
+            
+            if "access_token" in login_response_data:
+                token = login_response_data["access_token"]
+                print("\n=== TOKEN PARA USAR NAS REQUISIÇÕES ===")
+                print(token)
+                print("=======================================\n")
+        except:
+            print(f"Response text do login: {login_response.text}")
 
 if __name__ == "__main__":
-    print("Testando registro na API VeTech...")
     test_register() 
