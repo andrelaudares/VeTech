@@ -258,14 +258,14 @@ Atualiza uma consulta existente.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234
 ```
 
 **Path Parameters:**
 - `consultation_id`: ID UUID da consulta (obrigatório)
 
-**Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json

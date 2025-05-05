@@ -5,6 +5,7 @@ from ..db.supabase import supabase_admin
 from uuid import UUID
 from datetime import datetime
 import logging
+from ..api.auth import get_current_user
 
 # Configuração básica de logging
 logging.basicConfig(level=logging.INFO)
@@ -82,38 +83,52 @@ async def get_consultations(
 async def update_consultation(
     consultation_id: UUID = Path(..., description="ID da consulta a ser atualizada"),
     consultation_update: ConsultationUpdate = Body(...),
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária da consulta")
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    logger.info(f"Atualizando consulta ID: {consultation_id} para clinic_id: {clinic_id}")
+    logger.info(f"Atualizando consulta ID: {consultation_id}")
     logger.info(f"Dados: {consultation_update.model_dump(exclude_unset=True)}")
 
     try:
-        # Verificar se a consulta pertence à clínica
-        existing = await supabase_admin.get_by_eq("consultations", "id", str(consultation_id), "id, clinic_id")
-        if not existing or str(existing[0]['clinic_id']) != str(clinic_id):
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+        check_query = f"/rest/v1/consultations?id=eq.{consultation_id}&clinic_id=eq.{clinic_id}&select=id"
+        check_response = await supabase_admin._request("GET", check_query)
+        existing_consultation = supabase_admin.process_response(check_response)
+
+        if not existing_consultation:
+            logger.warning(f"Consulta {consultation_id} não encontrada ou não pertence à clínica {clinic_id}")
             raise HTTPException(status_code=404, detail="Consulta não encontrada ou não pertence à clínica")
 
         update_data = consultation_update.model_dump(exclude_unset=True)
         if not update_data:
             raise HTTPException(status_code=400, detail="Nenhum dado para atualizar")
 
-        # Converte datetime para string ISO se presente
         if 'date' in update_data and isinstance(update_data['date'], datetime):
             update_data['date'] = update_data['date'].isoformat()
 
-        params = {"id": f"eq.{consultation_id}", "clinic_id": f"eq.{clinic_id}"}
-        updated_list = await supabase_admin._request(
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+        update_response = await supabase_admin._request(
             method="PATCH",
-            endpoint="/rest/v1/consultations",
-            params=params,
-            json=update_data
+            endpoint=f"/rest/v1/consultations?id=eq.{consultation_id}&clinic_id=eq.{clinic_id}",
+            json=update_data,
+            headers=headers
         )
 
-        if not updated_list:
-            raise HTTPException(status_code=404, detail="Falha ao atualizar consulta.")
+        updated_data = supabase_admin.process_response(update_response)
 
-        logger.info(f"Consulta {consultation_id} atualizada: {updated_list[0]}")
-        return updated_list[0]
+        if not updated_data:
+            fallback_get = await supabase_admin._request("GET", f"/rest/v1/consultations?id=eq.{consultation_id}&clinic_id=eq.{clinic_id}&select=*")
+            fallback_data = supabase_admin.process_response(fallback_get)
+            if not fallback_data:
+                 logger.error(f"Erro ao atualizar consulta {consultation_id}: não encontrada após PATCH.")
+                 raise HTTPException(status_code=500, detail="Falha ao atualizar consulta ou buscar dados atualizados.")
+            updated_data = fallback_data
+
+        logger.info(f"Consulta {consultation_id} atualizada com sucesso.")
+        return updated_data[0]
 
     except HTTPException as http_exc:
         raise http_exc

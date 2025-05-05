@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Path
 from typing import Dict, Any, List, Optional
 from uuid import UUID
+import logging
 
 from ..models.diet import (
     DietCreate, DietUpdate, DietResponse,
@@ -11,6 +12,10 @@ from ..models.diet import (
 )
 from ..db.supabase import supabase_admin
 from ..api.auth import get_current_user
+
+# Configuração básica de logging para este módulo
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -479,7 +484,8 @@ async def create_restricted_food(
         # Criar alimento restrito
         food_data = {
             "animal_id": str(animal_id),
-            "name": food.nome,  # Ajustado de "nome" para "name" conforme schema do banco
+            "clinic_id": str(clinic_id),
+            "nome": food.nome,
             "motivo": food.motivo
         }
         
@@ -498,46 +504,31 @@ async def create_restricted_food(
             
             foods = supabase_admin.process_response(foods_response, single_item=True)
             if not foods:
-                raise Exception("Resposta vazia")
+                # Verificar se a resposta contém erro específico do Supabase (ex: violação de constraint)
+                error_detail = supabase_admin.extract_error_detail(foods_response)
+                error_msg = f"Erro ao criar registro de alimento a evitar: resposta vazia ou inválida do Supabase. {error_detail}"
+                logger.error(error_msg) # Usar logger para detalhes
+                raise HTTPException(status_code=500, detail="Erro ao criar registro de alimento a evitar.")
                 
         except Exception as post_error:
-            print(f"Tentativa com 'name' falhou: {str(post_error)}")
+            # Log detalhado do erro original
+            logger.error(f"Erro ao tentar inserir em alimentos_evitar: {str(post_error)}", exc_info=True)
+            # Tentar extrair mais detalhes se for um erro HTTP do Supabase
+            detail = str(post_error)
+            if hasattr(post_error, 'response') and hasattr(post_error.response, 'text'):
+                 detail = f"{detail} - Supabase Response: {post_error.response.text}"
+
+            raise HTTPException(status_code=500, detail=f"Erro interno ao criar alimento a evitar: {detail}")
             
-            # Se falhar, tente com 'nome'
-            food_data = {
-                "animal_id": str(animal_id),
-                "nome": food.nome,  # Tente com "nome"
-                "motivo": food.motivo
-            }
-            
-            foods_response = await supabase_admin._request(
-                "POST",
-                "/rest/v1/alimentos_evitar",
-                json=food_data,
-                headers=headers
-            )
-            
-            foods = supabase_admin.process_response(foods_response, single_item=True)
-        
-        if not foods:
-            # Se ainda não tiver resultado, verifique se foi criado mesmo assim
-            check_response = await supabase_admin._request(
-                "GET",
-                f"/rest/v1/alimentos_evitar?animal_id=eq.{animal_id}&nome=eq.{food.nome}",
-                headers=supabase_admin.admin_headers
-            )
-            
-            check_result = supabase_admin.process_response(check_response)
-            if check_result and len(check_result) > 0:
-                return check_result[0]
-            
-            raise HTTPException(status_code=500, detail="Erro ao criar registro de alimento a evitar: resposta vazia")
-            
+        logger.info(f"Alimento a evitar criado com sucesso: {foods}") # Usar logger
         return foods
         
+    except HTTPException as http_exc: # Capturar HTTPException explicitamente para repassar
+        raise http_exc
     except Exception as e:
-        print(f"Erro ao criar alimento a evitar: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao criar alimento a evitar: {str(e)}")
+        # Log detalhado do erro
+        logger.error(f"Erro inesperado em create_restricted_food: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro interno no servidor ao criar alimento a evitar: {str(e)}")
 
 @router.get("/animals/{animal_id}/restricted-foods", response_model=List[RestrictedFoodResponse])
 async def list_restricted_foods(

@@ -13,7 +13,7 @@ class AppointmentCreate(AppointmentBase):
     animal_id: UUID4
 
 class AppointmentUpdate(BaseModel):
-    date: Optional[date] = None
+    date: Optional[str] = None
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     description: Optional[str] = None

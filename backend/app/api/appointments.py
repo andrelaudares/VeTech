@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query, Body, Path
+from fastapi import APIRouter, HTTPException, Query, Body, Path, Depends
 from typing import Dict, Any, List, Optional
 from ..models.appointment import AppointmentCreate, AppointmentResponse, AppointmentUpdate
 from ..db.supabase import supabase_admin
 from uuid import UUID
 import logging
-from datetime import date, time
+from datetime import date, time, datetime
 import httpx
 
 # Configuração de logging
@@ -257,7 +257,7 @@ async def delete_appointment(
 
 @router.patch("/{appointment_id}", response_model=AppointmentResponse)
 async def update_appointment(
-    appointment_update: AppointmentUpdate,
+    appointment_update: AppointmentUpdate = Body(...),
     appointment_id: UUID = Path(..., description="ID do agendamento")
 ) -> Dict[str, Any]:
     """
@@ -269,124 +269,105 @@ async def update_appointment(
             "GET",
             f"/rest/v1/appointments?id=eq.{str(appointment_id)}&select=*"
         )
-        
-        # Tratar a resposta para verificar se o agendamento existe
-        current = []
-        if isinstance(current_response, list):
-            current = current_response
-        elif isinstance(current_response, dict) and 'data' in current_response and isinstance(current_response['data'], list):
-            current = current_response['data']
-            
-        if not current or len(current) == 0:
-            logger.warning(f"Agendamento {appointment_id} não encontrado")
+        current = supabase_admin.process_response(current_response)
+
+        if not current:
+            logger.warning(f"Agendamento {appointment_id} não encontrado para atualização.")
             raise HTTPException(status_code=404, detail="Agendamento não encontrado")
-        
+
         current_appointment = current[0]
-        clinic_id = current_appointment.get("clinic_id")  # Obtém o clinic_id do agendamento original
-        
-        # Preparar dados para atualização
+        clinic_id = current_appointment.get("clinic_id")
+
         update_data = {}
         for field, value in appointment_update.model_dump(exclude_unset=True).items():
-            if value is not None:
-                if isinstance(value, (date, time)):
-                    update_data[field] = value.isoformat()
-                else:
-                    update_data[field] = value
-            # Caso especial: se o valor for explicitamente definido como None para end_time,
-            # incluímos isso na atualização para permitir remover o horário de término
-            elif field == "end_time" and field in appointment_update.model_dump():
-                update_data[field] = None
-                    
+            if isinstance(value, (date, time)):
+                 update_data[field] = value.isoformat()
+            else:
+                 update_data[field] = value
+
+        # Serializar date e time para string ISO format se presentes
+        if 'date' in update_data and update_data['date'] is not None:
+            try:
+                # Validar e converter a string de data recebida
+                parsed_date = date.fromisoformat(update_data['date'])
+                update_data['date'] = parsed_date.isoformat() # Manter como string ISO para Supabase
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Formato de data inválido para '{update_data['date']}'. Use YYYY-MM-DD.")
+        elif 'date' in update_data and update_data['date'] is None:
+            # Se o cliente enviou date: null, remover ou converter para None
+            # A API Supabase espera 'null' literal, mas vamos remover por segurança
+             del update_data['date']
+
+        if 'start_time' in update_data and isinstance(update_data['start_time'], time):
+            update_data['start_time'] = update_data['start_time'].isoformat()
+
         if not update_data:
             logger.warning(f"Nenhum dado fornecido para atualização do agendamento {appointment_id}")
             raise HTTPException(status_code=400, detail="Nenhum dado fornecido para atualização")
-        
-        # Verificar conflito de horário, se necessário
-        if "date" in update_data or "start_time" in update_data or "end_time" in update_data:
+
+        # Verificar conflito de horário, se data/hora forem atualizados
+        if "date" in update_data or "start_time" in update_data:
             new_date = update_data.get("date", current_appointment["date"])
-            new_start = update_data.get("start_time", current_appointment["start_time"])
-            new_end = update_data.get("end_time", current_appointment.get("end_time"))
-            
-            # Buscar outros agendamentos no mesmo dia para a clínica do agendamento original
+            new_start_str = update_data.get("start_time", current_appointment["start_time"])
+            # A lógica de verificação de conflito precisa ser robusta
+            # Buscando outros agendamentos no mesmo dia para a clínica
             if clinic_id:
-                other_appointments_response = await supabase_admin._request(
-                "GET",
-                f"/rest/v1/appointments?clinic_id=eq.{str(clinic_id)}&date=eq.{new_date}&status=eq.scheduled&select=*"
-            )
-            
-                # Tratar a resposta
-                other_appointments = []
-                if isinstance(other_appointments_response, list):
-                    other_appointments = other_appointments_response
-                elif isinstance(other_appointments_response, dict) and 'data' in other_appointments_response and isinstance(other_appointments_response['data'], list):
-                    other_appointments = other_appointments_response['data']
-                
-            # Verificar conflitos
-            for app in other_appointments:
-                if app["id"] == str(appointment_id):
-                    continue  # Pular o próprio agendamento
-                    
-                    # Verificar se end_time existe e não é nulo em ambos os registros
-                    app_end_time = app.get("end_time")
-                    
-                    # Se algum dos horários de término for nulo, não podemos verificar conflito completamente
-                    if app_end_time is None or new_end is None:
-                        # Se os horários de início coincidem, consideramos conflito
-                        if app["start_time"] == new_start:
-                            logger.warning(f"Horário de início {new_start} conflita com agendamento existente {app['id']}")
-                            raise HTTPException(status_code=400, detail="Horário de início conflita com outro agendamento")
-                        # Caso contrário, permitimos o agendamento (risco de sobreposição)
-                        continue
-                        
-                    # Verificação normal de conflito quando ambos end_time estão presentes
-                    if (app["start_time"] <= new_end and app_end_time >= new_start):
-                        logger.warning(f"Horário {new_start}-{new_end} conflita com agendamento existente {app['id']}")
-                    raise HTTPException(status_code=400, detail="Horário conflita com outro agendamento")
-        
-        # Atualizar
+                conflict_check_query = (
+                    f"/rest/v1/appointments?clinic_id=eq.{clinic_id}"
+                    f"&date=eq.{new_date}"
+                    f"&status=eq.scheduled" # Apenas conflita com agendamentos ativos
+                    f"&id=neq.{appointment_id}" # Exclui o próprio agendamento
+                    f"&select=id,start_time,end_time"
+                )
+                other_apps_resp = await supabase_admin._request("GET", conflict_check_query)
+                other_apps = supabase_admin.process_response(other_apps_resp)
+
+                new_start_time_obj = datetime.strptime(new_start_str, '%H:%M:%S').time()
+                new_end_time_str = update_data.get("end_time", current_appointment.get("end_time"))
+                new_end_time_obj = datetime.strptime(new_end_time_str, '%H:%M:%S').time() if new_end_time_str else None
+
+                for app in other_apps:
+                    app_start_time = datetime.strptime(app["start_time"], '%H:%M:%S').time()
+                    app_end_time_str = app.get("end_time")
+                    app_end_time = datetime.strptime(app_end_time_str, '%H:%M:%S').time() if app_end_time_str else None
+
+                    # Lógica de verificação de sobreposição
+                    # Caso 1: Ambos têm hora de fim
+                    if new_end_time_obj and app_end_time:
+                        if max(new_start_time_obj, app_start_time) < min(new_end_time_obj, app_end_time):
+                             logger.warning(f"Conflito de horário detectado para {appointment_id} com {app['id']}")
+                             raise HTTPException(status_code=400, detail="Horário conflita com outro agendamento")
+                    # Caso 2: Um ou ambos não têm hora de fim (considera conflito se início for igual)
+                    elif new_start_time_obj == app_start_time:
+                         logger.warning(f"Conflito de horário (início igual) detectado para {appointment_id} com {app['id']}")
+                         raise HTTPException(status_code=400, detail="Horário de início conflita com outro agendamento")
+
+        # Atualizar usando PATCH e Prefer: return=representation
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
         update_response = await supabase_admin._request(
             "PATCH",
             f"/rest/v1/appointments?id=eq.{str(appointment_id)}",
-            json=update_data
+            json=update_data,
+            headers=headers
         )
-        
-        # Tratar a resposta do PATCH
-        updated_appointment = None
-        if isinstance(update_response, list) and len(update_response) > 0:
-            updated_appointment = update_response[0]
-        elif isinstance(update_response, dict) and 'data' in update_response and isinstance(update_response['data'], list) and len(update_response['data']) > 0:
-            updated_appointment = update_response['data'][0]
-        
-        # Se conseguimos obter a resposta diretamente do PATCH, retornamos ela
-        if updated_appointment:
-            logger.info(f"Agendamento {appointment_id} atualizado com sucesso: {updated_appointment}")
-            return updated_appointment
-        
-        # Se não, fazemos um GET para buscar os dados atualizados
-        updated_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&select=*"
-        )
-        
-        # Tratar a resposta do GET
-        updated = []
-        if isinstance(updated_response, list):
-            updated = updated_response
-        elif isinstance(updated_response, dict) and 'data' in updated_response and isinstance(updated_response['data'], list):
-            updated = updated_response['data']
-        
-        if not updated or len(updated) == 0:
-            logger.error(f"Agendamento {appointment_id} não encontrado após atualização")
-            raise HTTPException(status_code=500, detail="Erro ao buscar agendamento atualizado")
-            
-        logger.info(f"Agendamento {appointment_id} atualizado com sucesso: {updated[0]}")
-        return updated[0]
-        
+
+        updated_appointment_data = supabase_admin.process_response(update_response)
+
+        if not updated_appointment_data:
+            logger.error(f"Agendamento {appointment_id} não encontrado após atualização ou erro na resposta.")
+            # Tentar buscar novamente como fallback?
+            fallback_get = await supabase_admin._request("GET", f"/rest/v1/appointments?id=eq.{str(appointment_id)}&select=*")
+            fallback_data = supabase_admin.process_response(fallback_get)
+            if not fallback_data:
+                raise HTTPException(status_code=500, detail="Erro ao buscar agendamento após atualização")
+            updated_appointment_data = fallback_data
+
+        logger.info(f"Agendamento {appointment_id} atualizado com sucesso.")
+        return updated_appointment_data[0]
+
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
         logger.error(f"Erro ao atualizar agendamento {appointment_id}: {e}", exc_info=True)
-        error_detail = str(e)
-        if hasattr(e, 'response') and e.response is not None:
-            error_detail = f"{error_detail} - Response: {e.response.text}"
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar agendamento: {error_detail}") 
+        raise HTTPException(status_code=500, detail=f"Erro interno ao atualizar agendamento: {str(e)}") 
