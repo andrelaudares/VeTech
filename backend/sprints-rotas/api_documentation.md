@@ -173,11 +173,14 @@ Cadastra um novo animal vinculado a uma clínica.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/animals?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/animals
 ```
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica que está cadastrando o animal (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica que está cadastrando o animal (obrigatório)~~ REMOVIDO (obtido via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json
@@ -215,14 +218,17 @@ Obtém todos os animais vinculados a uma clínica.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/animals?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/animals
 ```
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (obtido via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Responses:**
-- `200 OK`: Lista de animais
+- `200 OK`: Lista de animais da clínica autenticada
   ```json
   [
     {
@@ -247,14 +253,17 @@ Obtém detalhes de um animal específico.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548
 ```
 
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Responses:**
 - `200 OK`: Detalhes do animal
@@ -272,7 +281,7 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548?clinic
     "updated_at": "2023-04-07T23:50:00.000Z"
   }
   ```
-- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao buscar animal
 
 ### `PATCH /api/v1/animals/{animal_id}`
@@ -281,14 +290,17 @@ Atualiza um animal existente.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548
 ```
 
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json
@@ -318,7 +330,7 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548?clinic
   }
   ```
 - `400 Bad Request`: Nenhum dado fornecido para atualização
-- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao atualizar animal
 
 ### `DELETE /api/v1/animals/{animal_id}`
@@ -327,18 +339,21 @@ Remove um animal pelo ID.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548
 ```
 
 **Path Parameters:**
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Responses:**
 - `204 No Content`: Animal removido com sucesso.
-- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao deletar animal
 
 ### `POST /api/v1/animals/{animal_id}/preferences`
@@ -354,7 +369,10 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/prefer
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json
@@ -377,7 +395,7 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/prefer
   }
   ```
 - `400 Bad Request`: Já existem preferências cadastradas para este animal
-- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao criar preferências
 
 ### `GET /api/v1/animals/{animal_id}/preferences`
@@ -393,7 +411,10 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/prefer
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Responses:**
 - `200 OK`: Preferências obtidas com sucesso
@@ -407,7 +428,7 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/prefer
     "updated_at": "2023-05-10T14:30:00.000Z"
   }
   ```
-- `404 Not Found`: Animal não encontrado ou não pertence à clínica / Preferências não encontradas
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada / Preferências não encontradas
 - `500 Internal Server Error`: Erro ao obter preferências
 
 ### `PATCH /api/v1/animals/{animal_id}/preferences`
@@ -423,7 +444,10 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/prefer
 - `animal_id`: ID UUID do animal (obrigatório)
 
 **Query Parameters:**
-- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json
@@ -446,7 +470,7 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/prefer
   }
   ```
 - `400 Bad Request`: Nenhum dado fornecido para atualização
-- `404 Not Found`: Animal não encontrado ou não pertence à clínica / Preferências não encontradas
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada / Preferências não encontradas
 - `500 Internal Server Error`: Erro ao atualizar preferências
 
 ## Agendamentos
@@ -457,11 +481,14 @@ Cria um novo agendamento para um animal.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/appointments?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/appointments
 ```
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica que está criando o agendamento (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica que está criando o agendamento (obrigatório)~~ REMOVIDO (obtido via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json
@@ -491,8 +518,8 @@ http://localhost:8000/api/v1/appointments?clinic_id=bd330f0a-23cf-443d-b7a6-529e
     "updated_at": "2023-04-08T10:00:00.000Z"
   }
   ```
-- `400 Bad Request`: Horário já ocupado ou dados inválidos
-- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `400 Bad Request`: Horário já ocupado pela clínica ou dados inválidos
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao criar agendamento
 
 ### `GET /api/v1/appointments`
@@ -501,16 +528,19 @@ Obtém todos os agendamentos de uma clínica, ordenados por data e hora.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/appointments?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234&date_from=2023-05-15&status=scheduled
+http://localhost:8000/api/v1/appointments?date_from=2023-05-15&status=scheduled
 ```
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (obtido via JWT)
 - `date_from`: Filtrar agendamentos a partir desta data (opcional)
 - `status`: Filtrar por status (opcional) - valores: scheduled, completed, cancelled
 
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
 **Responses:**
-- `200 OK`: Lista de agendamentos
+- `200 OK`: Lista de agendamentos da clínica autenticada
   ```json
   [
     {
@@ -542,7 +572,10 @@ http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
 - `appointment_id`: ID UUID do agendamento (obrigatório)
 
 **Query Parameters:**
-- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Responses:**
 - `200 OK`: Detalhes do agendamento
@@ -560,7 +593,7 @@ http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
     "updated_at": "2023-04-08T10:00:00.000Z"
   }
   ```
-- `404 Not Found`: Agendamento não encontrado
+- `404 Not Found`: Agendamento não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao buscar agendamento
 
 ### `DELETE /api/v1/appointments/{appointment_id}`
@@ -576,7 +609,10 @@ http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
 - `appointment_id`: ID UUID do agendamento (obrigatório)
 
 **Query Parameters:**
-- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Responses:**
 - `200 OK`: Agendamento removido com sucesso
@@ -585,7 +621,7 @@ http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
     "message": "Agendamento removido com sucesso."
   }
   ```
-- `404 Not Found`: Agendamento não encontrado ou não pertence à clínica
+- `404 Not Found`: Agendamento não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao deletar agendamento
 
 ### `PATCH /api/v1/appointments/{appointment_id}`
@@ -601,7 +637,10 @@ http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
 - `appointment_id`: ID UUID do agendamento (obrigatório)
 
 **Query Parameters:**
-- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json
@@ -630,8 +669,8 @@ http://localhost:8000/api/v1/appointments/12345678-23cf-443d-b7a6-529e7ea5f234
     "updated_at": "2023-04-08T11:00:00.000Z"
   }
   ```
-- `400 Bad Request`: Horário já ocupado ou dados inválidos
-- `404 Not Found`: Agendamento não encontrado ou não pertence à clínica
+- `400 Bad Request`: Horário já ocupado pela clínica ou dados inválidos
+- `404 Not Found`: Agendamento não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao atualizar agendamento
 
 ## Consultas
@@ -642,11 +681,14 @@ Cria uma nova consulta para um animal.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/consultations?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/consultations
 ```
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica que está criando a consulta (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica que está criando a consulta (obrigatório)~~ REMOVIDO (obtido via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json
@@ -670,7 +712,7 @@ http://localhost:8000/api/v1/consultations?clinic_id=bd330f0a-23cf-443d-b7a6-529
     "updated_at": "2023-10-26T10:00:00Z"
   }
   ```
-- `404 Not Found`: Animal não encontrado ou não pertence à clínica
+- `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao criar consulta
 
 ### `GET /api/v1/consultations`
@@ -679,15 +721,18 @@ Obtém todas as consultas de uma clínica, opcionalmente filtradas por animal.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/consultations?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234&animal_id=c7020821-b8fe-4608-9f7f-2bad17877ca4
+http://localhost:8000/api/v1/consultations?animal_id=c7020821-b8fe-4608-9f7f-2bad17877ca4
 ```
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (obtido via JWT)
 - `animal_id`: Filtrar consultas por ID do animal (opcional)
 
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
 **Responses:**
-- `200 OK`: Lista de consultas
+- `200 OK`: Lista de consultas da clínica autenticada
   ```json
   [
     {
@@ -709,14 +754,14 @@ Atualiza uma consulta existente.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234
 ```
 
 **Path Parameters:**
 - `consultation_id`: ID UUID da consulta (obrigatório)
 
-**Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Request Body:**
 ```json
@@ -740,7 +785,7 @@ http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234?
   }
   ```
 - `400 Bad Request`: Nenhum dado fornecido para atualização
-- `404 Not Found`: Consulta não encontrada ou não pertence à clínica
+- `404 Not Found`: Consulta não encontrada ou não pertence à clínica autenticada
 - `500 Internal Server Error`: Erro ao atualizar consulta
 
 ### `DELETE /api/v1/consultations/{consultation_id}`
@@ -749,19 +794,23 @@ Remove uma consulta pelo ID.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234?clinic_id=bd330f0a-23cf-443d-b7a6-529e7ea5f234
+http://localhost:8000/api/v1/consultations/78901234-23cf-443d-b7a6-529e7ea5f234
 ```
 
 **Path Parameters:**
 - `consultation_id`: ID UUID da consulta (obrigatório)
 
 **Query Parameters:**
-- `clinic_id`: ID UUID da clínica (obrigatório)
+- ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (verificação via JWT)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
 
 **Responses:**
 - `204 No Content`: Consulta removida com sucesso.
-- `404 Not Found`: Consulta não encontrada ou não pertence à clínica
-- `500 Internal Server Error`: Erro ao deletar consulta 
+- `404 Not Found`: Consulta não encontrada ou não pertence à clínica autenticada
+- `500 Internal Server Error`: Erro ao deletar consulta
+
 
 ## Nutrição e Dietas
 

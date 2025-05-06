@@ -16,19 +16,24 @@ router = APIRouter()
 @router.post("", response_model=ConsultationResponse)
 async def create_consultation(
     consultation: ConsultationCreate = Body(...),
-    clinic_id: UUID = Query(..., description="ID da clínica que está registrando a consulta")
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
     logger.info(f"Requisição recebida para criar consulta para clinic_id: {clinic_id}")
     logger.info(f"Dados da consulta recebidos: {consultation.model_dump()}")
 
     try:
-        # Verificar se o animal pertence à clínica
-        animal = await supabase_admin.get_by_eq("animals", "id", str(consultation.animal_id), "id, clinic_id")
-        if not animal or str(animal[0]['clinic_id']) != str(clinic_id):
+        animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{consultation.animal_id}&clinic_id=eq.{clinic_id}&select=id"
+        )
+        if not supabase_admin.process_response(animal_response):
             logger.warning(f"Animal {consultation.animal_id} não encontrado ou não pertence à clínica {clinic_id}")
             raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
 
-        # Preparar os dados para inserção
         consultation_data = {
             "clinic_id": str(clinic_id),
             "animal_id": str(consultation.animal_id),
@@ -38,17 +43,21 @@ async def create_consultation(
 
         logger.info(f"Tentando inserir consulta na tabela 'consultations' com dados: {consultation_data}")
 
-        # Inserir a consulta
-        created_consultation = await supabase_admin.insert("consultations", data=consultation_data)
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+        response = await supabase_admin._request(
+            "POST",
+            "/rest/v1/consultations",
+            json=consultation_data,
+            headers=headers
+        )
+        created_consultation = supabase_admin.process_response(response, single_item=True)
 
-        if isinstance(created_consultation, list) and created_consultation:
-            logger.info(f"Consulta criada com sucesso: {created_consultation[0]}")
-            return created_consultation[0]
-        elif isinstance(created_consultation, dict):
+        if created_consultation:
             logger.info(f"Consulta criada com sucesso: {created_consultation}")
             return created_consultation
         else:
-            logger.error(f"Resposta inesperada ao inserir consulta: {created_consultation}")
+            logger.error(f"Resposta inesperada ao inserir consulta: {response}")
             raise HTTPException(status_code=500, detail="Resposta inesperada do Supabase.")
 
     except HTTPException as http_exc:
@@ -60,19 +69,23 @@ async def create_consultation(
 
 @router.get("", response_model=List[ConsultationResponse])
 async def get_consultations(
-    clinic_id: UUID = Query(..., description="ID da clínica para listar consultas"),
-    animal_id: Optional[UUID] = Query(None, description="Filtrar consultas por ID do animal")
+    animal_id: Optional[UUID] = Query(None, description="Filtrar consultas por ID do animal"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
     logger.info(f"Requisição para listar consultas da clinic_id: {clinic_id}, animal_id: {animal_id}")
     try:
-        filters = {"clinic_id": f"eq.{clinic_id}"}
+        query = f"/rest/v1/consultations?clinic_id=eq.{clinic_id}&select=*"
         if animal_id:
-            filters["animal_id"] = f"eq.{animal_id}"
+            query += f"&animal_id=eq.{animal_id}"
+        query += "&order=date.desc"
 
-        consultations = await supabase_admin.select(
-            table="consultations",
-            filters=filters
-        )
+        response = await supabase_admin._request("GET", query)
+        consultations = supabase_admin.process_response(response)
+
         logger.info(f"Consultas encontradas: {len(consultations)}")
         return consultations
     except Exception as e:
@@ -139,14 +152,20 @@ async def update_consultation(
 @router.delete("/{consultation_id}", status_code=204)
 async def delete_consultation(
     consultation_id: UUID = Path(..., description="ID da consulta a ser deletada"),
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária da consulta")
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> None:
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
     logger.info(f"Deletando consulta ID: {consultation_id} da clinic_id: {clinic_id}")
 
     try:
-        # Verificar se a consulta pertence à clínica
-        existing = await supabase_admin.get_by_eq("consultations", "id", str(consultation_id), "id, clinic_id")
-        if not existing or str(existing[0]['clinic_id']) != str(clinic_id):
+        check_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/consultations?id=eq.{consultation_id}&clinic_id=eq.{clinic_id}&select=id"
+        )
+        if not supabase_admin.process_response(check_response):
             raise HTTPException(status_code=404, detail="Consulta não encontrada ou não pertence à clínica")
 
         params = {"id": f"eq.{consultation_id}", "clinic_id": f"eq.{clinic_id}"}

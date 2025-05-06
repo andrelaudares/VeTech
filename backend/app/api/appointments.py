@@ -6,6 +6,7 @@ from uuid import UUID
 import logging
 from datetime import date, time, datetime
 import httpx
+from ..api.auth import get_current_user
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -25,11 +26,15 @@ async def test_appointment_router():
 @router.post("", response_model=AppointmentResponse)
 async def create_appointment(
     appointment: AppointmentCreate = Body(...),
-    clinic_id: UUID = Query(..., description="ID da clínica")
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Cria um novo agendamento para um animal.
+    Cria um novo agendamento para um animal da clínica autenticada.
     """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
     logger.info(f"Requisição para criar agendamento para clinic_id: {clinic_id}")
     
     try:
@@ -39,18 +44,14 @@ async def create_appointment(
         
         # Consulta direta usando supabase_admin._request
         animal_response = await supabase_admin._request(
-            "GET", 
-            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{str(clinic_id)}&select=*"
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{str(clinic_id)}&select=id"
         )
         
         # Tratar a resposta para verificar se o animal existe
-        animal_result = []
-        if isinstance(animal_response, list):
-            animal_result = animal_response
-        elif isinstance(animal_response, dict) and 'data' in animal_response and isinstance(animal_response['data'], list):
-            animal_result = animal_response['data']
-        
-        if not animal_result or len(animal_result) == 0:
+        animal_result = supabase_admin.process_response(animal_response)
+
+        if not animal_result:
             raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence a esta clínica")
         
         # 2. Verificar conflitos de horário
@@ -60,11 +61,7 @@ async def create_appointment(
         )
         
         # Tratar a resposta para verificar conflitos
-        appointments_result = []
-        if isinstance(appointments_response, list):
-            appointments_result = appointments_response
-        elif isinstance(appointments_response, dict) and 'data' in appointments_response and isinstance(appointments_response['data'], list):
-            appointments_result = appointments_response['data']
+        appointments_result = supabase_admin.process_response(appointments_response)
         
         # Verificação manual de conflito
         if appointments_result:
@@ -107,15 +104,7 @@ async def create_appointment(
         )
         
         # Tratar a resposta do POST
-        new_appointment = None
-        if isinstance(new_appointment_response, list) and len(new_appointment_response) > 0:
-            new_appointment = new_appointment_response[0]
-        elif isinstance(new_appointment_response, dict):
-            if 'data' in new_appointment_response and isinstance(new_appointment_response['data'], list) and len(new_appointment_response['data']) > 0:
-                new_appointment = new_appointment_response['data'][0]
-            else:
-                # Caso seja um objeto único diretamente
-                new_appointment = new_appointment_response
+        new_appointment = supabase_admin.process_response(new_appointment_response, single_item=True)
         
         if new_appointment:
             logger.info(f"Agendamento criado com sucesso: {new_appointment}")
@@ -135,13 +124,19 @@ async def create_appointment(
 
 @router.get("", response_model=List[AppointmentResponse])
 async def get_appointments(
-    clinic_id: UUID = Query(..., description="ID da clínica"),
     date_from: Optional[date] = Query(None, description="Filtrar a partir desta data"),
-    status: Optional[str] = Query(None, description="Filtrar por status")
+    status: Optional[str] = Query(None, description="Filtrar por status"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
     """
-    Obtém todos os agendamentos de uma clínica.
+    Obtém todos os agendamentos da clínica autenticada.
     """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Listando agendamentos para clinic_id: {clinic_id} com filtros date_from={date_from}, status={status}")
+
     try:
         # Construir a query
         query = f"/rest/v1/appointments?clinic_id=eq.{str(clinic_id)}"
@@ -159,11 +154,7 @@ async def get_appointments(
         response = await supabase_admin._request("GET", query)
         
         # Tratar a resposta para garantir que retornamos uma lista
-        result = []
-        if isinstance(response, list):
-            result = response
-        elif isinstance(response, dict) and 'data' in response and isinstance(response['data'], list):
-            result = response['data']
+        result = supabase_admin.process_response(response)
         
         logger.info(f"Encontrados {len(result)} agendamentos")
         return result
@@ -177,25 +168,28 @@ async def get_appointments(
 
 @router.get("/{appointment_id}", response_model=AppointmentResponse)
 async def get_appointment(
-    appointment_id: UUID = Path(..., description="ID do agendamento")
+    appointment_id: UUID = Path(..., description="ID do agendamento"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Obtém um agendamento específico pelo ID.
+    Obtém um agendamento específico pelo ID, verificando se pertence à clínica.
     """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Buscando agendamento {appointment_id} para clinic_id: {clinic_id}")
+
     try:
-        # Buscar pelo ID do agendamento, sem filtrar por clinic_id
+        # Buscar pelo ID do agendamento, **filtrando também por clinic_id**
         response = await supabase_admin._request(
             "GET",
-            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&select=*"
+            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&clinic_id=eq.{str(clinic_id)}&select=*"
         )
         
         # Tratar a resposta para extrair o agendamento
-        appointment_data = None
-        if isinstance(response, list) and len(response) > 0:
-            appointment_data = response[0]
-        elif isinstance(response, dict) and 'data' in response and isinstance(response['data'], list) and len(response['data']) > 0:
-            appointment_data = response['data'][0]
-            
+        appointment_data = supabase_admin.process_response(response, single_item=True)
+
         if appointment_data:
             logger.info(f"Agendamento {appointment_id} encontrado: {appointment_data}")
             return appointment_data
@@ -214,35 +208,44 @@ async def get_appointment(
 
 @router.delete("/{appointment_id}", response_model=Dict[str, str])
 async def delete_appointment(
-    appointment_id: UUID = Path(..., description="ID do agendamento")
+    appointment_id: UUID = Path(..., description="ID do agendamento"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, str]:
     """
-    Remove um agendamento pelo ID.
+    Remove um agendamento pelo ID, verificando se pertence à clínica.
     """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Deletando agendamento {appointment_id} da clinic_id: {clinic_id}")
+
     try:
-        # Verificar se o agendamento existe (sem filtrar por clinic_id)
+        # Verificar se o agendamento existe **e pertence à clínica**
         appointment_response = await supabase_admin._request(
             "GET",
-            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&select=id"
+            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&clinic_id=eq.{str(clinic_id)}&select=id"
         )
         
         # Tratar a resposta para verificar se o agendamento existe
-        appointment = []
-        if isinstance(appointment_response, list):
-            appointment = appointment_response
-        elif isinstance(appointment_response, dict) and 'data' in appointment_response and isinstance(appointment_response['data'], list):
-            appointment = appointment_response['data']
-            
-        if not appointment or len(appointment) == 0:
-            logger.warning(f"Agendamento {appointment_id} não encontrado.")
-            raise HTTPException(status_code=404, detail="Agendamento não encontrado")
+        appointment = supabase_admin.process_response(appointment_response)
+
+        if not appointment:
+            logger.warning(f"Agendamento {appointment_id} não encontrado ou não pertence à clínica {clinic_id}.")
+            raise HTTPException(status_code=404, detail="Agendamento não encontrado ou não pertence à clínica")
         
-        # Deletar o agendamento sem filtrar por clinic_id
+        # Deletar o agendamento **filtrando por clinic_id**
         await supabase_admin._request(
-            "DELETE", 
-            f"/rest/v1/appointments?id=eq.{str(appointment_id)}"
+            "DELETE",
+            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&clinic_id=eq.{str(clinic_id)}"
         )
         
+        # Verificar se realmente foi deletado (opcional)
+        get_again_response = await supabase_admin._request("GET", f"/rest/v1/appointments?id=eq.{str(appointment_id)}&clinic_id=eq.{str(clinic_id)}&select=id")
+        if supabase_admin.process_response(get_again_response):
+            logger.error(f"Erro ao deletar agendamento {appointment_id}: ainda encontrado após DELETE.")
+            raise HTTPException(status_code=500, detail="Erro interno: Falha ao deletar o agendamento.")
+
         logger.info(f"Agendamento {appointment_id} removido com sucesso")
         return {"message": "Agendamento removido com sucesso"}
         
@@ -258,25 +261,33 @@ async def delete_appointment(
 @router.patch("/{appointment_id}", response_model=AppointmentResponse)
 async def update_appointment(
     appointment_update: AppointmentUpdate = Body(...),
-    appointment_id: UUID = Path(..., description="ID do agendamento")
+    appointment_id: UUID = Path(..., description="ID do agendamento"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Atualiza um agendamento existente.
+    Atualiza um agendamento existente, verificando se pertence à clínica.
     """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Atualizando agendamento {appointment_id} para clinic_id: {clinic_id}")
+
     try:
-        # Verificar se o agendamento existe
+        # Verificar se o agendamento existe **e pertence à clínica**
         current_response = await supabase_admin._request(
             "GET",
-            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&select=*"
+            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&clinic_id=eq.{str(clinic_id)}&select=*"
         )
         current = supabase_admin.process_response(current_response)
 
         if not current:
-            logger.warning(f"Agendamento {appointment_id} não encontrado para atualização.")
-            raise HTTPException(status_code=404, detail="Agendamento não encontrado")
+            logger.warning(f"Agendamento {appointment_id} não encontrado ou não pertence à clínica {clinic_id} para atualização.")
+            raise HTTPException(status_code=404, detail="Agendamento não encontrado ou não pertence à clínica")
 
         current_appointment = current[0]
-        clinic_id = current_appointment.get("clinic_id")
+        # clinic_id já foi verificado acima e obtido do token
+        # clinic_id = current_appointment.get("clinic_id")
 
         update_data = {}
         for field, value in appointment_update.model_dump(exclude_unset=True).items():
@@ -347,7 +358,7 @@ async def update_appointment(
         headers["Prefer"] = "return=representation"
         update_response = await supabase_admin._request(
             "PATCH",
-            f"/rest/v1/appointments?id=eq.{str(appointment_id)}",
+            f"/rest/v1/appointments?id=eq.{str(appointment_id)}&clinic_id=eq.{clinic_id}",
             json=update_data,
             headers=headers
         )
@@ -357,11 +368,10 @@ async def update_appointment(
         if not updated_appointment_data:
             logger.error(f"Agendamento {appointment_id} não encontrado após atualização ou erro na resposta.")
             # Tentar buscar novamente como fallback?
-            fallback_get = await supabase_admin._request("GET", f"/rest/v1/appointments?id=eq.{str(appointment_id)}&select=*")
+            fallback_get = await supabase_admin._request("GET", f"/rest/v1/appointments?id=eq.{str(appointment_id)}&clinic_id=eq.{clinic_id}&select=*")
             fallback_data = supabase_admin.process_response(fallback_get)
             if not fallback_data:
                 raise HTTPException(status_code=500, detail="Erro ao buscar agendamento após atualização")
-            updated_appointment_data = fallback_data
 
         logger.info(f"Agendamento {appointment_id} atualizado com sucesso.")
         return updated_appointment_data[0]

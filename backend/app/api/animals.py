@@ -5,6 +5,7 @@ from ..models.animal_preferences import PetPreferencesCreate, PetPreferencesUpda
 from ..db.supabase import supabase_admin
 from uuid import UUID
 import logging
+from ..api.auth import get_current_user
 
 # Configuração básica de logging
 logging.basicConfig(level=logging.INFO)
@@ -15,18 +16,23 @@ router = APIRouter()
 @router.post("", response_model=AnimalResponse)
 async def create_animal(
     # Recebe os dados do animal do corpo da requisição
-    animal: AnimalCreate = Body(...), 
-    # Recebe clinics_id como parâmetro de query obrigatório
-    clinic_id: UUID = Query(..., description="ID da clínica que está cadastrando o animal")
+    animal: AnimalCreate = Body(...),
+    # Adicionar dependência do usuário autenticado
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
+    # Obter clinic_id do usuário autenticado
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
     logger.info(f"Requisição recebida para criar animal para clinic_id: {clinic_id}")
     logger.info(f"Dados do animal recebidos: {animal.model_dump()}")
     
     try:
         # Preparar os dados do animal para inserção
-        # Garantindo que apenas os campos esperados pela tabela `animals` (com clinics_id) sejam enviados
+        # Garantindo que apenas os campos esperados pela tabela `animals` (com clinic_id do token) sejam enviados
         animal_data = {
-            "clinic_id": str(clinic_id),  # ID da clínica logada
+            "clinic_id": str(clinic_id),  # ID da clínica logada (do token)
             "name": animal.name,
             "species": animal.species,
             "breed": animal.breed,
@@ -83,13 +89,30 @@ async def create_animal(
 @router.patch("/{animal_id}", response_model=AnimalResponse)
 async def update_animal(
     animal_id: UUID = Path(..., description="ID do animal a ser atualizado"),
-    animal_update: AnimalUpdate = Body(...)
+    animal_update: AnimalUpdate = Body(...),
+    # Adicionar dependência do usuário autenticado
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    logger.info(f"Requisição recebida para atualizar animal ID: {animal_id}")
+    # Obter clinic_id do usuário autenticado
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Requisição recebida para atualizar animal ID: {animal_id} para clinic_id: {clinic_id}")
     logger.info(f"Dados de atualização recebidos: {animal_update.model_dump(exclude_unset=True)}")
 
     try:
-        # Preparar os dados para atualização (apenas campos fornecidos)
+        # 1. Verificar se o animal pertence à clínica antes de atualizar
+        existing_animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id"
+        )
+        existing_animal = supabase_admin.process_response(existing_animal_response, single_item=True)
+        if not existing_animal:
+            logger.warning(f"Tentativa de atualizar animal {animal_id} não encontrado ou não pertencente à clínica {clinic_id}")
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
+
+        # 2. Preparar os dados para atualização (apenas campos fornecidos)
         update_data = animal_update.model_dump(exclude_unset=True)
 
         if not update_data:
@@ -97,24 +120,37 @@ async def update_animal(
 
         logger.info(f"Tentando atualizar animal ID: {animal_id} com dados: {update_data}")
 
-        # Atualizar o animal no banco de dados usando o método _request diretamente
-        # O método `update` do Supabase requer filtros e dados
+        # 3. Atualizar o animal no banco de dados usando o método _request diretamente
+        # Garantir que a atualização só ocorra se o animal_id e clinic_id (do token) corresponderem
         params = {
-            "id": f"eq.{animal_id}"
+            "id": f"eq.{animal_id}",
+            "clinic_id": f"eq.{clinic_id}" # Adiciona filtro por clinic_id
         }
-        updated_animal_list = await supabase_admin._request(
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation" # Pedir para retornar o registro atualizado
+
+        updated_animal_list_response = await supabase_admin._request(
             method="PATCH",
             endpoint=f"/rest/v1/animals",
             params=params,
-            json=update_data
+            json=update_data,
+            headers=headers
         )
+        updated_animal_list = supabase_admin.process_response(updated_animal_list_response)
+
 
         if not updated_animal_list:
-            logger.error(f"Falha ao atualizar animal {animal_id}. Resposta vazia do Supabase ou animal não encontrado.")
-            raise HTTPException(status_code=404, detail="Animal não encontrado ou falha ao atualizar.")
+             # Se Prefer=representation falhar ou não retornar nada, tentar buscar novamente
+             fallback_get_response = await supabase_admin._request("GET", f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=*")
+             fallback_data = supabase_admin.process_response(fallback_get_response)
+             if not fallback_data:
+                 logger.error(f"Falha ao atualizar animal {animal_id}. Não encontrado após PATCH.")
+                 raise HTTPException(status_code=404, detail="Animal não encontrado ou falha ao atualizar.")
+             updated_animal = fallback_data[0]
+        else:
+            updated_animal = updated_animal_list[0]
 
-        # A resposta de PATCH geralmente retorna uma lista com o objeto atualizado
-        updated_animal = updated_animal_list[0]
+
         logger.info(f"Animal {animal_id} atualizado com sucesso: {updated_animal}")
         return updated_animal
 
@@ -134,32 +170,46 @@ async def update_animal(
 @router.delete("/{animal_id}", status_code=204)
 async def delete_animal(
     animal_id: UUID = Path(..., description="ID do animal a ser deletado"),
-    clinic_id: UUID = Query(..., description="ID da clínica proprietária do animal")
+    # Adicionar dependência do usuário autenticado
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> None:
+    # Obter clinic_id do usuário autenticado
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
     logger.info(f"Requisição recebida para deletar animal ID: {animal_id} da clinic_id: {clinic_id}")
 
     try:
-        # Verificar se o animal pertence à clínica antes de deletar (opcional, mas bom para segurança)
-        existing_animal = await supabase_admin.get_by_eq(
-            table="animals",
-            column="id",
-            value=str(animal_id),
-            select="id, clinic_id"
+        # 1. Verificar se o animal pertence à clínica antes de deletar (redundante com o filtro no DELETE, mas bom para log)
+        existing_animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id"
         )
-        if not existing_animal or str(existing_animal[0]['clinic_id']) != str(clinic_id):
+        existing_animal = supabase_admin.process_response(existing_animal_response, single_item=True)
+
+        if not existing_animal:
             logger.warning(f"Tentativa de deletar animal {animal_id} não encontrado ou não pertencente à clínica {clinic_id}")
             raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
 
-        # Deletar o animal usando o método _request
+        # 2. Deletar o animal usando o método _request, filtrando por animal_id e clinic_id (do token)
         params = {
             "id": f"eq.{animal_id}",
-            "clinic_id": f"eq.{clinic_id}" # Garante que só delete se pertencer à clínica
+            "clinic_id": f"eq.{clinic_id}" # Garante que só delete se pertencer à clínica do token
         }
         await supabase_admin._request(
             method="DELETE",
             endpoint="/rest/v1/animals",
             params=params
         )
+
+        # 3. Verificar se realmente foi deletado (opcional)
+        get_again_response = await supabase_admin._request("GET", f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id")
+        if supabase_admin.process_response(get_again_response):
+            logger.error(f"Erro ao deletar animal {animal_id}: ainda encontrado após DELETE.")
+            raise HTTPException(status_code=500, detail="Erro interno: Falha ao deletar o animal.")
+
+
         # DELETE não retorna conteúdo, então apenas logamos sucesso
         logger.info(f"Animal {animal_id} deletado com sucesso da clínica {clinic_id}")
         return None # Retorna None para indicar sucesso com status 204 No Content
@@ -179,14 +229,21 @@ async def delete_animal(
 
 @router.get("", response_model=list[AnimalResponse])
 async def list_animals(
+    # Adicionar dependência do usuário autenticado
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> list[Dict[str, Any]]:
-    logger.info(f"Requisição recebida para listar todos os animais")
+    # Obter clinic_id do usuário autenticado
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Requisição recebida para listar todos os animais da clinic_id: {clinic_id}")
 
     try:
-        # Buscar todos os animais sem filtro de clínica
+        # Buscar todos os animais **filtrando pela clinic_id do token**
         response = await supabase_admin._request(
             method="GET",
-            endpoint="/rest/v1/animals"
+            endpoint=f"/rest/v1/animals?clinic_id=eq.{clinic_id}&select=*" # Adicionar filtro clinic_id
         )
 
         # A resposta direta do _request pode ser a lista ou um dict {'data': [...]}
@@ -218,14 +275,22 @@ async def list_animals(
 
 @router.get("/{animal_id}", response_model=AnimalResponse)
 async def get_animal(
-    animal_id: UUID = Path(..., description="ID do animal a ser consultado")
+    animal_id: UUID = Path(..., description="ID do animal a ser consultado"),
+    # Adicionar dependência do usuário autenticado
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    logger.info(f"Requisição recebida para consultar animal ID: {animal_id}")
+    # Obter clinic_id do usuário autenticado
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Requisição recebida para consultar animal ID: {animal_id} da clinic_id: {clinic_id}")
 
     try:
-        # Buscar animal específico pelo ID
+        # Buscar animal específico pelo ID **e pela clinic_id do token**
         params = {
             "id": f"eq.{animal_id}",
+            "clinic_id": f"eq.{clinic_id}", # Adicionar filtro clinic_id
             "select": "*" # Garante que todos os campos sejam retornados
         }
 
@@ -271,15 +336,32 @@ async def get_animal(
 @router.post("/{animal_id}/preferences", response_model=PetPreferencesResponse)
 async def create_animal_preferences(
     animal_id: UUID = Path(..., description="ID do animal"),
-    preferences: PetPreferencesCreate = Body(...)
+    preferences: PetPreferencesCreate = Body(...),
+    # Adicionar dependência do usuário autenticado
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Cadastra preferências alimentares para um animal
+    Cadastra preferências alimentares para um animal.
+    Verifica se o animal pertence à clínica autenticada.
     """
-    logger.info(f"Requisição para cadastrar preferências alimentares para animal {animal_id}")
+    # Obter clinic_id do usuário autenticado
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Requisição para cadastrar preferências alimentares para animal {animal_id} (clínica: {clinic_id})")
 
     try:
-        # Verificar se já existem preferências para este animal
+        # 1. Verificar se o animal pertence à clínica autenticada
+        animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id"
+        )
+        if not supabase_admin.process_response(animal_response):
+            logger.warning(f"Animal {animal_id} não encontrado ou não pertence à clínica {clinic_id}")
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
+
+        # 2. Verificar se já existem preferências para este animal
         existing_preferences_response = await supabase_admin._request(
             method="GET",
             endpoint="/rest/v1/preferencias_pet",
@@ -335,15 +417,32 @@ async def create_animal_preferences(
 
 @router.get("/{animal_id}/preferences", response_model=PetPreferencesResponse)
 async def get_animal_preferences(
-    animal_id: UUID = Path(..., description="ID do animal")
+    animal_id: UUID = Path(..., description="ID do animal"),
+    # Adicionar dependência do usuário autenticado
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Obtém as preferências alimentares de um animal
+    Obtém as preferências alimentares de um animal.
+    Verifica se o animal pertence à clínica autenticada.
     """
-    logger.info(f"Requisição para obter preferências alimentares do animal {animal_id}")
+    # Obter clinic_id do usuário autenticado
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Requisição para obter preferências alimentares do animal {animal_id} (clínica: {clinic_id})")
 
     try:
-        # Buscar preferências
+        # 1. Verificar se o animal pertence à clínica autenticada
+        animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id"
+        )
+        if not supabase_admin.process_response(animal_response):
+            logger.warning(f"Animal {animal_id} não encontrado ou não pertence à clínica {clinic_id}")
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
+
+        # 2. Buscar preferências
         response = await supabase_admin._request(
             method="GET",
             endpoint="/rest/v1/preferencias_pet",
@@ -376,15 +475,32 @@ async def get_animal_preferences(
 @router.patch("/{animal_id}/preferences", response_model=PetPreferencesResponse)
 async def update_animal_preferences(
     animal_id: UUID = Path(..., description="ID do animal"),
-    preferences: PetPreferencesUpdate = Body(...)
+    preferences: PetPreferencesUpdate = Body(...),
+    # Adicionar dependência do usuário autenticado
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Atualiza as preferências alimentares de um animal (parcialmente)
+    Atualiza as preferências alimentares de um animal (parcialmente).
+    Verifica se o animal pertence à clínica autenticada.
     """
-    logger.info(f"Requisição para atualizar preferências alimentares do animal {animal_id}")
+    # Obter clinic_id do usuário autenticado
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+
+    logger.info(f"Requisição para atualizar preferências alimentares do animal {animal_id} (clínica: {clinic_id})")
 
     try:
-        # Preparar dados para atualização (apenas campos não nulos enviados)
+        # 1. Verificar se o animal pertence à clínica autenticada
+        animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id"
+        )
+        if not supabase_admin.process_response(animal_response):
+            logger.warning(f"Animal {animal_id} não encontrado ou não pertence à clínica {clinic_id}")
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
+
+        # 2. Preparar dados para atualização (apenas campos não nulos enviados)
         preferences_data = preferences.model_dump(exclude_unset=True)
         if not preferences_data:
             logger.info(f"Nenhum dado fornecido para atualização de preferências do animal {animal_id}")
@@ -403,26 +519,24 @@ async def update_animal_preferences(
         )
 
         # Tratar a resposta do PATCH
-        updated_data = None
-        if isinstance(update_response, list) and len(update_response) > 0:
-            updated_data = update_response[0]
-        elif isinstance(update_response, dict) and 'data' in update_response and isinstance(update_response['data'], list) and len(update_response['data']) > 0:
-             updated_data = update_response['data'][0]
+        updated_data_list = supabase_admin.process_response(update_response)
 
-        if updated_data:
+
+        if updated_data_list:
+            updated_data = updated_data_list[0]
             logger.info(f"Preferências do animal {animal_id} atualizadas com sucesso: {updated_data}")
             return updated_data
         else:
-             # Isso pode ocorrer se o animal_id não existir na tabela de preferências
-            logger.warning(f"Falha ao atualizar preferências para o animal {animal_id}. Preferências podem não existir. Resposta: {update_response}")
-            # Verificar se o animal existe na tabela 'animals' para dar um erro mais preciso
-            animal_exists_response = await supabase_admin._request("GET", "/rest/v1/animals", params={"id": f"eq.{animal_id}", "select": "id"})
-            animal_exists = (isinstance(animal_exists_response, list) and len(animal_exists_response) > 0) or \
-                            (isinstance(animal_exists_response, dict) and 'data' in animal_exists_response and len(animal_exists_response.get('data', [])) > 0)
-            if not animal_exists:
-                 raise HTTPException(status_code=404, detail=f"Animal com ID {animal_id} não encontrado.")
+             # Se a atualização não retornou nada (pode acontecer se não houver preferências)
+             # Verificar se as preferências existem para dar um erro 404 mais específico
+            prefs_exist_response = await supabase_admin._request("GET", "/rest/v1/preferencias_pet", params={"animal_id": f"eq.{animal_id}", "select": "id"})
+            if not supabase_admin.process_response(prefs_exist_response):
+                 raise HTTPException(status_code=404, detail="Preferências não encontradas para este animal. Use POST para criar.")
             else:
-                raise HTTPException(status_code=404, detail="Preferências não encontradas para este animal. Use POST para criar.")
+                 # Se as preferências existem mas o PATCH não retornou, pode ser um erro interno ou de permissão
+                 logger.error(f"Falha ao atualizar preferências para o animal {animal_id}. Resposta do PATCH: {update_response}")
+                 raise HTTPException(status_code=500, detail="Erro ao atualizar preferências. Falha ao obter dados atualizados.")
+
 
     except HTTPException as http_exc:
         raise http_exc
