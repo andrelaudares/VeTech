@@ -24,138 +24,6 @@ The platform will utilize a modern multi-tier architecture:
 * **Authentication**: Dual system for clinic and client accounts  
 * **White-labeling**: Customizable branding for clinics throughout the client experience (https://github.com/ing-bank/lion)
 
-### **2.3 Database Schema**
-
-The database will include the following primary tables:
-
-1. **Clinics**
-
-   * id (PK)  
-   * name  
-   * email  
-   * phone  
-   * password (hashed)  
-   * subscription\_tier  
-   * max\_clients (derived from subscription tier)  
-   * created\_at  
-   * updated\_at  
-2. **Clients**
-
-   * id (PK)  
-   * clinic\_id (FK)  
-   * name  
-   * email  
-   * phone  
-   * password (hashed)  
-   * created\_at  
-   * updated\_at  
-3. **Animals**
-
-   * id (PK)  
-   * client\_id (FK)  
-   * name  
-   * species  
-   * breed  
-   * age  
-   * weight  
-   * medical\_history  
-   * created\_at  
-   * updated\_at  
-4. **Appointments**
-
-   * id (PK)  
-   * clinic\_id (FK)  
-   * client\_id (FK nullable)  
-   * animal\_id (FK nullable)  
-   * date  
-   * time  
-   * description  
-   * status  
-   * created\_at  
-   * updated\_at  
-5. **Consultations**
-
-   * id (PK)  
-   * animal\_id (FK)  
-   * date  
-   * description  
-   * created\_at  
-   * updated\_at  
-6. **Dietary\_Recommendations**
-
-   * id (PK)  
-   * animal\_id (FK)  
-   * food\_type  
-   * description  
-   * quantity  
-   * frequency  
-   * period (daily/weekly)  
-   * created\_at  
-   * updated\_at  
-7. **Exercise\_Recommendations**
-
-   * id (PK)  
-   * animal\_id (FK)  
-   * activity\_type  
-   * description  
-   * duration  
-   * frequency  
-   * period (daily/weekly)  
-   * created\_at  
-   * updated\_at  
-8. **Diet\_Logs**
-
-   * id (PK)  
-   * dietary\_recommendation\_id (FK)  
-   * date  
-   * completed  
-   * quantity  
-   * notes  
-   * created\_at  
-   * updated\_at  
-9. **Exercise\_Logs**
-
-   * id (PK)  
-   * exercise\_recommendation\_id (FK)  
-   * date  
-   * completed  
-   * duration  
-   * notes  
-   * created\_at  
-   * updated\_at  
-10. **Messages**
-
-    * id (PK)  
-    * clinic\_id (FK)  
-    * client\_id (FK)  
-    * animal\_id (FK nullable)  
-    * content  
-    * sender\_type (clinic/client)  
-    * read  
-    * created\_at  
-    * updated\_at
-
-## **3\. Business Model**
-
-### **3.1 Subscription Tiers**
-
-The platform will offer three subscription tiers for veterinary clinics:
-
-1. **Basic Tier**
-
-   * Up to 10 clients/animals  
-   * All core features  
-   * Free trial period  
-2. **Standard Tier**
-
-   * Up to 50 clients/animals  
-   * All core features  
-   * Free trial period  
-3. **Premium Tier**
-
-   * Up to 100 clients/animals  
-   * All core features  
-   * Free trial period
 
 ### **3.2 Subscription Management**
 
@@ -1068,3 +936,82 @@ Development should follow the phased approach outlined in this document, with ca
 The platform is designed to be extensible, allowing for future enhancements such as payment processing, mobile applications, advanced analytics, and integration capabilities. This ensures the system can grow and adapt to changing market needs while maintaining its core value proposition.
 
 By following this scope document, development teams can create a cohesive and complete solution that revolutionizes the way veterinary clinics interact with their clients and manage animal health.
+
+# Sistema de Gestão Nutricional para Clínicas Veterinárias
+
+## ?? Descrição Geral
+
+Sistema para clínicas veterinárias que oferece:
+
+- Cadastro de pets e informações clínicas.
+- Avaliação nutricional personalizada feita pela clínica.
+- Definição de dietas e orientações alimentares específicas.
+- Controle de alimentos proibidos.
+- Recomendação de snacks e alimentos entre refeições.
+- Registro de preferências e restrições alimentares.
+- Painel gamificado para o tutor acompanhar metas e progresso.
+
+---
+
+
+## ?? Fluxo de dieta e alimentação
+
+1. Clínica acessa o painel e seleciona o pet.
+2. Avalia peso, idade, condição clínica, objetivo e preferências.
+3. Define `dietas` e cadastra até 3 `opcoes_dieta`.
+4. Preenche os `alimentos_dieta` de cada opção.
+5. Registra `alimentos_evitar` para aquele pet.
+6. Cadastra `snacks_entre_refeicoes` personalizados.
+7. Tutor visualiza no app:
+   - As 3 opções com valores, porções e recomendações.
+   - Lista de alimentos proibidos.
+   - Snacks liberados e frequência.
+8. Tutor escolhe a dieta ? App atualiza metas e gamificação.
+
+---
+
+# Fluxo de Atividades Físicas
+
+1. **Clínica acessa o painel e seleciona o pet.**
+2. **Avalia peso, idade, condição clínica e nível de energia.**
+3. **Define plano de atividades personalizado:**
+   - Tipo de atividade (caminhada, corrida, natação, brincadeira)
+   - Frequência semanal (ex: 3x por semana)
+   - Duração por sessão (ex: 20 minutos)
+   - Intensidade (leve, moderada, intensa)
+4. **Registra preferências ou restrições do pet.**
+5. **Tutor visualiza no app:**
+   - Plano semanal de atividades.
+   - Orientações da clínica.
+   - Calorias estimadas por atividade.
+6. **Tutor marca as atividades como “Realizadas”.**
+7. **Veterinário acompanha o histórico e ajusta o plano conforme evolução.**
+8. **App atualiza o progresso nas metas de atividade física.**
+
+---
+
+# Fluxo de Gamificação
+
+1. **Criação de Metas pela Clínica:**
+   - Exemplo:
+     - Cumprir 5 caminhadas de 20 minutos na semana.
+     - Completar as refeições recomendadas durante 7 dias.
+     - Evitar alimentos proibidos no período.
+     - Realizar brincadeiras interativas 3x por semana.
+2. **Tutor realiza ações:**
+   - Marca atividades físicas.
+   - Registra refeições feitas.
+   - Indica snacks e petiscos dados.
+3. **Sistema calcula o progresso:**
+   - Percentual de conclusão por meta.
+   - Pontos acumulados.
+4. **Desbloqueio de recompensas:**
+   - Pontuação extra.
+   - Descontos na clínica.
+   - Brindes (kits pet, produtos, brinquedos)
+   - Certificados digitais (Pet saudável do mês)
+5. **Tutor consulta ranking e histórico:**
+   - Ranking entre tutores (opcional)
+   - Progresso pessoal e recompensas conquistadas.
+6. **Veterinário acompanha desempenho e adapta metas.
+
