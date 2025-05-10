@@ -1,6 +1,50 @@
 # Sprint 3: Consultas e Agendamentos - Detalhamento Revisado
 
-Esta sprint foca na implementação das funcionalidades principais para a gestão de consultas e agendamentos em uma clínica veterinária. O objetivo é criar um sistema intuitivo, eficiente e robusto que permita aos usuários (funcionários da clínica) listar, cadastrar, visualizar, editar e gerenciar consultas e agendamentos dos animais de forma fluida. Abaixo, detalho cada uma das oito telas propostas, que são páginas distintas interligadas por uma navegação clara e lógica, e não apenas seções, cards ou grupos dentro de uma única "Tela de Animais". Cada tela foi projetada com um propósito específico, garantindo uma experiência de uso otimizada e evitando sobrecarga de informações.
+Esta sprint foca na implementação das funcionalidades principais para a gestão de consultas e agendamentos em uma clínica veterinária. O objetivo é criar um sistema intuitivo, eficiente e robusto que permita aos usuários (funcionários da clínica) listar, cadastrar, visualizar, editar e gerenciar consultas e agendamentos dos animais de forma fluida. Abaixo, detalho cada uma das oito telas propostas, que são páginas distintas interligadas por uma navegação clara e lógica, e não apenas seções, cards ou grupos dentro de uma única "Tela de agendamentos e consultas". Cada tela foi projetada com um propósito específico, garantindo uma experiência de uso otimizada e evitando sobrecarga de informações.
+
+**Nova Feature:** A partir desta sprint, todas as telas incluem um **dropdown de busca de animais** posicionado no topo da página. Esse componente permite que o usuário selecione rapidamente um animal específico para visualizar ou gerenciar suas informações, um recurso essencial para clínicas com múltiplos pacientes cadastrados. A troca de animal no dropdown atualiza dinamicamente o conteúdo da tela, mantendo o contexto claro e agilizando o acesso às informações.
+
+---
+
+## Tela 0: Listagem de Dietas por Animal
+
+### Descrição
+A Tela de Listagem de Dietas por Animal é a porta de entrada para o módulo de consultas e agendamentos, funcionando como um painel de controle centralizado. Esta página independente apresenta uma visão geral dos agendamentos e consultas associadas a um animal específico, permitindo a clinica relate as consultas e faça agendamentos , aplicar filtros e realizar ações rápidas, como visualizar detalhes ou cadastrar novos agendamentos e consultas. Projetada para ser prática e eficiente, ela suporta o dia a dia de clínicas que precisam gerenciar múltiplas consultas e agendamentos com agilidade, oferecendo uma interface limpa e interativa.
+
+### Componentes
+- **Dropdown de Busca de Animais:** Localizado no topo da página, exibe uma lista de animais cadastrados e permite busca por nome em tempo real.
+- **Tabela de Dietas:** Uma tabela responsiva com colunas configuráveis, incluindo:
+  - **Tipo:** Exibe "Caseira", "Industrializada", etc.
+  - **Objetivo:** Mostra "Emagrecimento", "Ganho de Peso", etc.
+  - **Data de Início:** Formato DD/MM/AAAA.
+  - **Data de Fim:** Formato DD/MM/AAAA ou "Em andamento" se não definida.
+  - **Status:** Indicadores visuais como "Ativa" (verde) ou "Finalizada" (cinza).
+  - **Ações:** Botões para "Visualizar", "Editar" e "Excluir".
+- **Campo de Busca:** Pesquisa textual em tempo real por tipo ou objetivo.
+- **Filtros Avançados:** Dropdowns para status (ex: "Ativa", "Finalizada") e intervalo de datas.
+- **Botão "Nova Dieta":** Posicionado no canto superior direito, leva à Tela de Cadastro de Dieta.
+- **Paginação:** Exibe até 10 dietas por página, com controles de navegação.
+- **Indicador de Carregamento:** Um spinner aparece durante o carregamento de dados.
+
+### Funcionalidades
+- **Seleção de Animal:** O dropdown consome a API GET `/api/v1/animals` para listar animais e, ao selecionar um, carrega as dietas via GET `/api/v1/animals/{animal_id}/diets`.
+- **Carregamento Inicial:** Exibe as dietas do animal selecionado automaticamente ao acessar a tela.
+- **Busca e Filtro:** Suporta filtragem local ou via API (ex: GET `/api/v1/animals/{animal_id}/diets?status=ativa`).
+- **Ações por Dieta:**
+  - **Visualizar:** Redireciona para a Tela de Detalhes da Dieta.
+  - **Editar:** Abre a Tela de Edição de Dieta (reutiliza o formulário de cadastro com dados preenchidos).
+  - **Excluir:** Exibe um modal de confirmação antes de enviar DELETE para `/api/v1/diets/{diet_id}`.
+- **Autenticação:** Todas as requisições incluem um token JWT no cabeçalho.
+
+### Fluxo de Uso do Usuário
+1. O usuário acessa o sistema digitando email e senha na tela de login.
+2. Caso tenha esquecido a senha, clica em "Recuperar Senha", insere o email, recebe um link por email e redefine a senha.
+3. Após o login, no menu lateral, clica em "Dietas" para carregar a Tela de Listagem de Dietas por Animal.
+4. No dropdown de busca, digita "Rex" e seleciona o animal na lista suspensa.
+5. A tabela carrega automaticamente as dietas associadas a "Rex", como "Dieta Caseira" (Objetivo: "Emagrecimento", Status: "Ativa").
+6. O usuário aplica o filtro "Ativa" no dropdown de status para listar apenas dietas em andamento.
+7. Clica em "Visualizar" em uma dieta para acessar seus detalhes ou em "Nova Dieta" para criar um novo plano.
+
 
 ---
 

@@ -95,7 +95,7 @@ Obtém os dados de perfil da clínica atualmente logada.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/clinic/profile
+http://localhost:8000/api/v1/auth/clinic/profile
 ```
 
 **Header Parameters:**
@@ -105,14 +105,15 @@ http://localhost:8000/api/v1/clinic/profile
 - `200 OK`: Perfil obtido com sucesso
   ```json
   {
-    "id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
-    "name": "Clínica Veterinária Exemplo",
-    "email": "clinica@exemplo.com",
-    "phone": "11999999999",
-    "subscription_tier": "basic",
+    "id": "2e956d70-1f8a-47ce-8fbf-5fb84410b6ee",
+    "name": "MVP",
+    "email": "clinica1@exemplo.com",
+    "phone": "11988888898",
+    "subscription_tier": "Basic",
     "max_clients": 50,
-    "created_at": "2023-04-07T22:50:00.000Z",
-    "updated_at": "2023-04-07T22:50:00.000Z"
+    "created_at": "2025-04-25T16:33:08.44802+00:00",
+    "updated_at": "2025-05-10T03:01:38.017932+00:00",
+    "message": "Perfil atualizado com sucesso"
   }
   ```
 - `401 Unauthorized`: Token inválido ou ausente
@@ -125,7 +126,7 @@ Atualiza os dados de perfil da clínica atualmente logada.
 
 **URL de Exemplo:**
 ```
-http://localhost:8000/api/v1/clinic/profile
+http://localhost:8000/api/v1/auth/clinic/profile
 ```
 
 **Header Parameters:**
@@ -143,15 +144,14 @@ http://localhost:8000/api/v1/clinic/profile
 - `200 OK`: Perfil atualizado com sucesso
   ```json
   {
-    "id": "bd330f0a-23cf-443d-b7a6-529e7ea5f234",
-    "name": "Novo Nome da Clínica",
-    "email": "clinica@exemplo.com",
+    "id": "2e956d70-1f8a-47ce-8fbf-5fb84410b6ee",
+    "name": "Novo Nom",
+    "email": "clinica1@exemplo.com",
     "phone": "11988888888",
-    "subscription_tier": "basic",
+    "subscription_tier": "Basic",
     "max_clients": 50,
-    "created_at": "2023-04-07T22:50:00.000Z",
-    "updated_at": "2023-04-08T10:30:00.000Z",
-    "message": "Perfil atualizado com sucesso"
+    "created_at": "2025-04-25T16:33:08.44802+00:00",
+    "updated_at": "2025-04-28T23:49:46.699928+00:00"
   }
   ```
 - `400 Bad Request`: Nenhum dado fornecido para atualização

@@ -4,11 +4,14 @@ from typing import Dict, Any, Optional
 import httpx
 import jwt
 from datetime import datetime
+import logging
 
 from ..models.user import UserCreate, UserResponse, ClinicProfileUpdate
 from ..db.supabase import supabase_admin
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 async def get_current_user(authorization: str = Header(...)) -> Dict[str, Any]:
     """
@@ -251,109 +254,129 @@ async def get_clinic_profile(current_user: Dict[str, Any] = Depends(get_current_
     """
     Obtém os dados de perfil da clínica atualmente logada.
     """
+    logger.info(f"Tentando obter perfil para clinic_id: {current_user.get('id')}")
     try:
-        # Obtém o ID do usuário atual
         user_id = current_user.get("id")
         if not user_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            logger.error("get_clinic_profile: ID do usuário não encontrado no token.")
+            raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID não presente no token")
+
+        # Busca os dados da clínica na tabela clinics usando _request e process_response
+        # O select busca todos os campos relevantes conforme sprint1.md e schema
+        query = f"/rest/v1/clinics?id=eq.{user_id}&select=id,name,email,phone,subscription_tier,max_clients,created_at,updated_at"
         
-        # Busca os dados da clínica na tabela clinics
-        response = await supabase_admin._request(
+        # As chamadas de _request do supabase_admin devem usar a service_role_key implicitamente,
+        # o que deve bypassar RLS para SELECT se configurado corretamente.
+        response_data = await supabase_admin._request(
             "GET",
-            f"/rest/v1/clinics?id=eq.{user_id}&select=*",
-            headers={"Prefer": "return=representation"}
+            query
+            # Não precisa de headers{"Prefer": "return=representation"} para GET com select específico
         )
-        
-        # Verifica se obteve os dados
-        clinic_data = response.get("data", [])
-        if not clinic_data or len(clinic_data) == 0:
+
+        clinic_list = supabase_admin.process_response(response_data)
+
+        if not clinic_list:
+            logger.warning(f"Perfil da clínica não encontrado para user_id: {user_id}. Resposta Supabase: {response_data}")
             raise HTTPException(status_code=404, detail="Perfil de clínica não encontrado")
-        
-        # Retorna os dados da clínica (primeiro item da lista)
-        clinic = clinic_data[0]
+
+        clinic = clinic_list[0]
+        logger.info(f"Perfil da clínica encontrado para user_id: {user_id}")
         return {
             "id": clinic.get("id"),
             "name": clinic.get("name"),
             "email": clinic.get("email"),
             "phone": clinic.get("phone"),
-            "subscription_tier": clinic.get("subscription_tier", "basic"),
-            "max_clients": clinic.get("max_clients", 50),
+            "subscription_tier": clinic.get("subscription_tier"), # Default já tratado pelo DB
+            "max_clients": clinic.get("max_clients"), # Default já tratado pelo DB
             "created_at": clinic.get("created_at"),
             "updated_at": clinic.get("updated_at")
         }
-    
+
+    except HTTPException as http_exc:
+        # Se já é uma HTTPException, apenas relança
+        raise http_exc
     except Exception as e:
-        print(f"Erro ao buscar perfil da clínica: {str(e)}")
-        raise HTTPException(status_code=500, detail="Erro ao buscar dados do perfil")
+        logger.error(f"Erro ao buscar perfil da clínica para user_id {current_user.get('id')}: {str(e)}", exc_info=True)
+        error_detail = str(e)
+        if hasattr(e, 'response') and hasattr(e.response, 'text'): # Verifica se e.response e e.response.text existem
+            error_detail = f"{error_detail} - Response: {e.response.text}"
+        raise HTTPException(status_code=500, detail=f"Erro interno ao buscar dados do perfil: {error_detail}")
 
 @router.put("/clinic/profile")
 async def update_clinic_profile(
     profile_update: ClinicProfileUpdate,
     current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
+) -> Dict[str, Any]: # A resposta deve ser consistente com sprint1.md
     """
     Atualiza os dados de perfil da clínica atualmente logada.
     """
+    logger.info(f"Tentando atualizar perfil para clinic_id: {current_user.get('id')} com dados: {profile_update.model_dump(exclude_unset=True)}")
     try:
-        # Obtém o ID do usuário atual
         user_id = current_user.get("id")
         if not user_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-        
-        # Prepara os dados para atualização (apenas campos não nulos)
-        update_data = {}
-        if profile_update.name is not None:
-            update_data["name"] = profile_update.name
-        if profile_update.phone is not None:
-            update_data["phone"] = profile_update.phone
-        
-        # Se não há dados para atualizar, retorna erro
+            logger.error("update_clinic_profile: ID do usuário não encontrado no token.")
+            raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID não presente no token")
+
+        update_data = profile_update.model_dump(exclude_unset=True)
+
         if not update_data:
+            logger.info(f"Nenhum dado fornecido para atualização do perfil da clínica {user_id}")
             raise HTTPException(status_code=400, detail="Nenhum dado fornecido para atualização")
-        
+
         # Adiciona timestamp de atualização
         update_data["updated_at"] = datetime.now().isoformat()
-        
-        try:
-            # Atualiza os dados na tabela clinics
-            response = await supabase_admin._request(
-                "PATCH",
-                f"/rest/v1/clinics?id=eq.{user_id}",
-                json=update_data,
-                headers={"Prefer": "return=representation"}
-            )
-            
-            # Busca os dados atualizados
-            updated_response = await supabase_admin._request(
-                "GET",
-                f"/rest/v1/clinics?id=eq.{user_id}&select=*",
-                headers={"Prefer": "return=representation"}
-            )
-            
-            # Verifica se obteve os dados
-            updated_data = updated_response.get("data", [])
-            if not updated_data or len(updated_data) == 0:
-                raise HTTPException(status_code=404, detail="Perfil de clínica não encontrado após atualização")
-            
-            # Retorna os dados atualizados
-            clinic = updated_data[0]
-            return {
-                "id": clinic.get("id"),
-                "name": clinic.get("name"),
-                "email": clinic.get("email"),
-                "phone": clinic.get("phone"),
-                "subscription_tier": clinic.get("subscription_tier", "basic"),
-                "max_clients": clinic.get("max_clients", 50),
-                "created_at": clinic.get("created_at"),
-                "updated_at": clinic.get("updated_at"),
-                "message": "Perfil atualizado com sucesso"
-            }
-        except Exception as supabase_error:
-            print(f"Erro na comunicação com Supabase: {str(supabase_error)}")
-            raise HTTPException(status_code=500, detail="Erro na comunicação com o banco de dados")
-    
+
+        # Primeiro, verificar se o perfil da clínica existe
+        check_query = f"/rest/v1/clinics?id=eq.{user_id}&select=id"
+        check_response_data = await supabase_admin._request("GET", check_query)
+        if not supabase_admin.process_response(check_response_data):
+            logger.warning(f"Tentativa de atualizar perfil não existente para user_id: {user_id}")
+            raise HTTPException(status_code=404, detail="Perfil de clínica não encontrado para atualização")
+
+        # Atualiza os dados na tabela clinics usando PATCH e Prefer: return=representation
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation" # Para obter o registro atualizado de volta
+
+        patch_response_data = await supabase_admin._request(
+            "PATCH",
+            f"/rest/v1/clinics?id=eq.{user_id}",
+            json=update_data,
+            headers=headers
+        )
+
+        updated_clinic_list = supabase_admin.process_response(patch_response_data)
+
+        if not updated_clinic_list:
+            logger.error(f"Falha ao atualizar perfil da clínica {user_id} ou dados não retornados. Resposta Supabase: {patch_response_data}")
+            # Tentar buscar novamente como fallback, caso o Prefer não funcione como esperado ou a RLS interfira na leitura pós-escrita
+            fallback_response_data = await supabase_admin._request("GET", f"/rest/v1/clinics?id=eq.{user_id}&select=id,name,email,phone,subscription_tier,max_clients,created_at,updated_at")
+            fallback_clinic_list = supabase_admin.process_response(fallback_response_data)
+            if not fallback_clinic_list:
+                raise HTTPException(status_code=500, detail="Erro ao atualizar perfil: Falha ao buscar dados atualizados.")
+            updated_clinic = fallback_clinic_list[0]
+        else:
+            updated_clinic = updated_clinic_list[0]
+
+        logger.info(f"Perfil da clínica {user_id} atualizado com sucesso.")
+        return {
+            "id": updated_clinic.get("id"),
+            "name": updated_clinic.get("name"),
+            "email": updated_clinic.get("email"),
+            "phone": updated_clinic.get("phone"),
+            "subscription_tier": updated_clinic.get("subscription_tier"),
+            "max_clients": updated_clinic.get("max_clients"),
+            "created_at": updated_clinic.get("created_at"),
+            "updated_at": updated_clinic.get("updated_at"),
+            "message": "Perfil atualizado com sucesso" # Conforme sprint1.md
+        }
+
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        print(f"Erro ao atualizar perfil da clínica: {str(e)}")
-        raise HTTPException(status_code=500, detail="Erro ao atualizar dados do perfil")
+        logger.error(f"Erro ao atualizar perfil da clínica {current_user.get('id')}: {str(e)}", exc_info=True)
+        error_detail = str(e)
+        if hasattr(e, 'response') and hasattr(e.response, 'text'):
+            error_detail = f"{error_detail} - Response: {e.response.text}"
+        raise HTTPException(status_code=500, detail=f"Erro interno ao atualizar dados do perfil: {error_detail}")
 
 # Adicione outras rotas aqui, como para gerenciamento de perfil
