@@ -81,7 +81,7 @@ const AppHeader = () => {
   };
 
   // Define as páginas que não devem mostrar o seletor de animal
-  const noAnimalSelectorPages = ['/perfil', '/inicio']; // Atualizado de /dashboard para /inicio
+  const noAnimalSelectorPages = ['/perfil', '/inicio', '/animais']; // Adicionado /animais
   // Verifica se a rota atual está na lista de páginas sem seletor
   const showAnimalSelector = !noAnimalSelectorPages.includes(location.pathname);
 
@@ -101,9 +101,11 @@ const AppHeader = () => {
           <Button color="inherit" component={RouterLink} to="/inicio" startIcon={<DashboardIcon />}>
             Início
           </Button>
+          <Button color="inherit" component={RouterLink} to="/animais" startIcon={<PetsIcon />}>
+            Animais
+          </Button>
           {/* Adicionar mais links de navegação aqui conforme necessário */}
           {/* Exemplo:
-          <Button color="inherit" component={RouterLink} to="/animais">Animais</Button>
           <Button color="inherit" component={RouterLink} to="/agendamentos">Agendamentos</Button>
           */}
         </Box>

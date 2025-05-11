@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import LoginPage from '../pages/LoginPage';
 import ProfilePage from '../pages/ProfilePage';
 import DashboardPage from '../pages/DashboardPage';
+import AnimalsPage from '../pages/AnimalsPage';
 
 const ProtectedRoute = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -43,6 +44,7 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/perfil" element={<ProfilePage />} />
+        <Route path="/animais" element={<AnimalsPage />} />
         {/* Adicionar outras rotas protegidas aqui */}
       </Route>
 

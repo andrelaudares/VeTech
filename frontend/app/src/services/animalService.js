@@ -8,7 +8,38 @@ const getAnimals = () => {
 
 const animalService = {
   getAnimals,
-  // ...outros métodos
+  getAllAnimals: async () => {
+    const response = await api.get('/animals');
+    return response.data;
+  },
+  createAnimal: async (animalData) => {
+    const response = await api.post('/animals', animalData);
+    return response.data;
+  },
+  getAnimalById: async (animalId) => {
+    const response = await api.get(`/animals/${animalId}`);
+    return response.data;
+  },
+  updateAnimal: async (animalId, animalData) => {
+    const response = await api.patch(`/animals/${animalId}`, animalData);
+    return response.data;
+  },
+  deleteAnimal: async (animalId) => {
+    const response = await api.delete(`/animals/${animalId}`);
+    return response.data; // Ou response.status se não houver corpo na resposta
+  },
+  getAnimalPreferences: async (animalId) => {
+    const response = await api.get(`/animals/${animalId}/preferences`);
+    return response.data;
+  },
+  createAnimalPreferences: async (animalId, preferencesData) => {
+    const response = await api.post(`/animals/${animalId}/preferences`, preferencesData);
+    return response.data;
+  },
+  updateAnimalPreferences: async (animalId, preferencesData) => {
+    const response = await api.patch(`/animals/${animalId}/preferences`, preferencesData);
+    return response.data;
+  }
 };
 
 export default animalService;
