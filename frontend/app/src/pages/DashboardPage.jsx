@@ -1,9 +1,6 @@
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-// import AppHeader from '../components/AppHeader'; // Removido - Header vem do MainLayout
-
-// Importações do Material UI (AppBar, Toolbar, IconButton, LogoutIcon etc. relacionados ao header foram removidos)
+// import { useAuth } from '../contexts/AuthContext';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -13,89 +10,107 @@ import {
   Container,
   Grid,
   Typography,
+  useTheme,
 } from '@mui/material';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 
 const DashboardPage = () => {
-  const { user } = useAuth(); // Logout foi removido daqui, pois está no AppHeader
-  // const navigate = useNavigate(); // Removido se não for mais usado diretamente aqui
+  // const { user } = useAuth();
+  const theme = useTheme();
 
-  // const handleLogout = async () => { // Removido, pois está no AppHeader
-  //   await logout();
-  //   navigate('/login');
-  // };
+  const cardStyle = {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: theme.palette.background.paper,
+    borderRadius: 1,
+    boxShadow: theme.shadows[2],
+    transition: 'transform 0.2s ease-in-out',
+    '&:hover': {
+      transform: 'translateY(-4px)',
+      boxShadow: theme.shadows[6],
+    },
+  };
+
+  const iconBoxStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    mb: 1.5,
+    color: theme.palette.secondary.main,
+  };
 
   return (
     <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, color: 'text.primary' }}>
         Bem-vindo à sua Página Inicial!
       </Typography>
-      
+
       <Grid container spacing={3}>
-        {/* Card Estatístico */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'background.paper', borderRadius: '12px' }}>
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <BarChartIcon sx={{ mr: 1.5, fontSize: '2rem' }} color="secondary" />
-                <Typography variant="h5" component="h2" color="text.primary">
-                  Estatísticas
+        {/* Linha com dois cards */}
+        <Grid container spacing={3} item xs={12} md={8}>
+          <Grid item xs={12} md={6}>
+            <Card sx={cardStyle}>
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Box sx={iconBoxStyle}>
+                  <BarChartIcon sx={{ mr: 1.5, fontSize: '2rem' }} />
+                  <Typography variant="h6" component="h2">
+                    Estatísticas
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Visualize aqui as principais estatísticas da sua clínica. (Em desenvolvimento)
                 </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Visualize aqui as principais estatísticas da sua clínica. (Em desenvolvimento)
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button size="small" disabled>Ver Detalhes</Button>
-            </CardActions>
-          </Card>
+              </CardContent>
+              <CardActions>
+                <Button size="small" disabled>Ver Detalhes</Button>
+              </CardActions>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Card sx={cardStyle}>
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Box sx={iconBoxStyle}>
+                  <AccountCircleIcon sx={{ mr: 1.5, fontSize: '2rem' }} />
+                  <Typography variant="h6" component="h2">
+                    Gerenciar Perfil
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Acesse e atualize as informações da sua clínica e do seu perfil.
+                </Typography>
+              </CardContent>
+              <CardActions>
+                <Button size="small" component={RouterLink} to="/perfil" variant="outlined">
+                  Ir para Perfil
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
         </Grid>
 
-        {/* Card Perfil */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'background.paper', borderRadius: '12px' }}>
+        {/* Card Em Breve ocupando toda a largura */}
+        <Grid item xs={12} md={8}>
+          <Card sx={cardStyle}>
             <CardContent sx={{ flexGrow: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <AccountCircleIcon sx={{ mr: 1.5, fontSize: '2rem' }} color="secondary" />
-                <Typography variant="h5" component="h2" color="text.primary">
-                  Gerenciar Perfil
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Acesse e atualize as informações da sua clínica e do seu perfil.
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button size="small" component={RouterLink} to="/perfil" color="primary">
-                Ir para Perfil
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-
-        {/* Card Próximas Funcionalidades */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'background.paper', borderRadius: '12px' }}>
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <RocketLaunchIcon sx={{ mr: 1.5, fontSize: '2rem' }} color="secondary" />
-                <Typography variant="h5" component="h2" color="text.primary">
+              <Box sx={iconBoxStyle}>
+                <RocketLaunchIcon sx={{ mr: 1.5, fontSize: '2rem' }} />
+                <Typography variant="h6" component="h2">
                   Em Breve
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" component="div">
                 Novas funcionalidades a caminho:
-                <ul style={{ paddingLeft: '20px', marginTop: '8px', color: 'text.secondary' }}>
+                <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
                   <li>Gestão de Animais</li>
                   <li>Agendamentos Detalhados</li>
                   <li>Controle de Consultas</li>
                 </ul>
               </Typography>
             </CardContent>
-             <CardActions>
+            <CardActions>
               <Button size="small" disabled>Saiba Mais</Button>
             </CardActions>
           </Card>
@@ -105,4 +120,4 @@ const DashboardPage = () => {
   );
 };
 
-export default DashboardPage; 
+export default DashboardPage;

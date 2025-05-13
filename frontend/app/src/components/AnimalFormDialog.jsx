@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
   TextField, Button, Grid, MenuItem, CircularProgress, Box
@@ -99,7 +99,7 @@ const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
                 )}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <Controller
                 name="species"
                 control={control}
