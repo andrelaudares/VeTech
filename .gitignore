@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Node.js dependencies
+node_modules/
+
+# Ambiente virtual (se usar venv, por exemplo)
+venv/
+*.env
+.env.*
+
+# Logs
+*.log
+
+# Arquivos específicos do SO
+.DS_Store
+Thumbs.db
+
+# Diretório específico do usuário (do git status)
+contexto-chat/
+
+# Arquivos de build/distribuição (exemplo)
+# build/
+# dist/ 
