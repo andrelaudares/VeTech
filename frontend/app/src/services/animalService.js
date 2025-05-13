@@ -9,6 +9,8 @@ const getAnimals = () => {
 const animalService = {
   getAnimals,
   getAllAnimals: async () => {
+    const token = localStorage.getItem('userToken'); // Adicionado para debug
+    console.log('AnimalService: Token lido do localStorage para getAllAnimals:', token); // Adicionado para debug
     const response = await api.get('/animals');
     return response.data;
   },

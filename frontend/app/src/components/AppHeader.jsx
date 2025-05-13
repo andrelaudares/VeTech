@@ -25,6 +25,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import PetsIcon from '@mui/icons-material/Pets'; // Ícone para o dropdown de animais
 import DashboardIcon from '@mui/icons-material/Home'; // Trocado para Home ou similar para 'Início'
+import EventNoteIcon from '@mui/icons-material/EventNote'; // Ícone para Agendamentos
+import AssignmentIcon from '@mui/icons-material/Assignment'; // Ícone para Consultas (ou MedicalServicesIcon)
 
 const AppHeader = () => {
   const { user, logout } = useAuth();
@@ -108,6 +110,12 @@ const AppHeader = () => {
           {/* Exemplo:
           <Button color="inherit" component={RouterLink} to="/agendamentos">Agendamentos</Button>
           */}
+          <Button color="inherit" component={RouterLink} to="/agendamentos" startIcon={<EventNoteIcon />}>
+            Agendamentos
+          </Button>
+          <Button color="inherit" component={RouterLink} to="/consultas" startIcon={<AssignmentIcon />}>
+            Consultas
+          </Button>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

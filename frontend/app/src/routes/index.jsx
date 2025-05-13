@@ -1,61 +1,59 @@
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import AppHeader from '../components/AppHeader';
+import MainLayout from '../components/MainLayout';
 
 // Importar páginas
 import LoginPage from '../pages/LoginPage';
 import ProfilePage from '../pages/ProfilePage';
 import DashboardPage from '../pages/DashboardPage';
 import AnimalsPage from '../pages/AnimalsPage';
+import AppointmentsPage from '../pages/AppointmentsPage';
+import ConsultationsPage from '../pages/ConsultationsPage';
 
-const ProtectedRoute = () => {
+const ProtectedLayout = () => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    // Pode mostrar um spinner/loading aqui enquanto verifica a autenticação
     return <div className="p-4">Carregando autenticação...</div>;
   }
 
   if (!isAuthenticated) {
-    // Se não estiver autenticado, redireciona para a página de login
-    // Pode passar o local atual para redirecionar de volta após o login, se desejar
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />; // Renderiza o componente da rota filha se autenticado
+  return <MainLayout />;
 };
 
 const AppRoutes = () => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Carregando...</div>; // Ou um spinner global
+    return <div className="flex justify-center items-center h-screen">Carregando...</div>;
   }
 
   return (
     <Routes>
-      {/* Rota pública para login - se já autenticado, redireciona para dashboard */}
       <Route 
         path="/login" 
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        element={isAuthenticated ? <Navigate to="/inicio" replace /> : <LoginPage />}
       />
 
-      {/* Rotas protegidas */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
+      <Route element={<ProtectedLayout />}>
+        <Route index element={<Navigate to="/inicio" replace />} />
+        <Route path="/inicio" element={<DashboardPage />} />
         <Route path="/perfil" element={<ProfilePage />} />
         <Route path="/animais" element={<AnimalsPage />} />
-        {/* Adicionar outras rotas protegidas aqui */}
+        <Route path="/agendamentos" element={<AppointmentsPage />} />
+        <Route path="/consultas" element={<ConsultationsPage />} />
       </Route>
 
-      {/* Rota padrão (raiz) */}
-      {/* Se autenticado, vai para /dashboard, senão para /login */}
       <Route 
         path="/" 
-        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
+        element={<Navigate to="/inicio" replace />} 
       />
 
-      {/* Rota para Not Found (404) - opcional */}
       <Route path="*" element={<div className="p-4">Página não encontrada (404)</div>} />
     </Routes>
   );

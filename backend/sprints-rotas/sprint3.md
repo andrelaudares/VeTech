@@ -60,6 +60,7 @@ http://localhost:8000/api/v1/appointments?date_from=2023-05-15&status=scheduled
 - ~~`clinic_id`: ID UUID da clínica (obrigatório)~~ REMOVIDO (obtido via JWT)
 - `date_from`: Filtrar agendamentos a partir desta data (opcional)
 - `status`: Filtrar por status (opcional) - valores: scheduled, completed, cancelled
+- `animal_id`: Filtrar por animal (opcional) 
 
 **Header Parameters:**
 - `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)

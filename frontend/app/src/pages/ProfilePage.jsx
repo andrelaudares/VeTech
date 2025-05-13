@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import clinicService from '../services/clinicService';
 import { useNavigate } from 'react-router-dom';
-import AppHeader from '../components/AppHeader'; // Importa o novo header
+// import AppHeader from '../components/AppHeader'; // Removido - Header vem do MainLayout
 
 // Importações do Material UI
 import {
@@ -117,58 +117,54 @@ const ProfilePage = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppHeader /> {/* Usa o novo componente de header */}
+    <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, color: 'text.primary' }}>
+        Informações da Clínica
+      </Typography>
 
-      <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, color: 'text.primary' }}>
-          Informações da Clínica
-        </Typography>
-
-        {fetchError && !showEditModal && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setFetchError(null)}>
-            {fetchError}
-          </Alert>
-        )}
-        
-        {profileData ? (
-          <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, borderRadius: '12px', backgroundColor: 'background.paper' }}>
-            <Grid container spacing={3}>
-              {[ // Array para facilitar a renderização dos campos do perfil
-                { label: 'Nome da Clínica', value: profileData.name, icon: <BusinessIcon color="secondary" sx={{ fontSize: '2rem'}} /> },
-                { label: 'Email', value: profileData.email, icon: <EmailIcon color="secondary" sx={{ fontSize: '2rem'}} /> },
-                { label: 'Telefone', value: profileData.phone, icon: <PhoneIcon color="secondary" sx={{ fontSize: '2rem'}} /> },
-                { label: 'Plano de Assinatura', value: profileData.subscription_tier, icon: <PaymentsIcon color="secondary" sx={{ fontSize: '2rem'}} /> },
-              ].map((item, index) => (
-                <Grid item xs={12} sm={6} key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  {item.icon && <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>{item.icon}</Box>}
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      {item.label}
-                    </Typography>
-                    <Typography variant="h6" component="p" color="text.primary">
-                      {item.value || 'N/A'}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-            <CardActions sx={{ justifyContent: 'flex-end', p:2, pt:3 }}>
-              <Button 
-                variant="contained" 
-                color="primary"
-                startIcon={<EditIcon />} 
-                onClick={openEditModal}
-                sx={{ borderRadius: '8px', px: 3, py: 1 }}
-              >
-                Editar Perfil
-              </Button>
-            </CardActions>
-          </Paper>
-        ) : (
-           !loadingData && <Alert severity="warning">Não foi possível carregar os dados do perfil.</Alert>
-        )}
-      </Container>
+      {fetchError && !showEditModal && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setFetchError(null)}>
+          {fetchError}
+        </Alert>
+      )}
+      
+      {profileData ? (
+        <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, borderRadius: '12px', backgroundColor: 'background.paper' }}>
+          <Grid container spacing={3}>
+            {[ // Array para facilitar a renderização dos campos do perfil
+              { label: 'Nome da Clínica', value: profileData.name, icon: <BusinessIcon color="secondary" sx={{ fontSize: '2rem'}} /> },
+              { label: 'Email', value: profileData.email, icon: <EmailIcon color="secondary" sx={{ fontSize: '2rem'}} /> },
+              { label: 'Telefone', value: profileData.phone, icon: <PhoneIcon color="secondary" sx={{ fontSize: '2rem'}} /> },
+              { label: 'Plano de Assinatura', value: profileData.subscription_tier, icon: <PaymentsIcon color="secondary" sx={{ fontSize: '2rem'}} /> },
+            ].map((item, index) => (
+              <Grid item xs={12} sm={6} key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                {item.icon && <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>{item.icon}</Box>}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {item.label}
+                  </Typography>
+                  <Typography variant="h6" component="p" color="text.primary">
+                    {item.value || 'N/A'}
+                  </Typography>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+          <CardActions sx={{ justifyContent: 'flex-end', p:2, pt:3 }}>
+            <Button 
+              variant="contained" 
+              color="primary"
+              startIcon={<EditIcon />} 
+              onClick={openEditModal}
+              sx={{ borderRadius: '8px', px: 3, py: 1 }}
+            >
+              Editar Perfil
+            </Button>
+          </CardActions>
+        </Paper>
+      ) : (
+         !loadingData && <Alert severity="warning">Não foi possível carregar os dados do perfil.</Alert>
+      )}
 
       <Modal
         open={showEditModal}
@@ -257,7 +253,7 @@ const ProfilePage = () => {
           </Typography>
         </Container>
       </Box>
-    </Box>
+    </Container>
   );
 };
 

@@ -17,24 +17,37 @@ async def get_current_user(authorization: str = Header(...)) -> Dict[str, Any]:
     """
     Dependência para obter o usuário atual a partir do token JWT.
     """
+    logger.debug(f"Recebido header Authorization: {authorization}")
     try:
         # Formato esperado: "Bearer [token]"
-        if not authorization.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Token inválido")
+        if not authorization or not authorization.startswith("Bearer "):
+            logger.warning("Header de autorização ausente ou mal formatado.")
+            raise HTTPException(status_code=401, detail="Token inválido ou ausente")
         
-        token = authorization.replace("Bearer ", "")
+        token = authorization.split(" ")[1] # Mais robusto que replace
+        logger.debug(f"Token extraído: {token}")
         
-        # Verificar o token com o Supabase
+        # Headers para a requisição ao Supabase para validar o token do USUÁRIO
+        # Garantir que APENAS o token do usuário seja usado para "Authorization"
+        # e os outros headers necessários do supabase_admin (como apikey) sejam mantidos.
+        request_headers = supabase_admin.headers.copy() # Copia os headers base (apikey, etc.)
+        request_headers["Authorization"] = f"Bearer {token}" # Define/Sobrescreve o Authorization com o token do usuário
+
+        logger.debug(f"Enviando requisição para Supabase /auth/v1/user com headers: {request_headers}")
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{supabase_admin.url}/auth/v1/user",
-                headers={
-                    **supabase_admin.headers,
-                    "Authorization": f"Bearer {token}"
-                }
+                headers=request_headers
             )
-            response.raise_for_status()
+            logger.debug(f"Resposta do Supabase /auth/v1/user: Status {response.status_code}, Conteúdo: {response.text}")
+            response.raise_for_status() # Levanta exceção para 4xx/5xx
             user_data = response.json()
+            
+            # Verificar se user_data contém as informações esperadas
+            if not user_data or not user_data.get("id"):
+                logger.error(f"Resposta inesperada do Supabase /auth/v1/user: {user_data}")
+                raise HTTPException(status_code=500, detail="Resposta inesperada do serviço de autenticação")
             
             return {
                 "id": user_data.get("id"),
@@ -42,11 +55,23 @@ async def get_current_user(authorization: str = Header(...)) -> Dict[str, Any]:
                 "user_metadata": user_data.get("user_metadata", {})
             }
     
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Token inválido ou expirado")
+    except httpx.HTTPStatusError as exc:
+        logger.error(f"Erro HTTP ao validar token com Supabase: {exc.response.status_code} - {exc.response.text}", exc_info=True)
+        detail_message = "Falha na autenticação."
+        if exc.response.status_code == 401:
+            detail_message = "Token inválido ou expirado."
+        elif exc.response.status_code == 403:
+             # O JSON que você enviou ("arquivo-contexto") mostrava 403 de /auth/v1/user com bad_jwt
+            detail_message = "Token JWT inválido (bad_jwt)."
+        raise HTTPException(status_code=401, detail=detail_message) # Retorna 401 para o cliente
+
+    except jwt.PyJWTError: # Embora a validação JWT local não pareça ser o caso aqui.
+        logger.warning("Erro de decodificação JWT (PyJWTError)", exc_info=True)
+        raise HTTPException(status_code=401, detail="Token JWT malformado.")
+    
     except Exception as e:
-        print(f"Erro ao verificar token: {str(e)}")
-        raise HTTPException(status_code=401, detail="Falha na autenticação")
+        logger.error(f"Exceção não esperada em get_current_user: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Erro interno no servidor durante a autenticação")
 
 @router.post("/register", response_model=UserResponse, status_code=201)
 async def register_user(user: UserCreate) -> Dict[str, Any]:
