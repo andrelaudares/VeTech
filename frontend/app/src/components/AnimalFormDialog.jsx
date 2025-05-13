@@ -3,21 +3,12 @@ import {
   Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
   TextField, Button, Grid, MenuItem, CircularProgress, Box
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useForm, Controller } from 'react-hook-form';
 import animalService from '../services/animalService';
 
-// Paleta de cores (pode ser importada de um arquivo central no futuro)
-const colors = {
-  marromClaroSuave: '#D8CAB8',
-  cremeClaro: '#F9F9F9',
-  cinzaEsverdeado: '#9DB8B2',
-  verdeOlivaSuave: '#CFE0C3',
-  textPrimary: '#333',
-  textSecondary: '#555',
-  errorRed: '#d32f2f'
-};
-
 const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
+  const theme = useTheme();
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       name: '',
@@ -58,36 +49,35 @@ const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
       const payload = {
         ...data,
         age: data.age ? parseInt(data.age, 10) : null,
-        weight: data.weight ? parseFloat(data.weight) : null,
+        weight: data.weight ? parseFloat(data.weight.replace(',', '.')) : null,
       };
       if (isEditMode) {
         await animalService.updateAnimal(animal.id, payload);
       } else {
         await animalService.createAnimal(payload);
       }
-      onSuccess(); // Callback para atualizar a lista na página principal e fechar o dialog
+      onSuccess();
     } catch (error) {
       console.error('Erro ao salvar animal:', error);
-      // TODO: Exibir mensagem de erro mais amigável (Snackbar/Toast)
       alert(`Erro ao salvar: ${error.message || 'Verifique os dados e tente novamente.'}`);
     }
   };
 
   const handleCloseDialog = () => {
-    if (isSubmitting) return; // Não fechar se estiver enviando
+    if (isSubmitting) return;
     onClose();
   };
 
   const especiesDisponiveis = ["Cachorro", "Gato", "Ave", "Réptil", "Roedor", "Outro"];
 
   return (
-    <Dialog open={open} onClose={handleCloseDialog} PaperProps={{ sx: { backgroundColor: colors.cremeClaro } }}>
-      <DialogTitle sx={{ backgroundColor: colors.marromClaroSuave, color: colors.textPrimary }}>
+    <Dialog open={open} onClose={handleCloseDialog} PaperProps={{ sx: { backgroundColor: theme.palette.background.paper } }}>
+      <DialogTitle sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText }}>
         {isEditMode ? 'Editar Animal' : 'Cadastrar Novo Animal'}
       </DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <DialogContent sx={{ pt: 2 }}>
-          <DialogContentText sx={{ mb: 2, color: colors.textSecondary }}>
+          <DialogContentText sx={{ mb: 2, color: theme.palette.text.secondary }}>
             Preencha os campos abaixo para {isEditMode ? 'atualizar os dados do' : 'registrar um novo'} animal.
           </DialogContentText>
           <Grid container spacing={2}>
@@ -109,7 +99,7 @@ const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <Controller
                 name="species"
                 control={control}
@@ -123,12 +113,10 @@ const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
                     required
                     error={!!errors.species}
                     helperText={errors.species?.message}
-                    sx={{ backgroundColor: 'white' }}
+                    sx={{ backgroundColor: 'white', minWidth: '120px' }}
                   >
                     {especiesDisponiveis.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {option}
-                      </MenuItem>
+                      <MenuItem key={option} value={option}>{option}</MenuItem>
                     ))}
                   </TextField>
                 )}
@@ -139,7 +127,7 @@ const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
                 name="breed"
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} label="Raça" fullWidth sx={{ backgroundColor: 'white' }}/>
+                  <TextField {...field} label="Raça" fullWidth sx={{ backgroundColor: 'white' }} />
                 )}
               />
             </Grid>
@@ -176,7 +164,7 @@ const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
                   <TextField 
                     {...field} 
                     label="Peso (kg)" 
-                    type="text" // Usar text para permitir vírgula/ponto, converter em onSubmit
+                    type="text"
                     fullWidth 
                     error={!!errors.weight}
                     helperText={errors.weight?.message}
@@ -203,17 +191,17 @@ const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ padding: '16px 24px', backgroundColor: colors.marromClaroSuave }}>
-          <Button onClick={handleCloseDialog} sx={{ color: colors.textPrimary }} disabled={isSubmitting}>
+        <DialogActions sx={{ p: 2, backgroundColor: theme.palette.primary.main }}>
+          <Button onClick={handleCloseDialog} sx={{ color: theme.palette.primary.contrastText }} disabled={isSubmitting}>
             Cancelar
           </Button>
           <Button 
             type="submit" 
             variant="contained" 
             sx={{ 
-              backgroundColor: colors.verdeOlivaSuave, 
-              color: colors.textPrimary, 
-              '&:hover': { backgroundColor: colors.cinzaEsverdeado }
+              backgroundColor: theme.palette.secondary.main, 
+              color: theme.palette.text.primary, 
+              '&:hover': { backgroundColor: theme.palette.primary.main, color: 'white' }
             }}
             disabled={isSubmitting}
           >
@@ -225,4 +213,4 @@ const AnimalFormDialog = ({ open, onClose, animal, onSuccess }) => {
   );
 };
 
-export default AnimalFormDialog; 
+export default AnimalFormDialog;

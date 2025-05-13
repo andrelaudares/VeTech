@@ -17,57 +17,50 @@ import '@fontsource/roboto/700.css'
 // Nova paleta de cores VeTech
 const vetechTheme = createTheme({
   palette: {
+    mode: 'light', // se quiser um dark mode, troque para 'dark'
     primary: {
-      main: '#A3C9A8', // Verde-matcha claro
+      main: '#23e865', // Verde vivo
+      contrastText: '#ffffff',
     },
     secondary: {
-      main: '#9DB8B2', // Cinza-esverdeado
+      main: '#1cba52', // Tom complementar para botões secundários
     },
     background: {
-      default: '#F9F9F9', // Creme
-      paper: '#FFFFFF',   // Branco para Cards, Modais, etc.
+      default: '#f4fff6', // Fundo com leve tom esverdeado
+      paper: '#ffffff',   // Cards e modais brancos
     },
     text: {
-      primary: '#333333', // Cinza escuro para texto principal
-      secondary: '#555555', // Cinza um pouco mais claro para texto secundário
+      primary: '#1b1b1b',
+      secondary: '#4f4f4f',
     },
-    // Cores adicionais podem ser adicionadas aqui se necessário
-    // Exemplo: accent: '#CFE0C3', // Verde-oliva suave
-    //          divider: '#D8CAB8'
   },
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontWeight: 500,
-    },
-    h2: {
-      fontWeight: 500,
-    },
-    h3: {
-      fontWeight: 500,
-    },
-    h4: {
-      fontWeight: 500,
-    },
-    h5: {
-      fontWeight: 500,
-    },
-    h6: {
-      fontWeight: 500,
-    },
-    // Você pode adicionar mais customizações de tipografia aqui
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
+    body1: { fontSize: 16 },
+    body2: { fontSize: 14 },
   },
-  // Você pode adicionar customizações de componentes aqui
-  // Exemplo:
-  // components: {
-  //   MuiButton: {
-  //     styleOverrides: {
-  //       root: {
-  //         borderRadius: 8,
-  //       },
-  //     },
-  //   },
-  // },
+  shape: {
+    borderRadius: 12,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          textTransform: 'none',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+        },
+      },
+    },
+  },
 })
 
 ReactDOM.createRoot(document.getElementById('root')).render(
