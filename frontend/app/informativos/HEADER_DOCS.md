@@ -1,66 +1,57 @@
 # Documentação do Componente AppHeader
 
-## Visão Geral
+## 1. Introdução
 
-O `AppHeader.jsx` é um componente React reutilizável responsável por renderizar o cabeçalho principal da aplicação VeTech após o login do usuário. Ele fornece navegação consistente, identidade visual e funcionalidades globais como seleção de animal e acesso ao perfil do usuário.
+O Header é um componente essencial na aplicação VeTech, desenvolvido em React como um elemento reutilizável. Ele serve como o principal ponto de navegação entre as telas do sistema e controla estados globais que afetam o comportamento de várias páginas, especialmente através da funcionalidade de escolha de animal. Sua correta implementação e integração são fundamentais para o funcionamento consistente da aplicação, e os desenvolvedores devem estar atentos à sua influência ao criar cada tela individualmente.
 
-## Localização
 
-`frontend/app/src/components/AppHeader.jsx`
+- **Objetivo:** Fornecer navegação, identidade visual e controle de estado global (como o animal selecionado).
 
-## Funcionalidades Principais
+---
 
-1.  **Identidade Visual:**
-    *   Exibe o logo da VeTech.
-    *   Exibe o título "VeTech Painel". Clicar no logo ou no título navega para a página inicial (`/inicio`).
+## 2. Estrutura do Header
 
-2.  **Navegação Principal:**
-    *   Contém links/botões para as seções principais da aplicação.
-    *   Atualmente implementado: Botão "Início" (leva para `/inicio`).
-    *   *Ponto de Extensão:* Novos links para seções como "Animais", "Agendamentos", "Consultas", "Dietas", etc., podem ser adicionados aqui.
+O header é composto por três elementos principais:
 
-3.  **Seleção Global de Animal:**
-    *   Apresenta um dropdown (`Select` do Material UI) que permite ao usuário selecionar um animal específico da sua clínica.
-    *   A lista de animais é carregada dinamicamente através do `AnimalContext` (`fetchAnimals`).
-    *   Quando um animal é selecionado, o estado `selectedAnimal` no `AnimalContext` é atualizado.
-    *   **Exibição Condicional:** O seletor de animal não é exibido em certas páginas (configurado na variável `noAnimalSelectorPages`), como "/perfil" e "/inicio".
-    *   Este animal selecionado fica disponível globalmente para outras páginas e componentes através do hook `useAnimal()`.
+### 2.1. Navegação Principal
+O header oferece acesso às seguintes telas do sistema:
 
-4.  **Menu do Usuário:**
-    *   Exibe o nome do usuário logado (obtido do `AuthContext`).
-    *   Apresenta um ícone de avatar/perfil.
-    *   Ao clicar no ícone, um menu (`Menu` do Material UI) é aberto com as seguintes opções:
-        *   **Perfil:** Navega para a página de perfil do usuário (`/perfil`).
-        *   **Sair:** Executa a função `logout` do `AuthContext` e redireciona para a página de login (`/login`).
+- **Tela Inicial (Dashboard)** - Já desenvolvida
+- **Tela de Animais**
+- **Tela de Agendamento**
+- **Tela de Consulta**
+- **Tela de Dietas**
+- **Tela de Atividades**
+- **Tela de Resultados**
+- **Tela de Perfil do Usuário** - Já desenvolvida
 
-## Dependências de Contexto
+Atualmente, apenas o botão "Início" está implementado, redirecionando para `/inicio`. Os links para as demais telas serão adicionados conforme o desenvolvimento avança.
 
-*   **`AuthContext` (`useAuth()`):**
-    *   Para obter informações do `user` logado (como nome).
-    *   Para acessar a função `logout`.
-*   **`AnimalContext` (`useAnimal()`):**
-    *   Para obter a lista de `animals` da clínica.
-    *   Para obter e definir o `selectedAnimal`.
-    *   Para acessar a função `fetchAnimals` para carregar os animais.
+---
 
-## Uso nas Páginas
+## 3. Integração com as Telas
 
-As páginas que necessitam deste cabeçalho devem simplesmente renderizar o componente `<AppHeader />` no topo de sua estrutura JSX. O `AnimalProvider` e `AuthProvider` devem estar configurados em um nível superior na árvore de componentes (geralmente em `main.jsx` ou `App.jsx`).
+O header influencia diretamente o comportamento das telas, especialmente por meio da seleção de animal. As telas podem ser classificadas em três categorias:
 
-## Lógica de Exibição do Seletor de Animal
+### 3.1. Telas que Exigem Seleção de Animal
+- **Tela de Dietas**
+- **Tela de Atividades**
+- **Tela de Resultados**
 
-A variável `noAnimalSelectorPages` (uma array de strings de rotas) dentro do `AppHeader.jsx` controla em quais páginas o dropdown de seleção de animal *não* deve ser exibido. A visibilidade é determinada comparando `location.pathname` (da rota atual) com esta lista.
+Nessas telas, a seleção de um animal é obrigatória. Se nenhum animal for selecionado, a tela deve bloquear ações ou exibir uma mensagem como "Por favor, selecione um animal no header".
 
-## Como as Páginas Utilizam o Animal Selecionado
+### 3.2. Telas com Seleção Opcional
 
-As páginas que precisam reagir à seleção de um animal (ex: Tela de Dietas, Tela de Atividades) devem:
-1.  Importar o hook `useAnimal` do `AnimalContext`.
-2.  Chamar `const { selectedAnimal } = useAnimal();` para obter o animal atualmente selecionado.
-3.  Usar o objeto `selectedAnimal` (que pode ser o objeto do animal ou `null`) para filtrar dados, fazer requisições específicas ou adaptar a UI.
+- **Tela de Agendamento**
+- **Tela de Consulta**
 
-## Futuras Extensões Possíveis
+Nessas telas, a seleção de um animal é opcional:
+- **Sem animal selecionado:** Mostra informações gerais ou de todos os animais da clínica.
+- **Com animal selecionado:** Filtra os dados para exibir apenas informações do animal escolhido.
 
-*   Adicionar mais itens de navegação principal (links diretos ou um menu dropdown de navegação).
-*   Integrar notificações.
-*   Alterar dinamicamente o título "VeTech Painel" para refletir a seção atual, se desejado.
-*   Melhorar a interface do seletor de animais (ex: pesquisa/autocomplete se a lista for muito grande). 
+### 3.3. Telas Não Afetadas
+- **Tela de Animais**
+- **Tela Inicial**
+- **Tela de Perfil do Usuário**
+
+Essas telas não mudam de estado com a seleção de animal e não dependem do dropdown.

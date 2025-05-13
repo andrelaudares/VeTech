@@ -27,6 +27,7 @@ import PetsIcon from '@mui/icons-material/Pets'; // Ícone para o dropdown de an
 import DashboardIcon from '@mui/icons-material/Home'; // Trocado para Home ou similar para 'Início'
 import EventNoteIcon from '@mui/icons-material/EventNote'; // Ícone para Agendamentos
 import AssignmentIcon from '@mui/icons-material/Assignment'; // Ícone para Consultas (ou MedicalServicesIcon)
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'; // Ícone para Dietas
 
 const AppHeader = () => {
   const { user, logout } = useAuth();
@@ -115,6 +116,9 @@ const AppHeader = () => {
           </Button>
           <Button color="inherit" component={RouterLink} to="/consultas" startIcon={<AssignmentIcon />}>
             Consultas
+          </Button>
+          <Button color="inherit" component={RouterLink} to="/dietas" startIcon={<RestaurantMenuIcon />}>
+            Dietas
           </Button>
         </Box>
 

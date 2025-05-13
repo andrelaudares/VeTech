@@ -1,296 +1,279 @@
-# Sprint 4: Nutrição e Dietas - Detalhamento Revisado e Ampliado
+# Sprint 4: Nutrição e Dietas - Detalhamento Revisado e Ampliado (Versão 2)
 
-Esta sprint foca na construção de um módulo completo e robusto para a gestão de nutrição e dietas em uma clínica veterinária, oferecendo uma experiência fluida e intuitiva para os usuários (funcionários da clínica, como veterinários e nutricionistas). O objetivo é permitir o gerenciamento eficiente de planos de dieta, alimentos, restrições e snacks para os animais atendidos, com telas bem definidas que atendam a propósitos específicos. São implementadas **oito telas distintas**, cada uma como uma página independente no sistema, interligadas por uma navegação lógica e acessível, e não como seções, cards ou grupos dentro de uma única "Tela de Dieta". Este design garante clareza, evita sobrecarga de informações e suporta o fluxo de trabalho da clínica de maneira organizada.
-
-**Nova Feature:** A partir desta sprint, todas as telas incluem um **dropdown de busca de animais** posicionado no topo da página. Esse componente permite que o usuário selecione rapidamente um animal específico para visualizar ou gerenciar suas informações, um recurso essencial para clínicas com múltiplos pacientes cadastrados. A troca de animal no dropdown atualiza dinamicamente o conteúdo da tela, mantendo o contexto claro e agilizando o acesso às informações.
+Esta sprint foca na construção de um módulo completo e robusto para a gestão de nutrição e dietas em uma clínica veterinária, oferecendo uma experiência fluida e intuitiva para os usuários (funcionários da clínica, como veterinários e nutricionistas). O objetivo é permitir o gerenciamento eficiente de planos de dieta, alimentos, restrições e snacks para os animais atendidos, com grupos de funcionalidades bem definidos que atendam a propósitos específicos. São implementados **oito grupos distintos**, todos integrados na **Página de Dietas** como áreas funcionais dentro de uma única página, interligadas por uma navegação lógica e acessível. Este design garante clareza, evita sobrecarga de informações e suporta o fluxo de trabalho da clínica de maneira organizada, utilizando pop-ups e layouts intuitivos para maximizar a usabilidade.
 
 ---
 
-## Tela 0.1: Listagem de Dietas por Animal
+## Página de Dietas
 
-### Descrição
-A Tela de Listagem de Dietas por Animal é a porta de entrada para o módulo de nutrição, funcionando como um painel de controle centralizado. Esta página independente apresenta uma visão geral das dietas associadas a um animal específico, permitindo ao usuário monitorar planos alimentares ativos ou finalizados, aplicar filtros e realizar ações rápidas, como visualizar detalhes ou cadastrar novas dietas. Projetada para ser prática e eficiente, ela suporta o dia a dia de clínicas que precisam gerenciar múltiplas dietas com agilidade, oferecendo uma interface limpa e interativa.
+A **Página de Dietas** é uma página única que agrega os oito grupos de funcionalidades descritos abaixo, organizados de forma atrativa e intuitiva. Esses grupos não são páginas separadas, mas sim seções distintas dentro da mesma interface, projetadas para oferecer uma experiência coesa e eficiente. Os grupos são:
 
-### Componentes
-- **Dropdown de Busca de Animais:** Localizado no topo da página, exibe uma lista de animais cadastrados e permite busca por nome em tempo real.
-- **Tabela de Dietas:** Uma tabela responsiva com colunas configuráveis, incluindo:
-  - **Tipo:** Exibe "Caseira", "Industrializada", etc.
-  - **Objetivo:** Mostra "Emagrecimento", "Ganho de Peso", etc.
-  - **Data de Início:** Formato DD/MM/AAAA.
-  - **Data de Fim:** Formato DD/MM/AAAA ou "Em andamento" se não definida.
-  - **Status:** Indicadores visuais como "Ativa" (verde) ou "Finalizada" (cinza).
-  - **Ações:** Botões para "Visualizar", "Editar" e "Excluir".
-- **Campo de Busca:** Pesquisa textual em tempo real por tipo ou objetivo.
-- **Filtros Avançados:** Dropdowns para status (ex: "Ativa", "Finalizada") e intervalo de datas.
-- **Botão "Nova Dieta":** Posicionado no canto superior direito, leva à Tela de Cadastro de Dieta.
-- **Paginação:** Exibe até 10 dietas por página, com controles de navegação.
-- **Indicador de Carregamento:** Um spinner aparece durante o carregamento de dados.
+1. **Grupo 1: Listagem de Dietas por Animal**
+2. **Grupo 2: Cadastro de Dieta**
+3. **Grupo 3: Detalhes da Dieta**
+4. **Grupo 4: Cadastro de Opção de Dieta**
+5. **Grupo 5: Listagem de Alimentos por Opção**
+6. **Grupo 6: Cadastro de Alimento**
+7. **Grupo 7: Gerenciamento de Alimentos Restritos**
+8. **Grupo 8: Gerenciamento de Snacks**
 
-### Funcionalidades
-- **Seleção de Animal:** O dropdown consome a API GET `/api/v1/animals` para listar animais e, ao selecionar um, carrega as dietas via GET `/api/v1/animals/{animal_id}/diets`.
-- **Carregamento Inicial:** Exibe as dietas do animal selecionado automaticamente ao acessar a tela.
-- **Busca e Filtro:** Suporta filtragem local ou via API (ex: GET `/api/v1/animals/{animal_id}/diets?status=ativa`).
-- **Ações por Dieta:**
-  - **Visualizar:** Redireciona para a Tela de Detalhes da Dieta.
-  - **Editar:** Abre a Tela de Edição de Dieta (reutiliza o formulário de cadastro com dados preenchidos).
-  - **Excluir:** Exibe um modal de confirmação antes de enviar DELETE para `/api/v1/diets/{diet_id}`.
-- **Autenticação:** Todas as requisições incluem um token JWT no cabeçalho.
-
-### Fluxo de Uso do Usuário
-1. O usuário acessa o sistema digitando email e senha na tela de login.
-2. Caso tenha esquecido a senha, clica em "Recuperar Senha", insere o email, recebe um link por email e redefine a senha.
-3. Após o login, no menu lateral, clica em "Dietas" para carregar a Tela de Listagem de Dietas por Animal.
-4. No dropdown de busca, digita "Rex" e seleciona o animal na lista suspensa.
-5. A tabela carrega automaticamente as dietas associadas a "Rex", como "Dieta Caseira" (Objetivo: "Emagrecimento", Status: "Ativa").
-6. O usuário aplica o filtro "Ativa" no dropdown de status para listar apenas dietas em andamento.
-7. Clica em "Visualizar" em uma dieta para acessar seus detalhes ou em "Nova Dieta" para criar um novo plano.
+Esses grupos são apresentados em uma estrutura visual que prioriza a navegabilidade e o apelo estético, com funcionalidades como adicionar e editar implementadas em pop-ups para manter o usuário no contexto da página, evitando redirecionamentos desnecessários.
 
 ---
 
-## Tela 2: Cadastro de Dieta
+## Integração com o Header
 
-### Descrição
-A Tela de Cadastro de Dieta é uma página dedicada à criação de novos planos alimentares para um animal, projetada para ser intuitiva e guiar o usuário no preenchimento de informações essenciais. Com um formulário estruturado e validações claras, ela permite que veterinários ou nutricionistas registrem dietas personalizadas de forma rápida e precisa, minimizando erros e oferecendo feedback imediato. Esta tela é ideal para iniciar um novo acompanhamento nutricional, com foco na usabilidade e na captura de dados relevantes.
+O componente Header, descrito em detalhes no arquivo `HEADER_DOCS.md`, é um elemento essencial da aplicação VeTech e desempenha um papel crítico na **Página de Dietas**. Ele não é apenas uma "nova feature" ou um detalhe secundário, mas sim uma funcionalidade central que controla o estado global da aplicação, especialmente por meio do **dropdown de seleção de animal**. Para esta página, a interação com o header é **obrigatória**, pois a seleção de um animal é um pré-requisito para o funcionamento adequado de todos os grupos de funcionalidades. Abaixo, detalho essa integração:
 
-### Componentes
-- **Dropdown de Busca de Animais:** No topo, pré-selecionado se o usuário veio da Listagem com um animal já escolhido.
-- **Formulário de Cadastro:**
-  - **Tipo:** Dropdown com opções como "Caseira", "Industrializada", "Mista" (campo obrigatório).
-  - **Objetivo:** Dropdown com "Emagrecimento", "Ganho de Peso", "Manutenção" (obrigatório).
-  - **Data de Início:** Campo de data com seletor (formato DD/MM/AAAA, obrigatório).
-  - **Data de Fim:** Campo de data opcional (formato DD/MM/AAAA).
-  - **Status:** Dropdown com "Ativa" ou "Finalizada" (obrigatório, padrão "Ativa").
-- **Botão "Salvar":** Envia o formulário para o backend.
-- **Botão "Cancelar":** Retorna à Tela de Listagem sem salvar.
-- **Mensagens de Erro:** Exibidas abaixo dos campos em vermelho (ex: "Campo Tipo é obrigatório").
+### Funcionalidade do Header na Página de Dietas
+- **Dropdown de Seleção de Animal:** Localizado no header, este componente permite ao usuário escolher um animal específico da clínica (ex: "Rex", "Luna") antes de interagir com a página. Ele consome a API `GET /api/v1/animals` para listar os animais cadastrados, atualizando dinamicamente conforme a busca do usuário.
+- **Estado Global (`selectedAnimal`):** O animal selecionado é armazenado no `AnimalContext`, um contexto global do React, e afeta diretamente o comportamento da Página de Dietas:
+  - **Sem animal selecionado:** A página exibe uma mensagem bloqueante, como "Por favor, selecione um animal no header para gerenciar dietas", e desabilita ações como criar ou visualizar dietas.
+  - **Com animal selecionado:** Todos os grupos de funcionalidades (listagem, cadastro, etc.) são ativados e exibem dados relativos ao animal escolhido, como suas dietas, alimentos restritos e snacks.
+- **Visibilidade do Dropdown:** Conforme o documento `HEADER_DOCS.md`, a Página de Dietas é classificada como uma "tela que exige seleção de animal". Assim, o dropdown permanece visível e funcional enquanto o usuário estiver nesta página, garantindo que o contexto do animal esteja sempre claro.
 
-### Funcionalidades
-- **Envio de Dados:** Envia um POST para `/api/v1/animals/{animal_id}/diets` com os dados preenchidos.
-- **Sucesso:** Após o cadastro, redireciona para a Tela de Detalhes da Dieta recém-criada.
-- **Erro:** Exibe mensagens de validação, como "Campo obrigatório" ou "Data inválida".
-- **Validação no Frontend:** Verifica campos obrigatórios antes do envio.
+### Impacto no Fluxo do Usuário
+- Ao acessar a Página de Dietas pelo menu lateral (link "Dietas" no header), o usuário deve primeiro selecionar um animal no dropdown do header.
+- Exemplo: Se o usuário escolhe "Rex", o estado `selectedAnimal` é atualizado, e a API `GET /api/v1/animals/{animal_id}/diets` é chamada para carregar as dietas de "Rex" no Grupo 1.
+- Qualquer tentativa de cadastrar uma dieta ou interagir com outros grupos sem um animal selecionado resulta em feedback imediato (mensagem ou bloqueio), reforçando a dependência do header.
 
-### Fluxo de Uso do Usuário
-1. Na Tela de Listagem, o usuário seleciona "Rex" no dropdown e clica em "Nova Dieta".
-2. A tela de cadastro carrega com "Rex" pré-selecionado no dropdown.
-3. O usuário escolhe Tipo ("Caseira"), Objetivo ("Emagrecimento"), Data de Início ("26/10/2023"), deixa Data de Fim em branco e define Status como "Ativa".
-4. Clica em "Salvar"; o sistema valida os dados e, se bem-sucedido, redireciona para os Detalhes da Dieta.
-5. Se esquece de preencher o Tipo, uma mensagem de erro aparece: "Campo Tipo é obrigatório".
-6. Clica em "Cancelar" para voltar à Listagem sem salvar alterações.
+### Detalhes Técnicos do Header
+- **Componente React:** O `AppHeader` é reutilizável e gerencia a navegação principal (ex: links para "Início", "Dietas", "Atividades") e o estado do animal.
+- **Autenticação:** Todas as requisições disparadas pelo dropdown (como listar animais) incluem o token JWT no header `Authorization`.
+- **Estilização:** Usa Material UI para um design consistente com o restante da aplicação, com um dropdown estilizado e responsivo.
+
+Essa integração detalhada com o header assegura que a Página de Dietas funcione de forma contextualizada e segura, alinhada às necessidades da clínica veterinária.
 
 ---
 
-## Tela 3: Detalhes da Dieta
+## Design Intuitivo e Atratativo
 
-### Descrição
-A Tela de Detalhes da Dieta é uma página central que exibe todas as informações de um plano alimentar específico, funcionando como um hub para ações relacionadas. Com uma interface dividida em seções visuais claras, ela oferece uma visão detalhada da dieta (como tipo, objetivo e datas) e lista suas opções associadas, permitindo ao usuário consultar rapidamente o plano e decidir os próximos passos, como editar ou adicionar componentes. Esta tela é essencial para revisões aprofundadas e ajustes, proporcionando uma experiência rica e organizada.
+A Página de Dietas é uma das mais importantes do sistema, pois incentiva os usuários a criar e gerenciar planos alimentares de forma eficiente e prazerosa. Por isso, o design não deve ser apenas funcional, mas também **extremamente atrativo**, com elementos visuais que motivem o uso contínuo. Aqui estão as diretrizes e sugestões para alcançar esse objetivo:
 
-### Componentes
-- **Dropdown de Busca de Animais:** No topo, permite alternar entre animais sem sair da tela.
-- **Card de Dados da Dieta:** Exibe Tipo, Objetivo, Data de Início, Data de Fim e Status em um layout destacado.
-- **Lista de Opções de Dieta:** Uma tabela com colunas como Nome, Valor Mensal, Calorias Totais e ações (ex: "Editar", "Excluir"), com um botão "Adicionar Opção" acima.
-- **Botões de Ação:** "Editar Dieta" (leva à edição) e "Excluir Dieta" (modal de confirmação).
-- **Abas de Navegação:** Links para "Alimentos", "Restrições" e "Snacks", integrados ao contexto da dieta.
-- **Spinner de Carregamento:** Aparece enquanto os dados são buscados.
+### Princípios de Design
+- **Intuitividade:** A organização dos grupos deve seguir uma lógica natural (ex: listagem como ponto de entrada, cadastros em pop-ups acessíveis), com navegação clara e feedback visual constante.
+- **Atratividade:** Componentes bonitos e chamativos são essenciais para engajar o usuário, transmitindo uma sensação de cuidado e profissionalismo.
 
-### Funcionalidades
-- **Carregamento:** Consome GET `/api/v1/diets/{diet_id}` para os dados da dieta e GET `/api/v1/diets/{diet_id}/options` para as opções.
-- **Navegação:** Os botões e abas redirecionam para telas específicas.
-- **Feedback:** Mensagens de erro ou sucesso após ações (ex: "Dieta excluída com sucesso").
+### Elementos Visuais Sugeridos
+- **Ícones Representativos:** Cada grupo pode ter um ícone associado (ex: prato para dietas, sinal de proibição para alimentos restritos, osso para snacks), tornando a interface mais visual e amigável.
+- **Cores Vibrantes:** Uma paleta com tons de verde (saúde), azul (confiança) e amarelo (energia) para botões e destaques, combinada com fundos neutros para não sobrecarregar.
+- **Layouts Modernos:** Uso de cards com sombras sutis, espaçamento generoso e tabelas responsivas para uma apresentação limpa e organizada.
+- **Componentes Estilizados:** Botões com efeitos de hover (ex: leve aumento ou mudança de cor), pop-ups com animações suaves de entrada/saída, e gráficos simples (ex: barras de calorias).
+- **Feedback Visual:** Spinners coloridos durante carregamentos, mensagens de sucesso com ícones (ex: check verde) e erros destacados em vermelho.
 
-### Fluxo de Uso do Usuário
-1. Na Listagem, o usuário clica em "Visualizar" na dieta "Caseira" de "Rex".
-2. A tela carrega com os detalhes: Tipo ("Caseira"), Objetivo ("Emagrecimento"), Status ("Ativa").
-3. Na tabela de opções, vê "Ração Premium" (Valor: R$150, Calorias: 2000) e clica para acessar mais detalhes.
-4. Clica em "Adicionar Opção" para incluir uma nova opção ao plano.
-5. Usa a aba "Alimentos" para gerenciar os itens da dieta ou "Excluir Dieta" para remover o plano, confirmando no modal.
+### Benefícios Esperados
+Esses elementos não só facilitam a interação, mas também tornam a experiência mais agradável, motivando veterinários e nutricionistas a usar a página regularmente para planejar dietas criativas e bem estruturadas.
 
 ---
 
-## Tela 4: Cadastro de Opção de Dieta
+## Grupo 1: Listagem de Dietas por Animal
 
 ### Descrição
-A Tela de Cadastro de Opção de Dieta é uma página focada na adição de opções específicas ao plano alimentar, como rações ou receitas personalizadas. Com um formulário simples e funcional, ela permite ao usuário detalhar aspectos como custo, calorias e porções, garantindo que cada opção seja bem documentada e integrada à dieta. Esta tela é prática para personalizar planos de forma granular, oferecendo flexibilidade e controle.
+O **Grupo de Listagem de Dietas por Animal** é o ponto de entrada da Página de Dietas, exibindo uma visão geral das dietas associadas ao animal selecionado no header. Projetado como uma área principal e sempre visível ao carregar a página, ele permite monitoramento rápido e ações como cadastrar ou visualizar detalhes, tudo em uma interface interativa.
 
 ### Componentes
-- **Dropdown de Busca de Animais:** No topo, mantendo o contexto do animal.
-- **Formulário de Cadastro:**
-  - **Nome:** Campo de texto (ex: "Ração Light", obrigatório).
-  - **Valor Mensal:** Campo numérico (ex: "150.00", opcional).
-  - **Calorias Totais:** Campo numérico (ex: "2000", opcional).
-  - **Porção por Refeição:** Texto (ex: "250g", opcional).
-  - **Número de Refeições:** Campo numérico (ex: "2", opcional).
-- **Botão "Salvar":** Submete os dados.
-- **Botão "Cancelar":** Retorna aos Detalhes da Dieta.
+- **Tabela de Dietas:** Colunas configuráveis:
+  - Tipo ("Caseira", "Industrializada")
+  - Objetivo ("Emagrecimento", "Manutenção")
+  - Data de Início (DD/MM/AAAA)
+  - Data de Fim (DD/MM/AAAA ou "Em andamento")
+  - Status ("Ativa" em verde, "Finalizada" em cinza)
+  - Ações ("Visualizar", "Editar", "Excluir")
+- **Campo de Busca:** Pesquisa em tempo real por tipo ou objetivo.
+- **Filtros Avançados:** Dropdowns para status e datas.
+- **Botão "Nova Dieta":** No canto superior direito, abre o Grupo 2 em um pop-up.
+- **Paginação:** Até 10 dietas por página.
+- **Indicador de Carregamento:** Spinner estilizado.
 
 ### Funcionalidades
-- **Envio de Dados:** POST para `/api/v1/diets/{diet_id}/options` com os dados inseridos.
-- **Sucesso:** Retorna à Tela de Detalhes com a nova opção listada.
-- **Erro:** Exibe mensagens como "Nome é obrigatório" se a validação falhar.
+- **Carregamento:** `GET /api/v1/animals/{animal_id}/diets` lista as dietas do animal selecionado.
+- **Busca e Filtro:** Suporta filtragem via API (ex: `GET /api/v1/animals/{animal_id}/diets?status=ativa`).
+- **Ações:**
+  - Visualizar: Abre Grupo 3 em pop-up.
+  - Editar: Abre Grupo 2 em pop-up com dados preenchidos.
+  - Excluir: Modal de confirmação + `DELETE /api/v1/diets/{diet_id}`.
 
 ### Fluxo de Uso do Usuário
-1. Na Tela de Detalhes da Dieta, o usuário clica em "Adicionar Opção".
-2. Preenche Nome ("Ração Light"), Valor Mensal ("150"), Calorias Totais ("2000"), Porção ("250g") e Refeições ("2").
-3. Clica em "Salvar" e volta aos Detalhes, onde "Ração Light" aparece na lista.
-4. Se deixa o Nome em branco, vê uma mensagem de erro ao tentar salvar.
-5. Clica em "Cancelar" para desistir e retornar sem alterações.
+1. Usuário seleciona "Rex" no header.
+2. Tabela carrega dietas de "Rex" (ex: "Dieta Caseira", Status: "Ativa").
+3. Filtra por "Ativa" ou busca "Emagrecimento".
+4. Clica em "Nova Dieta" para abrir pop-up de cadastro.
 
 ---
 
-## Tela 5: Listagem de Alimentos por Opção
+## Grupo 2: Cadastro de Dieta
 
 ### Descrição
-A Tela de Listagem de Alimentos por Opção exibe todos os alimentos associados a uma opção específica de dieta, funcionando como um painel de gerenciamento detalhado. Com uma tabela interativa, o usuário pode visualizar, adicionar, editar ou remover alimentos, garantindo que cada opção seja composta por itens bem definidos. Esta página é crucial para ajustar os componentes de uma dieta, oferecendo clareza e controle sobre o que o animal consome.
+O **Grupo de Cadastro de Dieta** permite criar novos planos alimentares em um pop-up intuitivo, mantendo o usuário no contexto da Página de Dietas. O formulário é simples e validado, ideal para registrar dietas rapidamente.
 
 ### Componentes
-- **Dropdown de Busca de Animais:** No topo, para manter o contexto.
-- **Tabela de Alimentos:** Colunas incluem:
-  - **Nome:** Ex: "Frango Cozido".
-  - **Tipo:** Ex: "Proteína".
-  - **Quantidade:** Ex: "200g".
-  - **Calorias:** Ex: "150".
-  - **Horário:** Ex: "Almoço".
-  - **Ações:** Botões "Editar" e "Excluir".
-- **Botão "Adicionar Alimento":** Acima da tabela, leva ao cadastro.
-- **Paginação:** Exibe até 10 alimentos por página.
+- **Formulário:**
+  - Tipo: Dropdown ("Caseira", "Mista", obrigatório)
+  - Objetivo: Dropdown ("Emagrecimento", "Ganho de Peso", obrigatório)
+  - Data de Início: Seletor de data (obrigatório)
+  - Data de Fim: Seletor opcional
+  - Status: Dropdown ("Ativa", "Finalizada", padrão "Ativa")
+- **Botões:** "Salvar" (envia dados) e "Cancelar" (fecha pop-up).
+- **Mensagens de Erro:** Abaixo dos campos (ex: "Tipo é obrigatório").
 
 ### Funcionalidades
-- **Carregamento:** GET para `/api/v1/diet-options/{option_id}/foods` lista os alimentos.
-- **Ações:** "Editar" abre a Tela de Edição de Alimento; "Excluir" remove via DELETE `/api/v1/diet-options/{option_id}/foods/{food_id}`.
+- **Envio:** `POST /api/v1/animals/{animal_id}/diets`.
+- **Sucesso:** Fecha pop-up e atualiza Grupo 1.
+- **Erro:** Exibe validações em tempo real.
 
 ### Fluxo de Uso do Usuário
-1. Na Tela de Detalhes, o usuário clica em uma opção como "Ração Premium".
-2. A tabela lista alimentos associados: "Ração Seca" (200g, Manhã), "Frango" (100g, Almoço).
-3. Clica em "Adicionar Alimento" para incluir um novo item.
-4. Seleciona "Editar" em "Frango" para ajustar a quantidade ou "Excluir" para removê-lo, confirmando no modal.
+1. No Grupo 1, clica em "Nova Dieta".
+2. Preenche dados para "Rex" (ex: Tipo: "Caseira", Objetivo: "Emagrecimento").
+3. Salva e vê a nova dieta na listagem.
 
 ---
 
-## Tela 6: Cadastro de Alimento
+## Grupo 3: Detalhes da Dieta
 
 ### Descrição
-A Tela de Cadastro de Alimento permite adicionar alimentos a uma opção de dieta, com um formulário detalhado que captura informações específicas sobre o consumo. Projetada para ser rápida e precisa, ela assegura que cada alimento seja registrado com clareza, contribuindo para um plano alimentar completo e adaptado às necessidades do animal.
+O **Grupo de Detalhes da Dieta** exibe informações completas de uma dieta em um pop-up, servindo como hub para ações relacionadas. Mostra dados básicos e opções associadas, com navegação para outros grupos.
 
 ### Componentes
-- **Dropdown de Busca de Animais:** No topo, para consistência.
-- **Formulário de Cadastro:**
-  - **Nome:** Texto (ex: "Frango Cozido", obrigatório).
-  - **Tipo:** Dropdown ("Ração", "Proteína", "Vegetal", obrigatório).
-  - **Quantidade:** Texto (ex: "200g", opcional).
-  - **Calorias:** Número (ex: "150", opcional).
-  - **Horário:** Dropdown ("Manhã", "Tarde", "Noite", opcional).
-- **Botão "Salvar":** Envia os dados.
-- **Botão "Cancelar":** Volta à Listagem de Alimentos.
+- **Card de Dados:** Tipo, Objetivo, Datas, Status.
+- **Tabela de Opções:** Nome, Valor Mensal, Calorias, Ações.
+- **Botão "Adicionar Opção":** Abre Grupo 4 em pop-up.
+- **Ações:** "Editar Dieta" e "Excluir Dieta".
+- **Abas:** Links para Alimentos, Restrições, Snacks.
 
 ### Funcionalidades
-- **Envio de Dados:** POST para `/api/v1/diet-options/{option_id}/foods`.
-- **Sucesso:** Retorna à Listagem com o novo alimento exibido.
-- **Erro:** Mensagens de validação aparecem se campos obrigatórios estiverem vazios.
+- **Carregamento:** `GET /api/v1/diets/{diet_id}` e `GET /api/v1/diets/{diet_id}/options`.
+- **Ações:** Editar abre pop-up, Excluir usa `DELETE /api/v1/diets/{diet_id}`.
 
 ### Fluxo de Uso do Usuário
-1. Na Listagem de Alimentos, o usuário clica em "Adicionar Alimento".
-2. Preenche Nome ("Frango Cozido"), Tipo ("Proteína"), Quantidade ("100g"), Calorias ("150"), Horário ("Almoço").
-3. Clica em "Salvar" e vê o alimento na lista ao retornar.
-4. Se esquece o Nome, uma mensagem de erro impede o envio.
-5. Clica em "Cancelar" para voltar sem salvar.
+1. No Grupo 1, clica em "Visualizar".
+2. Vê detalhes de "Dieta Caseira" e opções como "Ração Light".
+3. Adiciona ou edita opções via pop-up.
 
 ---
 
-## Tela 7: Gerenciamento de Alimentos Restritos
+## Grupo 4: Cadastro de Opção de Dieta
 
 ### Descrição
-A Tela de Gerenciamento de Alimentos Restritos é uma página dedicada a listar e adicionar alimentos que o animal deve evitar, essencial para garantir a segurança alimentar. Com uma interface simples e funcional, ela permite ao usuário registrar restrições com seus motivos, como alergias ou toxicidade, oferecendo uma visão clara das limitações nutricionais de cada paciente.
+O **Grupo de Cadastro de Opção de Dieta** adiciona opções específicas (ex: rações) em um pop-up, com um formulário detalhado e funcional.
 
 ### Componentes
-- **Dropdown de Busca de Animais:** No topo, para selecionar o animal.
-- **Lista de Alimentos Restritos:** Tabela com:
-  - **Nome:** Ex: "Chocolate".
-  - **Motivo:** Ex: "Tóxico".
-  - **Ações:** "Editar" e "Excluir".
-- **Botão "Adicionar Alimento":** Abre um formulário inline ou redireciona para cadastro.
-- **Paginação:** Se a lista for longa.
+- **Formulário:**
+  - Nome (obrigatório)
+  - Valor Mensal (opcional)
+  - Calorias Totais (opcional)
+  - Porção por Refeição (opcional)
+  - Número de Refeições (opcional)
+- **Botões:** "Salvar" e "Cancelar".
 
 ### Funcionalidades
-- **Carregamento:** GET para `/api/v1/animals/{animal_id}/restricted-foods`.
-- **Adicionar:** POST para `/api/v1/animals/{animal_id}/restricted-foods`.
-- **Editar:** PUT para `/api/v1/animals/{animal_id}/restricted-foods/{food_id}`.
-- **Excluir:** DELETE para `/api/v1/animals/{animal_id}/restricted-foods/{food_id}`.
+- **Envio:** `POST /api/v1/diets/{diet_id}/options`.
+- **Sucesso:** Atualiza Grupo 3.
 
 ### Fluxo de Uso do Usuário
-1. No menu lateral, o usuário seleciona "Alimentos Restritos".
-2. Escolhe "Rex" no dropdown de busca.
-3. Vê a lista: "Chocolate" (Motivo: "Tóxico"), "Uva" (Motivo: "Tóxico").
-4. Clica em "Adicionar Alimento", insere "Cebola" com Motivo "Tóxico" e salva.
-5. Edita "Chocolate" para ajustar o motivo ou exclui "Uva", confirmando a ação.
+1. No Grupo 3, clica em "Adicionar Opção".
+2. Preenche "Ração Light" e salva.
+3. Vê a opção na tabela de detalhes.
 
 ---
 
-## Tela 8: Gerenciamento de Snacks
+## Grupo 5: Listagem de Alimentos por Opção
 
 ### Descrição
-A Tela de Gerenciamento de Snacks permite listar e adicionar petiscos permitidos entre as refeições, com controle detalhado sobre frequência e quantidade. Esta página é fundamental para equilibrar a dieta, oferecendo uma interface prática que ajuda a clínica a gerenciar o consumo de snacks de forma responsável e alinhada ao plano alimentar.
+O **Grupo de Listagem de Alimentos por Opção** mostra alimentos de uma opção em uma seção expansível ou pop-up, com opções de gerenciamento.
 
 ### Componentes
-- **Dropdown de Busca de Animais:** No topo, para selecionar o animal.
-- **Lista de Snacks:** Tabela com:
-  - **Nome:** Ex: "Bifinho".
-  - **Frequência Semanal:** Ex: "3x/semana".
-  - **Quantidade:** Ex: "1 unidade".
-  - **Observações:** Ex: "Após caminhada".
-  - **Ações:** "Editar" e "Excluir".
-- **Botão "Adicionar Snack":** Abre um formulário para inclusão.
-- **Paginação:** Para listas extensas.
+- **Tabela:** Nome, Tipo, Quantidade, Calorias, Horário, Ações.
+- **Botão "Adicionar Alimento":** Abre Grupo 6 em pop-up.
 
 ### Funcionalidades
-- **Carregamento:** GET para `/api/v1/animals/{animal_id}/snacks`.
-- **Adicionar:** POST para `/api/v1/animals/{animal_id}/snacks`.
-- **Editar:** PUT para `/api/v1/animals/{animal_id}/snacks/{snack_id}`.
-- **Excluir:** DELETE para `/api/v1/animals/{animal_id}/snacks/{snack_id}`.
+- **Carregamento:** `GET /api/v1/diet-options/{option_id}/foods`.
+- **Ações:** Editar e Excluir (`DELETE /api/v1/diet-foods/{food_id}`).
 
 ### Fluxo de Uso do Usuário
-1. No menu lateral, o usuário seleciona "Snacks".
-2. Escolhe "Luna" no dropdown de busca.
-3. Vê a lista: "Bifinho" (3x/semana, 1 unidade, "Após caminhada").
-4. Clica em "Adicionar Snack", insere "Petisco Dental" (2x/semana, 1 unidade) e salva.
-5. Edita "Bifinho" para mudar a frequência ou exclui outro snack, confirmando no modal.
+1. No Grupo 3, acessa uma opção.
+2. Vê alimentos como "Frango Cozido" e adiciona novos.
+
+---
+
+## Grupo 6: Cadastro de Alimento
+
+### Descrição
+O **Grupo de Cadastro de Alimento** registra alimentos em um pop-up, com campos detalhados para personalização.
+
+### Componentes
+- **Formulário:**
+  - Nome (obrigatório)
+  - Tipo (dropdown, obrigatório)
+  - Quantidade (opcional)
+  - Calorias (opcional)
+  - Horário (opcional)
+- **Botões:** "Salvar" e "Cancelar".
+
+### Funcionalidades
+- **Envio:** `POST /api/v1/diet-options/{option_id}/foods`.
+
+### Fluxo de Uso do Usuário
+1. No Grupo 5, clica em "Adicionar Alimento".
+2. Cadastra "Frango Cozido" e salva.
+
+---
+
+## Grupo 7: Gerenciamento de Alimentos Restritos
+
+### Descrição
+O **Grupo de Gerenciamento de Alimentos Restritos** lista e gerencia alimentos a evitar, em uma seção integrada à página.
+
+### Componentes
+- **Tabela:** Nome, Motivo, Ações.
+- **Botão "Adicionar":** Formulário inline ou pop-up.
+
+### Funcionalidades
+- **Rotas:** `GET`, `POST`, `PUT`, `DELETE` em `/api/v1/animals/{animal_id}/restricted-foods`.
+
+### Fluxo de Uso do Usuário
+1. Acessa a seção na página.
+2. Adiciona "Chocolate" (Motivo: "Tóxico").
+
+---
+
+## Grupo 8: Gerenciamento de Snacks
+
+### Descrição
+O **Grupo de Gerenciamento de Snacks** controla snacks permitidos, em uma seção visualmente distinta.
+
+### Componentes
+- **Tabela:** Nome, Frequência, Quantidade, Observações, Ações.
+- **Botão "Adicionar":** Formulário inline ou pop-up.
+
+### Funcionalidades
+- **Rotas:** `GET`, `POST`, `PUT`, `DELETE` em `/api/v1/animals/{animal_id}/snacks`.
+
+### Fluxo de Uso do Usuário
+1. Acessa a seção.
+2. Adiciona "Bifinho" (3x/semana).
 
 ---
 
 ## Estrutura e Navegação
-As oito telas são **páginas distintas**, não seções ou cards dentro de uma única "Tela de Dieta". Elas seguem um fluxo intuitivo:
-- **Listagem de Dietas por Animal → Cadastro de Dieta → Detalhes da Dieta → Cadastro de Opção → Listagem de Alimentos → Cadastro de Alimento.**
-- **Gerenciamento de Alimentos Restritos e Snacks:** Acessíveis diretamente pelo menu lateral ou abas contextuais.
-O dropdown de busca de animais no topo de cada tela permite alternar entre pacientes rapidamente, atualizando o conteúdo exibido sem necessidade de voltar ao menu principal.
+A Página de Dietas organiza os grupos em uma interface única:
+- **Grupo 1:** Área principal, sempre visível.
+- **Grupos 2-6:** Pop-ups para ações específicas.
+- **Grupos 7-8:** Seções expansíveis ou abas.
+Pop-ups minimizam navegação, mantendo o foco na página.
 
 ---
 
 ## Detalhes Técnicos
-- **Rotas Backend:**
-  - GET `/api/v1/animals` – Lista todos os animais.
-  - GET `/api/v1/animals/{animal_id}/diets` – Lista dietas de um animal.
-  - POST `/api/v1/animals/{animal_id}/diets` – Cadastra uma dieta.
-  - GET `/api/v1/diets/{diet_id}` – Detalhes de uma dieta.
-  - PATCH `/api/v1/diets/{diet_id}` – Edita uma dieta.
-  - DELETE `/api/v1/diets/{diet_id}` – Exclui uma dieta.
-  - POST `/api/v1/diets/{diet_id}/options` – Adiciona uma opção à dieta.
-  - GET `/api/v1/diet-options/{option_id}/foods` – Lista alimentos de uma opção.
-  - POST `/api/v1/diet-options/{option_id}/foods` – Cadastra um alimento.
-  - GET `/api/v1/animals/{animal_id}/restricted-foods` – Lista alimentos restritos.
-  - POST `/api/v1/animals/{animal_id}/restricted-foods` – Adiciona alimento restrito.
-  - GET `/api/v1/animals/{animal_id}/snacks` – Lista snacks.
-  - POST `/api/v1/animals/{animal_id}/snacks` – Adiciona um snack.
+- **Rotas Backend:** Todas as rotas de `sprint4.md` foram incorporadas (ex: `POST /api/v1/animals/{animal_id}/diets`, `GET /api/v1/diet-options/{option_id}/foods`).
 - **Autenticação:** Token JWT em todas as requisições.
-- **Frontend:** Desenvolvido com React, React Router e Tailwind CSS para estilização.
+- **Frontend:** React, React Router, Material UI, pop-ups com Material UI.
 
 ---
 
 ## Tarefas da Sprint
-- Implementar o dropdown de busca de animais em todas as telas, integrando-o com a API.
-- Desenvolver telas de listagem com filtros dinâmicos e paginação.
-- Criar formulários validados para cadastros e edições.
-- Garantir navegação fluida entre telas de dietas, opções e alimentos.
-- Realizar testes de fluxo de uso e integração com o backend.
+- Implementar a Página de Dietas com os oito grupos.
+- Integrar o header com seleção obrigatória de animal.
+- Desenvolver design atrativo com ícones, cores e pop-ups.
+- Testar fluxos e integração com o backend.
 
----
-
-Esta versão ampliada da Sprint 4 reflete uma exploração mais profunda das telas, com descrições detalhadas e fluxos de uso claros, mantendo a nova feature do dropdown de busca de animais. Se estiver satisfeito, podemos avançar para a Sprint 5, detalhando o próximo módulo (ex: Atividades Físicas) com a mesma estrutura e uma nova feature. O que acha?
+-

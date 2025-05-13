@@ -124,26 +124,29 @@ async def create_appointment(
 
 @router.get("", response_model=List[AppointmentResponse])
 async def get_appointments(
+    animal_id: Optional[UUID] = Query(None, description="Filtrar por ID do animal"),
     date_from: Optional[date] = Query(None, description="Filtrar a partir desta data"),
     status: Optional[str] = Query(None, description="Filtrar por status"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
     """
-    Obtém todos os agendamentos da clínica autenticada.
+    Obtém todos os agendamentos da clínica autenticada, com filtros opcionais.
     """
     clinic_id = current_user.get("id")
     if not clinic_id:
         raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
 
-    logger.info(f"Listando agendamentos para clinic_id: {clinic_id} com filtros date_from={date_from}, status={status}")
+    logger.info(f"Listando agendamentos para clinic_id: {clinic_id} com filtros animal_id={animal_id}, date_from={date_from}, status={status}")
 
     try:
-        # Construir a query
+        # Construir a query base
         query = f"/rest/v1/appointments?clinic_id=eq.{str(clinic_id)}"
         
+        # Adicionar filtros opcionais
+        if animal_id:
+            query += f"&animal_id=eq.{str(animal_id)}"
         if date_from:
             query += f"&date=gte.{date_from.isoformat()}"
-            
         if status:
             query += f"&status=eq.{status}"
             
@@ -151,12 +154,15 @@ async def get_appointments(
         query += "&order=date.asc,start_time.asc"
         query += "&select=*"
         
+        # Log da query final
+        logger.debug(f"Executando query Supabase: {query}")
+
         response = await supabase_admin._request("GET", query)
         
         # Tratar a resposta para garantir que retornamos uma lista
         result = supabase_admin.process_response(response)
         
-        logger.info(f"Encontrados {len(result)} agendamentos")
+        logger.info(f"Encontrados {len(result)} agendamentos com os filtros aplicados")
         return result
         
     except Exception as e:

@@ -11,6 +11,8 @@ import DashboardPage from '../pages/DashboardPage';
 import AnimalsPage from '../pages/AnimalsPage';
 import AppointmentsPage from '../pages/AppointmentsPage';
 import ConsultationsPage from '../pages/ConsultationsPage';
+import DietsPage from '../pages/DietsPage';
+import NotFoundPage from '../pages/NotFoundPage';
 
 const ProtectedLayout = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -47,6 +49,7 @@ const AppRoutes = () => {
         <Route path="/animais" element={<AnimalsPage />} />
         <Route path="/agendamentos" element={<AppointmentsPage />} />
         <Route path="/consultas" element={<ConsultationsPage />} />
+        <Route path="/dietas" element={<DietsPage />} />
       </Route>
 
       <Route 
@@ -54,7 +57,7 @@ const AppRoutes = () => {
         element={<Navigate to="/inicio" replace />} 
       />
 
-      <Route path="*" element={<div className="p-4">Página não encontrada (404)</div>} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };

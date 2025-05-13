@@ -95,7 +95,7 @@ const ConsultationsPage = () => {
       setError("Você precisa estar logado para ver as consultas.");
       setLoading(false);
     }
-  }, [fetchConsultations, isAuthenticated, authLoading]);
+  }, [fetchConsultations, isAuthenticated, authLoading, selectedAnimal]);
 
   const getAnimalNameById = useCallback((animalId) => {
     const animal = allAnimals.find(a => a.id === animalId);

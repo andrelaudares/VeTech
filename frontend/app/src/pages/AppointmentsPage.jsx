@@ -82,6 +82,7 @@ const AppointmentsPage = () => {
       const animalIdFilter = selectedAnimal ? selectedAnimal.id : null;
       // O endpoint de agendamentos já pode ser filtrado por animal_id, conforme sprint3.md e appointmentService
       const response = await appointmentService.getAppointments(animalIdFilter);
+      console.log('API Response for Appointments (Animal ID: ' + animalIdFilter + '):', response.data);
       setAppointments(response.data || []);
     } catch (err) {
       console.error("Erro ao buscar agendamentos:", err);
@@ -99,7 +100,7 @@ const AppointmentsPage = () => {
       setError("Você precisa estar logado para ver os agendamentos.");
       setLoading(false);
     }
-  }, [fetchAppointments, isAuthenticated, authLoading]);
+  }, [fetchAppointments, isAuthenticated, authLoading, selectedAnimal]);
 
   const getAnimalNameById = useCallback((animalId) => {
     const animal = allAnimals.find(a => a.id === animalId);
