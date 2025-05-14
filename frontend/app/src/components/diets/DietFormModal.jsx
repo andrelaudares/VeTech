@@ -186,7 +186,7 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
                   margin="dense"
                   id="observacoes"
                   name="observacoes"
-                  label="Observações Gerais"
+                  label="Nome do Alimento"
                   type="text"
                   fullWidth
                   multiline
