@@ -90,7 +90,7 @@ const AppHeader = () => {
 
 
   return (
-    <AppBar position="static" color="primary">
+    <AppBar position="static" color="primary" sx={{borderRadius: 0}}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <img src={logoVetech} alt="VeTech Logo" style={{ height: '40px', marginRight: '15px' }} />

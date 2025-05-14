@@ -1,28 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Container, Typography, Button, Box, CircularProgress, Paper, TableContainer, 
-  Table, TableHead, TableRow, TableCell, TableBody, TablePagination, TextField, Grid, IconButton
+  Table, TableHead, TableRow, TableCell, TableBody, TablePagination, TextField, Grid, IconButton, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import animalService from '../services/animalService';
 import AnimalFormDialog from '../components/AnimalFormDialog';
 import AnimalDetailDialog from '../components/AnimalDetailDialog';
 import AnimalPreferencesDialog from '../components/AnimalPreferencesDialog';
-// import AppHeader from '../components/AppHeader'; // Removido - Header vem do MainLayout
-// import { useAuth } from '../contexts/AuthContext'; // Se necessário para obter clinic_id ou token diretamente
-
-// TODO: Definir paleta de cores conforme especificado
-const colors = {
-  marromClaroSuave: '#D8CAB8',
-  cremeClaro: '#F9F9F9',
-  cinzaEsverdeado: '#9DB8B2',
-  verdeOlivaSuave: '#CFE0C3',
-  textPrimary: '#333', // Cor de texto principal
-  textSecondary: '#555', // Cor de texto secundária
-  // Adicionar mais cores se necessário
-};
+import { useTheme } from '@mui/material/styles';
 
 const AnimalsPage = () => {
+  const theme = useTheme();
+
   const [animals, setAnimals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +22,6 @@ const AnimalsPage = () => {
 
   const [openFormDialog, setOpenFormDialog] = useState(false);
   const [editingAnimal, setEditingAnimal] = useState(null);
-
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [viewingAnimalId, setViewingAnimalId] = useState(null);
 
@@ -40,18 +29,30 @@ const AnimalsPage = () => {
   const [managingPreferencesForAnimalId, setManagingPreferencesForAnimalId] = useState(null);
   const [currentAnimalPreferences, setCurrentAnimalPreferences] = useState(null);
 
-  const [openNewAnimalDialog, setOpenNewAnimalDialog] = useState(false);
-  // const { user } = useAuth(); // Exemplo se precisar do usuário logado
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [animalToDelete, setAnimalToDelete] = useState(null);
+
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
 
   const fetchAnimals = async () => {
     setLoading(true);
     try {
-      // TODO: Adicionar filtro por clinic_id se o backend não fizer isso automaticamente baseado no token
       const data = await animalService.getAllAnimals();
       setAnimals(data || []);
       setError(null);
     } catch (err) {
-      console.error("Erro ao buscar animais:", err);
       setError(err.message || 'Falha ao carregar animais.');
       setAnimals([]);
     } finally {
@@ -94,7 +95,7 @@ const AnimalsPage = () => {
   const handleAnimalSubmitSuccess = () => {
     handleCloseFormDialog();
     fetchAnimals();
-    // TODO: Mostrar mensagem de sucesso (Snackbar)
+    showSnackbar('Animal salvo com sucesso!', 'success');
   };
 
   const handleEditAnimal = (animalToEdit) => {
@@ -102,21 +103,25 @@ const AnimalsPage = () => {
     setOpenFormDialog(true);
   };
 
-  const handleDeleteAnimal = async (animalId) => {
-    if (window.confirm('Tem certeza que deseja excluir este animal?')) {
-      try {
-        await animalService.deleteAnimal(animalId);
-        setAnimals(prevAnimals => prevAnimals.filter(animal => animal.id !== animalId));
-        // TODO: Mostrar notificação de sucesso
-      } catch (err) {
-        console.error('Erro ao excluir animal:', err);
-        // TODO: Mostrar notificação de erro
-      }
-    }
+  const handleDeleteRequest = (animalId) => {
+    setAnimalToDelete(animalId);
+    setConfirmDeleteOpen(true);
   };
 
-  const handleViewAnimalClick = (animalId) => {
-    setViewingAnimalId(animalId);
+  const handleConfirmDelete = async () => {
+    try {
+      await animalService.deleteAnimal(animalToDelete);
+      setAnimals(prev => prev.filter(a => a.id !== animalToDelete));
+      showSnackbar('Animal excluído com sucesso!', 'success');
+    } catch (err) {
+      showSnackbar('Erro ao excluir animal.', 'error');
+    }
+    setConfirmDeleteOpen(false);
+    setAnimalToDelete(null);
+  };
+
+  const handleViewAnimalClick = (id) => {
+    setViewingAnimalId(id);
     setOpenDetailDialog(true);
   };
 
@@ -128,14 +133,12 @@ const AnimalsPage = () => {
   const handleOpenPreferencesDialog = async (animalIdForPrefs) => {
     setManagingPreferencesForAnimalId(animalIdForPrefs);
     try {
-        // Busca as preferências atuais para popular o formulário
-        const prefs = await animalService.getAnimalPreferences(animalIdForPrefs);
-        setCurrentAnimalPreferences(prefs); 
-    } catch (error) {
-        console.error("Erro ao buscar preferências para o diálogo:", error);
-        setCurrentAnimalPreferences(null); // Define como null se houver erro ou não existir
+      const prefs = await animalService.getAnimalPreferences(animalIdForPrefs);
+      setCurrentAnimalPreferences(prefs);
+    } catch {
+      setCurrentAnimalPreferences(null);
     }
-    setOpenDetailDialog(false); // Fecha o dialog de detalhes para não sobrepor
+    setOpenDetailDialog(false);
     setOpenPreferencesDialog(true);
   };
 
@@ -143,26 +146,16 @@ const AnimalsPage = () => {
     setOpenPreferencesDialog(false);
     setManagingPreferencesForAnimalId(null);
     setCurrentAnimalPreferences(null);
-    // Reabrir o dialog de detalhes se ele estava aberto para o mesmo animal
-    if (viewingAnimalId) { // Se tinha um animal sendo visualizado antes de abrir prefs
-        // Não reabre automaticamente para evitar loops, mas a lógica pode ser adicionada se necessário.
-        // O ideal é que o AnimalDetailDialog recarregue suas prefs quando reaberto ou via prop.
+    if (viewingAnimalId) {
+      setOpenDetailDialog(true);
     }
   };
 
   const handlePreferencesSuccess = () => {
     handleClosePreferencesDialog();
-    // Se o dialog de detalhes estava aberto para o animal cujas prefs foram editadas, 
-    // ele precisa ser atualizado. Uma forma é fechar e reabri-lo ou passar uma prop para refetch.
-    // Por enquanto, apenas fechamos o dialog de preferências.
-    // Para atualizar o AnimalDetailDialog, ele poderia ter um useEffect que busca preferências quando `open`.
-    // Como o DetailDialog já busca prefs no seu useEffect quando aberto, fechar e reabrir o DetailDialog funcionaria.
-    // Para simplificar: ao salvar prefs, fechamos o dialog de prefs.
-    // Se o DetailDialog for aberto novamente, ele buscará as prefs atualizadas.
-    if(viewingAnimalId) {
-      // Para garantir que os detalhes sejam atualizados, podemos reabrir o dialog de detalhes
-      // Isso fará com que o useEffect dentro de AnimalDetailDialog busque os dados novamente.
-      setOpenDetailDialog(true); 
+    showSnackbar('Preferências atualizadas com sucesso!', 'success');
+    if (viewingAnimalId) {
+      setOpenDetailDialog(true);
     }
   };
 
@@ -184,10 +177,10 @@ const AnimalsPage = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-      <Paper sx={{ p: { xs: 2, md: 3 }, mb: 3, backgroundColor: 'white', borderRadius: 2, boxShadow: '0px 4px 20px rgba(0,0,0,0.05)' }}>
+      <Paper sx={{ p: { xs: 2, md: 3 }, mb: 3, borderRadius: 2 }}>
         <Grid container spacing={2} justifyContent="space-between" alignItems="center">
           <Grid item>
-            <Typography variant="h4" component="h1" gutterBottom sx={{ color: colors.textPrimary }}>
+            <Typography variant="h4" gutterBottom color="text.primary">
               Gestão de Animais
             </Typography>
           </Grid>
@@ -196,10 +189,10 @@ const AnimalsPage = () => {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleOpenNewAnimalDialog}
-              sx={{ 
-                backgroundColor: colors.verdeOlivaSuave, 
-                color: colors.textPrimary, 
-                '&:hover': { backgroundColor: colors.cinzaEsverdeado }
+              sx={{
+                backgroundColor: theme.palette.secondary.main,
+                color: theme.palette.text.primary,
+                '&:hover': { backgroundColor: theme.palette.primary.main, color: 'white' }
               }}
             >
               Novo Animal
@@ -217,18 +210,18 @@ const AnimalsPage = () => {
       </Paper>
 
       {filteredAnimals.length === 0 && !loading ? (
-        <Typography sx={{ textAlign: 'center', mt: 4, color: colors.textSecondary }}>Nenhum animal encontrado.</Typography>
+        <Typography sx={{ textAlign: 'center', mt: 4 }} color="text.secondary">Nenhum animal encontrado.</Typography>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: '0px 4px 20px rgba(0,0,0,0.05)' }}>
-          <Table sx={{ minWidth: 650 }} aria-label="tabela de animais">
-            <TableHead sx={{ backgroundColor: colors.marromClaroSuave }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+          <Table>
+            <TableHead sx={{ backgroundColor: theme.palette.primary.main }}>
               <TableRow>
-                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Nome</TableCell>
-                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Espécie</TableCell>
-                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Raça</TableCell>
-                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Idade</TableCell>
-                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Peso (kg)</TableCell>
-                <TableCell align="center" sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Ações</TableCell>
+                <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Nome</TableCell>
+                <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Espécie</TableCell>
+                <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Raça</TableCell>
+                <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Idade</TableCell>
+                <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Peso (kg)</TableCell>
+                <TableCell align="center" sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -236,16 +229,16 @@ const AnimalsPage = () => {
                 ? filteredAnimals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 : filteredAnimals
               ).map((animal) => (
-                <TableRow key={animal.id} hover sx={{ '&:nth-of-type(odd)': { backgroundColor: colors.cremeClaro } }}>
-                  <TableCell component="th" scope="row" sx={{ color: colors.textSecondary }}>{animal.name}</TableCell>
-                  <TableCell sx={{ color: colors.textSecondary }}>{animal.species}</TableCell>
-                  <TableCell sx={{ color: colors.textSecondary }}>{animal.breed || '-'}</TableCell>
-                  <TableCell sx={{ color: colors.textSecondary }}>{animal.age !== null ? animal.age : '-'}</TableCell>
-                  <TableCell sx={{ color: colors.textSecondary }}>{animal.weight !== null ? animal.weight : '-'}</TableCell>
+                <TableRow key={animal.id} hover>
+                  <TableCell>{animal.name}</TableCell>
+                  <TableCell>{animal.species}</TableCell>
+                  <TableCell>{animal.breed || '-'}</TableCell>
+                  <TableCell>{animal.age !== null ? animal.age : '-'}</TableCell>
+                  <TableCell>{animal.weight !== null ? animal.weight : '-'}</TableCell>
                   <TableCell align="center">
-                    <IconButton onClick={() => handleViewAnimalClick(animal.id)} size="small" sx={{ color: colors.cinzaEsverdeado }}><VisibilityIcon /></IconButton>
-                    <IconButton onClick={() => handleEditAnimal(animal)} size="small" sx={{ color: colors.cinzaEsverdeado }}><EditIcon /></IconButton>
-                    <IconButton onClick={() => handleDeleteAnimal(animal.id)} size="small" sx={{ color: '#c77777' }}><DeleteIcon /></IconButton>
+                    <IconButton onClick={() => handleViewAnimalClick(animal.id)} size="small" sx={{ color: '#169c44' }}><VisibilityIcon /></IconButton>
+                    <IconButton onClick={() => handleEditAnimal(animal)} size="small" color="primary"><EditIcon /></IconButton>
+                    <IconButton onClick={() => handleDeleteRequest(animal.id)} size="small" sx={{ color: theme.palette.error.main }}><DeleteIcon /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -261,7 +254,7 @@ const AnimalsPage = () => {
             onRowsPerPageChange={handleChangeRowsPerPage}
             labelRowsPerPage="Animais por página:"
             labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-            sx={{ backgroundColor: colors.marromClaroSuave, color: colors.textPrimary }}
+            sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText }}
           />
         </TableContainer>
       )}
@@ -282,9 +275,7 @@ const AnimalsPage = () => {
             handleCloseDetailDialog();
             handleEditAnimal(animalToEdit);
           }}
-          onManagePreferences={(animalIdForPrefs) => {
-            handleOpenPreferencesDialog(animalIdForPrefs);
-          }}
+          onManagePreferences={handleOpenPreferencesDialog}
         />
       )}
 
@@ -297,8 +288,38 @@ const AnimalsPage = () => {
           onSuccess={handlePreferencesSuccess}
         />
       )}
+
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+      >
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Tem certeza que deseja excluir este animal? Esta ação não pode ser desfeita.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteOpen(false)} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+          >
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbarOpen} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
 
-export default AnimalsPage; 
+export default AnimalsPage;
