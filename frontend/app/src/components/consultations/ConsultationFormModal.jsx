@@ -15,19 +15,12 @@ import {
   Typography,
   FormHelperText
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { ptBR } from 'date-fns/locale';
 import consultationService from '../../services/consultationService';
 import { useAnimal } from '../../contexts/AnimalContext';
-
-const colors = {
-  buttonPrimary: '#9DB8B2',
-  buttonPrimaryHover: '#82a8a0',
-  tableHeader: '#D8CAB8', 
-  textPrimary: '#333',
-  textSecondary: '#555',
-};
 
 const ConsultationFormModal = ({
   open,
@@ -36,7 +29,9 @@ const ConsultationFormModal = ({
   isEditing,
   allAnimals,
   selectedAnimalContext,
+  setSnackbar,
 }) => {
+  const theme = useTheme();
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -47,13 +42,13 @@ const ConsultationFormModal = ({
       if (isEditing && consultation) {
         setFormData({
           animal_id: consultation.animal_id || '',
-          date: consultation.date ? new Date(consultation.date) : new Date(), // Padrão para data atual se editando e não tiver
+          date: consultation.date ? new Date(consultation.date) : new Date(),
           description: consultation.description || '',
         });
       } else {
         setFormData({
           animal_id: selectedAnimalContext ? selectedAnimalContext.id : '',
-          date: new Date(), // Padrão para data atual em nova consulta
+          date: new Date(),
           description: '',
         });
       }
@@ -85,36 +80,43 @@ const ConsultationFormModal = ({
     try {
       const submissionData = {
         ...formData,
-        // A API espera a data como YYYY-MM-DDTHH:mm:ssZ ou apenas YYYY-MM-DD.
-        // O backend trata a data, se apenas YYYY-MM-DD for enviado, ele pode adicionar T00:00:00Z.
-        // Para simplificar, enviamos a data completa com horário atual.
         date: formData.date ? formData.date.toISOString() : new Date().toISOString(),
       };
 
       if (isEditing) {
         await consultationService.updateConsultation(consultation.id, submissionData);
+        if (setSnackbar) {
+          setSnackbar({ open: true, message: 'Consulta editada com sucesso!', severity: 'success' });
+        }
       } else {
         await consultationService.createConsultation(submissionData);
+        if (setSnackbar) {
+          setSnackbar({ open: true, message: 'Consulta criada com sucesso!', severity: 'success' });
+        }
       }
-      onClose();
+
+      onClose(true);
     } catch (error) {
-      console.error("Erro ao salvar consulta:", error);
       setErrors(prev => ({ ...prev, form: error.response?.data?.detail || 'Erro ao salvar. Tente novamente.' }));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ backgroundColor: colors.tableHeader, color: colors.textPrimary}}>
+      <Dialog open={open} onClose={() => onClose(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{
+          backgroundColor: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText
+        }}>
           {isEditing ? 'Editar Consulta' : 'Nova Consulta'}
         </DialogTitle>
         <DialogContent dividers>
           {errors.form && <Typography color="error" sx={{ mb: 2 }}>{errors.form}</Typography>}
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <FormControl fullWidth error={Boolean(errors.animal_id)} required>
+              <FormControl fullWidth error={Boolean(errors.animal_id)} required sx={{minWidth: 200}} >
                 <InputLabel id="animal-select-label">Animal</InputLabel>
                 <Select
                   labelId="animal-select-label"
@@ -122,7 +124,7 @@ const ConsultationFormModal = ({
                   value={formData.animal_id}
                   onChange={handleChange}
                   label="Animal"
-                  disabled={loadingAnimals || !!consultation}
+                  disabled={loadingAnimals || (!!consultation && isEditing)}
                 >
                   {loadingAnimals ? (
                     <MenuItem value="" disabled><em>Carregando animais...</em></MenuItem>
@@ -137,22 +139,22 @@ const ConsultationFormModal = ({
                 {errors.animal_id && <FormHelperText>{errors.animal_id}</FormHelperText>}
               </FormControl>
             </Grid>
+
             <Grid item xs={12}>
               <DatePicker
                 label="Data *"
                 value={formData.date}
                 onChange={(newValue) => {
-                  setFormData({ ...formData, date: newValue });
-                  if (errors.date) {
-                    setErrors(prev => ({ ...prev, date: null }));
-                  }
+                  handleDateChange(newValue);
+                  if (errors.date) setErrors(prev => ({ ...prev, date: null }));
                 }}
-                renderInput={(params) => 
+                renderInput={(params) =>
                   <TextField {...params} fullWidth required error={Boolean(errors.date)} helperText={errors.date} />
                 }
                 disablePast
               />
             </Grid>
+
             <Grid item xs={12}>
               <TextField
                 label="Descrição *"
@@ -167,20 +169,21 @@ const ConsultationFormModal = ({
                 helperText={errors.description}
               />
             </Grid>
-            {errors.general && (
-              <Grid item xs={12}>
-                <Typography color="error" variant="body2">{errors.general}</Typography>
-              </Grid>
-            )}
           </Grid>
         </DialogContent>
         <DialogActions sx={{ padding: '16px 24px' }}>
-          <Button onClick={onClose} disabled={loading}>Cancelar</Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
+          <Button onClick={() => onClose(false)} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
             disabled={loading}
-            sx={{ backgroundColor: colors.buttonPrimary, '&:hover': { backgroundColor: colors.buttonPrimaryHover } }}
+            sx={{
+              backgroundColor: theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
+              '&:hover': { backgroundColor: theme.palette.secondary.main }
+            }}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : (isEditing ? 'Salvar Alterações' : 'Criar Consulta')}
           </Button>
@@ -190,4 +193,4 @@ const ConsultationFormModal = ({
   );
 };
 
-export default ConsultationFormModal; 
+export default ConsultationFormModal;

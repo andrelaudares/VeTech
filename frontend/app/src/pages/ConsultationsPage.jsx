@@ -25,6 +25,7 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
@@ -34,7 +35,6 @@ import { useAnimal } from '../contexts/AnimalContext';
 import { useAuth } from '../contexts/AuthContext';
 import ConsultationFormModal from '../components/consultations/ConsultationFormModal';
 import ConsultationDetailsModal from '../components/consultations/ConsultationDetailsModal';
-import { useTheme } from '@mui/material/styles';
 
 const ConsultationsPage = () => {
   const theme = useTheme();
@@ -104,12 +104,12 @@ const ConsultationsPage = () => {
     setConsultationToDelete(null);
   };
 
-  const handleCloseModals = () => {
+  const handleCloseModals = (updated = false) => {
     setOpenFormModal(false);
     setOpenDetailsModal(false);
     setSelectedConsultation(null);
     setIsEditing(false);
-    fetchConsultations();
+    if (updated) fetchConsultations();
   };
 
   const filteredConsultations = consultations.filter(consultation => {
@@ -122,41 +122,69 @@ const ConsultationsPage = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap' }}>
         <Typography variant="h4" fontWeight={600}>Consultas</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setOpenFormModal(true); setSelectedConsultation(null); setIsEditing(false); }}>Nova Consulta</Button>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => { setOpenFormModal(true); setSelectedConsultation(null); setIsEditing(false); }}
+          sx={{
+            backgroundColor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+            '&:hover': { backgroundColor: theme.palette.secondary.main }
+          }}
+        >
+          Nova Consulta
+        </Button>
       </Box>
 
-      <Paper sx={{ p: 2.5, mb: 3 }} elevation={3}>
+      <Paper sx={{ p: 2.5, mb: 3, backgroundColor: theme.palette.background.paper }} elevation={3}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12}>
-            <TextField fullWidth label="Buscar por Descrição" variant="outlined" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} size="small" />
+            <TextField
+              fullWidth
+              label="Buscar por Descrição"
+              variant="outlined"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              size="small"
+            />
           </Grid>
         </Grid>
       </Paper>
 
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', my: 5 }}>
-          <CircularProgress />
+          <CircularProgress color="primary" />
           <Typography sx={{ ml: 2 }}>Carregando consultas...</Typography>
         </Box>
       )}
 
       {error && (
-        <Paper sx={{ p: 2, textAlign: 'center', my: 3, backgroundColor: '#ffebee', color: '#c62828', borderRadius: 2 }} elevation={3}>
+        <Paper
+          sx={{
+            p: 2,
+            textAlign: 'center',
+            my: 3,
+            backgroundColor: theme.palette.error.light,
+            color: theme.palette.error.dark,
+            borderRadius: 2
+          }}
+          elevation={3}
+        >
           <Typography variant="h6">Oops!</Typography>
           <Typography>{error}</Typography>
         </Paper>
       )}
 
       {!loading && !error && (
-        <Paper elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Paper elevation={2} sx={{ borderRadius: 2, overflow: 'hidden', backgroundColor: theme.palette.background.paper }}>
           <TableContainer>
             <Table>
-              <TableHead sx={{ backgroundColor: theme.palette.primary.main }}>
-                <TableRow>
-                  <TableCell><b>Data</b></TableCell>
-                  {!selectedAnimal && <TableCell><b>Animal</b></TableCell>}
-                  <TableCell><b>Descrição</b></TableCell>
-                  <TableCell align="right"><b>Ações</b></TableCell>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: theme.palette.primary.main }}>
+                  <TableCell sx={{ color: theme.palette.primary.contrastText }}><b>Data</b></TableCell>
+                  {!selectedAnimal && <TableCell sx={{ color: theme.palette.primary.contrastText }}><b>Animal</b></TableCell>}
+                  <TableCell sx={{ color: theme.palette.primary.contrastText }}><b>Descrição</b></TableCell>
+                  <TableCell align="right" sx={{ color: theme.palette.primary.contrastText }}><b>Ações</b></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -172,17 +200,20 @@ const ConsultationsPage = () => {
                     <TableCell align="right">
                       <Tooltip title="Visualizar">
                         <IconButton size="small" onClick={() => { setSelectedConsultation(consultation); setOpenDetailsModal(true); }}>
-                          <VisibilityIcon fontSize="small" sx={{ color: '#169c44' }}/>
+                          <VisibilityIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Editar">
                         <IconButton size="small" onClick={() => { setSelectedConsultation(consultation); setIsEditing(true); setOpenFormModal(true); }}>
-                          <EditIcon fontSize="small" color='primary'/>
+                          <EditIcon fontSize="small" sx={{ color: theme.palette.primary.main }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Excluir">
                         <IconButton size="small" onClick={() => handleDeleteRequest(consultation.id)}>
-                          <DeleteIcon fontSize="small" sx={{ color: '#e57373', '&:hover': { color: '#d32f2f' } }} />
+                          <DeleteIcon fontSize="small" sx={{
+                            color: theme.palette.error.main,
+                            '&:hover': { color: theme.palette.error.dark }
+                          }} />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
@@ -207,7 +238,11 @@ const ConsultationsPage = () => {
               onRowsPerPageChange={handleChangeRowsPerPage}
               labelRowsPerPage="Itens por página:"
               labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-              sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText }}
+              sx={{
+                backgroundColor: theme.palette.primary.main,
+                color: theme.palette.primary.contrastText,
+                '& .MuiTablePagination-actions': { color: theme.palette.primary.contrastText }
+              }}
             />
           </TableContainer>
         </Paper>
@@ -233,11 +268,12 @@ const ConsultationsPage = () => {
       {openFormModal && (
         <ConsultationFormModal
           open={openFormModal}
-          onClose={handleCloseModals}
+          onClose={(success) => handleCloseModals(success)}
           consultation={selectedConsultation}
           isEditing={isEditing}
           allAnimals={allAnimals}
           selectedAnimalContext={selectedAnimal}
+          setSnackbar={setSnackbar}
         />
       )}
 
