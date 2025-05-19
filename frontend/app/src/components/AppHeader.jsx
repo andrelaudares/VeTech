@@ -28,6 +28,7 @@ import DashboardIcon from '@mui/icons-material/Home'; // Trocado para Home ou si
 import EventNoteIcon from '@mui/icons-material/EventNote'; // Ícone para Agendamentos
 import AssignmentIcon from '@mui/icons-material/Assignment'; // Ícone para Consultas (ou MedicalServicesIcon)
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'; // Ícone para Dietas
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter'; // Ícone para Atividades
 
 const AppHeader = () => {
   const { user, logout } = useAuth();
@@ -99,26 +100,36 @@ const AppHeader = () => {
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* Navegação Principal - Pode ser expandida com mais links/abas */}
-          <Button color="inherit" component={RouterLink} to="/inicio" startIcon={<DashboardIcon />}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Button color="inherit" component={RouterLink} to="/inicio" startIcon={<DashboardIcon />}
+            sx={{ textTransform: 'none', fontWeight: location.pathname === '/inicio' ? 'bold' : 'normal' }}
+          >
             Início
           </Button>
-          <Button color="inherit" component={RouterLink} to="/animais" startIcon={<PetsIcon />}>
+          <Button color="inherit" component={RouterLink} to="/animais" startIcon={<PetsIcon />}
+            sx={{ textTransform: 'none', fontWeight: location.pathname === '/animais' ? 'bold' : 'normal' }}
+          >
             Animais
           </Button>
-          {/* Adicionar mais links de navegação aqui conforme necessário */}
-          {/* Exemplo:
-          <Button color="inherit" component={RouterLink} to="/agendamentos">Agendamentos</Button>
-          */}
-          <Button color="inherit" component={RouterLink} to="/agendamentos" startIcon={<EventNoteIcon />}>
+          <Button color="inherit" component={RouterLink} to="/agendamentos" startIcon={<EventNoteIcon />}
+            sx={{ textTransform: 'none', fontWeight: location.pathname === '/agendamentos' ? 'bold' : 'normal' }}
+          >
             Agendamentos
           </Button>
-          <Button color="inherit" component={RouterLink} to="/consultas" startIcon={<AssignmentIcon />}>
+          <Button color="inherit" component={RouterLink} to="/consultas" startIcon={<AssignmentIcon />}
+            sx={{ textTransform: 'none', fontWeight: location.pathname === '/consultas' ? 'bold' : 'normal' }}
+          >
             Consultas
           </Button>
-          <Button color="inherit" component={RouterLink} to="/dietas" startIcon={<RestaurantMenuIcon />}>
+          <Button color="inherit" component={RouterLink} to="/dietas" startIcon={<RestaurantMenuIcon />}
+            sx={{ textTransform: 'none', fontWeight: location.pathname === '/dietas' ? 'bold' : 'normal' }}
+          >
             Dietas
+          </Button>
+          <Button color="inherit" component={RouterLink} to="/atividades" startIcon={<FitnessCenterIcon />}
+            sx={{ textTransform: 'none', fontWeight: location.pathname === '/atividades' ? 'bold' : 'normal' }}
+          >
+            Atividades
           </Button>
         </Box>
 
@@ -136,7 +147,7 @@ const AppHeader = () => {
                 sx={{ color: 'white', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'white' }, '.MuiSvgIcon-root': { color: 'white' } }}
               >
                 <MenuItem value="">
-                  <em>{loadingAnimals ? "Carregando..." : (animals.length === 0 ? "Nenhum animal" : "Todos os Animais")}</em>
+                  <em>{loadingAnimals ? "Carregando..." : (animals.length === 0 ? "Nenhum animal" : "Selecionar Animal")}</em>
                 </MenuItem>
                 {animals.map((animal) => (
                   <MenuItem key={animal.id} value={animal.id}>

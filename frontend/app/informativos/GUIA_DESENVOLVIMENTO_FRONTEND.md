@@ -376,9 +376,7 @@ Para campos de data e hora, a biblioteca `@mui/x-date-pickers` é utilizada.
 
 ## 10. Considerações sobre a API Backend
 
-*   As definições das rotas da API, payloads esperados e respostas podem ser encontradas na documentação do backend (ex: arquivos `sprint3.md` na pasta do backend, ou diretamente nos arquivos Python como `consultations.py`, `appointments.py`).
+*   As definições das rotas da API, payloads esperados e respostas podem ser encontradas na documentação do backend (ex: arquivos `sprint5.md` na pasta do backend, ou diretamente nos arquivos Python como `activities.py`).
 *   Certifique-se de que o servidor backend está rodando e acessível pela URL configurada no `src/services/api.js`.
 
 ---
-
-Este guia é um documento vivo e deve ser atualizado conforme o projeto evolui. 

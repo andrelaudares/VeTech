@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/AppHeader';
 import MainLayout from '../components/MainLayout';
+import { Box, CircularProgress, Typography } from '@mui/material';
 
 // Importar páginas
 import LoginPage from '../pages/LoginPage';
@@ -12,20 +13,26 @@ import AnimalsPage from '../pages/AnimalsPage';
 import AppointmentsPage from '../pages/AppointmentsPage';
 import ConsultationsPage from '../pages/ConsultationsPage';
 import DietsPage from '../pages/DietsPage';
+import ActivitiesPage from '../pages/ActivitiesPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
-const ProtectedLayout = () => {
+const ProtectedLayout = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="p-4">Carregando autenticação...</div>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Carregando autenticação...</Typography>
+      </Box>
+    );
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  return <MainLayout />;
+  return <MainLayout>{children}</MainLayout>;
 };
 
 const AppRoutes = () => {
@@ -50,6 +57,7 @@ const AppRoutes = () => {
         <Route path="/agendamentos" element={<AppointmentsPage />} />
         <Route path="/consultas" element={<ConsultationsPage />} />
         <Route path="/dietas" element={<DietsPage />} />
+        <Route path="atividades" element={<ActivitiesPage />} />
       </Route>
 
       <Route 
