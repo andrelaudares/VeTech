@@ -47,7 +47,7 @@ const DashboardPage = () => {
         Bem-vindo à sua Página Inicial!
       </Typography>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={6}>
         {/* Linha com dois cards */}
         <Grid container spacing={3} item xs={12} md={8}>
           <Grid item xs={12} md={6}>
