@@ -12,7 +12,7 @@ const getAuthHeaders = () => {
 };
 
 
-const API_URL = '/api/v1'; // Base URL da API
+const API_URL = ''; // Base URL da API
 
 // --- Seção 1: Tipos de Atividades (Grupos 1 e 2) ---
 
