@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -50,7 +49,7 @@ const LoginPage = () => {
         borderRadius: '12px', // Bordas mais suaves
       }}>
         <Box sx={{ mb: 3 }}> {/* Adiciona margem abaixo do logo */}
-          <img src={logoVetech} alt="VeTech Logo" style={{ height: '80px' }} />
+          <img onClick={() => navigate('/')} src={logoVetech} alt="VeTech Logo" style={{ height: '80px', cursor: 'pointer'}} />
         </Box>
         <Typography component="h1" variant="h5" sx={{ mb: 1 }}>
           Bem-vindo à VeTech

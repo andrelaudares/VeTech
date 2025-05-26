@@ -137,14 +137,14 @@ const AppointmentFormModal = ({
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ backgroundColor: '#D8CAB8', color: '#333'}}>
+        <DialogTitle sx={{ backgroundColor: '#23e865', color: '#fff'}}>
           {isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}
         </DialogTitle>
         <DialogContent dividers>
           {errors.form && <Typography color="error" sx={{ mb: 2 }}>{errors.form}</Typography>}
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <FormControl fullWidth error={Boolean(errors.animal_id)} required>
+              <FormControl fullWidth error={Boolean(errors.animal_id)} required sx={{ minWidth: 200 }}>
                 <InputLabel id="animal-select-label">Animal</InputLabel>
                 <Select
                   labelId="animal-select-label"
@@ -207,7 +207,7 @@ const AppointmentFormModal = ({
               />
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth required error={Boolean(errors.status)}>
+              <FormControl fullWidth required error={Boolean(errors.status)} sx={{ minWidth: 200 }}>
                 <InputLabel id="status-select-label">Status</InputLabel>
                 <Select
                   labelId="status-select-label"
@@ -237,7 +237,7 @@ const AppointmentFormModal = ({
             onClick={handleSubmit} 
             variant="contained" 
             disabled={loading}
-            sx={{ backgroundColor: colors.buttonPrimary, '&:hover': { backgroundColor: colors.buttonPrimaryHover } }}
+            sx={{ backgroundColor: '#23e865', '&:hover': { backgroundColor: '#209e41' } }}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : (isEditing ? 'Salvar Alterações' : 'Criar Agendamento')}
           </Button>
