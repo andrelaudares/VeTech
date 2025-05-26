@@ -56,8 +56,8 @@ import FitnessTrackerIcon from '@mui/icons-material/FitnessCenter';
 // Paleta de cores (conforme GUIA_DESENVOLVIMENTO_FRONTEND.md e DietsPage.jsx)
 const colors = {
   background: '#F9F9F9',        // Creme claro
-  tableHeader: '#D8CAB8',     // Marrom-claro suave
-  primaryAction: '#9DB8B2',    // Cinza-esverdeado
+  tableHeader: '#24EC64',     // Marrom-claro suave
+  primaryAction: '#24EC64',    // Cinza-esverdeado
   primaryActionHover: '#82a8a0',
   secondaryAction: '#CFE0C3',  // Verde-oliva suave
   secondaryActionHover: '#b8d4a8',
@@ -83,7 +83,7 @@ const calculateProgress = (plan, history) => {
   if (!relevantHistory.length) {
     // Se não há histórico, e o plano não tem data de fim mas está ativo, simular um pequeno progresso.
     // Se tiver data de fim, o cálculo por data ainda se aplica.
-    if(plan.status === 'ativo' && !plan.data_fim) return 10; 
+    if (plan.status === 'ativo' && !plan.data_fim) return 10;
   }
 
   // Cálculo de progresso baseado em datas se não houver registros ou se ainda for relevante
@@ -97,7 +97,7 @@ const calculateProgress = (plan, history) => {
     else progressByDate = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
   } else if (plan.data_inicio && plan.status === 'ativo') {
     // Se ativo, sem data_fim, mas com data_inicio, um pequeno progresso base
-    progressByDate = 10; 
+    progressByDate = 10;
   }
 
   // Se houver histórico, tentar calcular progresso com base nele
@@ -109,7 +109,7 @@ const calculateProgress = (plan, history) => {
     // Por agora, vamos apenas dar um boost se tiver histórico
     return Math.max(progressByDate, 30 + Math.min(70, relevantHistory.length * 10)); // Exemplo
   }
-  
+
   return progressByDate; // Fallback para progresso por data ou o base se ativo
 };
 
@@ -155,7 +155,7 @@ const ActivitiesPage = () => {
   const [openActivityPlanModal, setOpenActivityPlanModal] = useState(false);
   const [isEditingActivityPlan, setIsEditingActivityPlan] = useState(false);
   const [selectedActivityPlan, setSelectedActivityPlan] = useState(null);
-  
+
   const [openLogActivityModal, setOpenLogActivityModal] = useState(false);
   const [planToLog, setPlanToLog] = useState(null);
 
@@ -199,7 +199,7 @@ const ActivitiesPage = () => {
       console.error("Erro ao buscar planos de atividade:", err);
       setErrorPlans(err.message || err.detail || "Falha ao carregar planos de atividade.");
     }
-    
+
     setLoadingHistory(true);
     setErrorHistory(null);
     try {
@@ -231,7 +231,7 @@ const ActivitiesPage = () => {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && selectedAnimal) {
-        fetchDataForSelectedAnimal();
+      fetchDataForSelectedAnimal();
     }
   }, [fetchDataForSelectedAnimal, selectedAnimal, isAuthenticated, authLoading]);
 
@@ -298,15 +298,15 @@ const ActivitiesPage = () => {
 
   const filteredActivityTypes = activityTypes.filter(type => {
     const searchTermLower = searchTermActivityTypes.toLowerCase();
-    return (type.nome?.toLowerCase() || '').includes(searchTermLower) || 
-           (type.tipo?.toLowerCase() || '').includes(searchTermLower);
+    return (type.nome?.toLowerCase() || '').includes(searchTermLower) ||
+      (type.tipo?.toLowerCase() || '').includes(searchTermLower);
   });
 
   // --- Handlers para Planos de Atividade (Grupo 3, 4 e 5) ---
   const handleOpenCreateActivityPlanModal = () => {
     if (!selectedAnimal?.id) {
-        alert("Selecione um animal primeiro.");
-        return;
+      alert("Selecione um animal primeiro.");
+      return;
     }
     setSelectedActivityPlan(null);
     setIsEditingActivityPlan(false);
@@ -375,8 +375,8 @@ const ActivitiesPage = () => {
 
   const filteredActivityPlans = activityPlans.filter(plan => {
     const searchTermLower = searchTermActivityPlans.toLowerCase();
-    return (plan.nome_atividade?.toLowerCase() || '').includes(searchTermLower) || 
-           (plan.orientacoes?.toLowerCase() || '').includes(searchTermLower);
+    return (plan.nome_atividade?.toLowerCase() || '').includes(searchTermLower) ||
+      (plan.orientacoes?.toLowerCase() || '').includes(searchTermLower);
   });
 
   // --- Handlers para Histórico de Atividades (Grupo 6) ---
@@ -409,7 +409,7 @@ const ActivitiesPage = () => {
     let message = 'Carregando...';
     if (authLoading) message = 'Verificando autenticação...';
     else if (animalLoading && !selectedAnimal) message = 'Carregando dados do animal...';
-    
+
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
         <CircularProgress />
@@ -448,27 +448,27 @@ const ActivitiesPage = () => {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4, backgroundColor: colors.background, p: { xs: 2, md: 3 }, borderRadius: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h4" component="h1" sx={{ color: colors.textPrimary, fontWeight: '500' }}>
-          Atividades Físicas {selectedAnimal && currentTab !==0 ? <>de <span style={{ color: colors.primaryAction }}>{selectedAnimal.name}</span></> : 'Globais'}
+          Atividades Físicas {selectedAnimal && currentTab !== 0 ? <>de <span style={{ color: colors.primaryAction }}>{selectedAnimal.name}</span></> : 'Globais'}
         </Typography>
         {currentTab === 0 && (
-           <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
             onClick={handleOpenCreateActivityTypeModal}
             sx={{ backgroundColor: colors.primaryAction, color: colors.paperBackground, '&:hover': { backgroundColor: colors.primaryActionHover } }}
-           >
+          >
             Novo Tipo de Atividade
-           </Button>
+          </Button>
         )}
         {currentTab === 1 && selectedAnimal && (
-            <Button 
-                variant="contained" 
-                startIcon={<AddIcon />}
-                onClick={handleOpenCreateActivityPlanModal}
-                sx={{ backgroundColor: colors.primaryAction, color: colors.paperBackground, '&:hover': { backgroundColor: colors.primaryActionHover } }}
-            >
-                Novo Plano de Atividade
-            </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreateActivityPlanModal}
+            sx={{ backgroundColor: colors.primaryAction, color: colors.paperBackground, '&:hover': { backgroundColor: colors.primaryActionHover } }}
+          >
+            Novo Plano de Atividade
+          </Button>
         )}
       </Box>
 
@@ -484,7 +484,7 @@ const ActivitiesPage = () => {
         >
           <Tab icon={<ListAltIcon />} iconPosition="start" label="Tipos de Atividade" sx={{ fontWeight: currentTab === 0 ? '600' : 'normal' }} />
           <Tab icon={<EventNoteIcon />} iconPosition="start" label="Planos do Animal" sx={{ fontWeight: currentTab === 1 ? '600' : 'normal' }} disabled={!selectedAnimal} />
-          <Tab icon={<HistoryIcon />} iconPosition="start" label="Histórico de Atividades" sx={{ fontWeight: currentTab === 2 ? '600' : 'normal' }} disabled={!selectedAnimal}/>
+          <Tab icon={<HistoryIcon />} iconPosition="start" label="Histórico de Atividades" sx={{ fontWeight: currentTab === 2 ? '600' : 'normal' }} disabled={!selectedAnimal} />
         </Tabs>
       </Paper>
 
@@ -500,10 +500,10 @@ const ActivitiesPage = () => {
 
       {!loadingData && !error && (
         <Box>
-          {/* Aba 0: Tipos de Atividade (Grupo 1 e 2) */} 
+          {/* Aba 0: Tipos de Atividade (Grupo 1 e 2) */}
           {currentTab === 0 && (
             <Paper elevation={2} sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: 2, backgroundColor: colors.paperBackground }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5}}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
                 <Typography variant="h6" sx={{ color: colors.textPrimary, fontWeight: '500' }}>
                   Gerenciar Tipos de Atividades Globais
                 </Typography>
@@ -515,14 +515,14 @@ const ActivitiesPage = () => {
                   onChange={handleSearchActivityTypesChange}
                   InputProps={{
                     startAdornment: (
-                      <SearchIcon position="start" sx={{ color: colors.textSecondary, mr: 0.5}} />
+                      <SearchIcon position="start" sx={{ color: colors.textSecondary, mr: 0.5 }} />
                     ),
                   }}
-                  sx={{ minWidth: '280px'}}
+                  sx={{ minWidth: '280px' }}
                 />
               </Box>
-              {loadingTypes && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3}}><CircularProgress sx={{color: colors.primaryAction}}/></Box>}
-              {!loadingTypes && errorTypes && <Alert severity="error" sx={{my:2}}>{errorTypes}</Alert>}
+              {loadingTypes && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress sx={{ color: colors.primaryAction }} /></Box>}
+              {!loadingTypes && errorTypes && <Alert severity="error" sx={{ my: 2 }}>{errorTypes}</Alert>}
               {!loadingTypes && !errorTypes && (
                 activityTypes.length === 0 && !searchTermActivityTypes ? (
                   <Typography sx={{ textAlign: 'center', color: colors.textSecondary, py: 4 }}>Nenhum tipo de atividade cadastrado no sistema.</Typography>
@@ -530,7 +530,7 @@ const ActivitiesPage = () => {
                   <Typography sx={{ textAlign: 'center', color: colors.textSecondary, py: 4 }}>Nenhum tipo de atividade encontrado com o termo "{searchTermActivityTypes}".</Typography>
                 ) : (
                   <>
-                    <TableContainer sx={{ borderRadius: 1.5, border: `1px solid ${colors.borderColor}`}}>
+                    <TableContainer sx={{ borderRadius: 1.5, border: `1px solid ${colors.borderColor}` }}>
                       <Table sx={{ minWidth: 650 }} aria-label="tabela de tipos de atividade" size="small">
                         <TableHead sx={{ backgroundColor: colors.tableHeader }}>
                           <TableRow>
@@ -553,7 +553,7 @@ const ActivitiesPage = () => {
                                   </IconButton>
                                 </Tooltip>
                                 <Tooltip title="Excluir Tipo">
-                                  <IconButton size="small" sx={{ color: colors.deleteColor, '&:hover': {color: colors.deleteColorHover} }} onClick={() => handleDeleteActivityType(type.id)}>
+                                  <IconButton size="small" sx={{ color: colors.deleteColor, '&:hover': { color: colors.deleteColorHover } }} onClick={() => handleDeleteActivityType(type.id)}>
                                     <DeleteIcon fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
@@ -573,7 +573,7 @@ const ActivitiesPage = () => {
                       onRowsPerPageChange={handleChangeRowsPerPageActivityTypes}
                       labelRowsPerPage="Tipos por página:"
                       labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                      sx={{ borderTop: `1px solid ${colors.borderColor}`, mt:0, borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', backgroundColor: colors.paperBackground }}
+                      sx={{ borderTop: `1px solid ${colors.borderColor}`, mt: 0, borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', backgroundColor: colors.paperBackground }}
                     />
                   </>
                 )
@@ -581,10 +581,10 @@ const ActivitiesPage = () => {
             </Paper>
           )}
 
-          {/* Aba 1: Planos de Atividade (Grupo 3, 4 e 5) */} 
+          {/* Aba 1: Planos de Atividade (Grupo 3, 4 e 5) */}
           {currentTab === 1 && selectedAnimal && (
             <Paper elevation={2} sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: 2, backgroundColor: colors.paperBackground }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5}}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
                 <Typography variant="h6" sx={{ color: colors.textPrimary, fontWeight: '500' }}>Planos de Atividade</Typography>
                 <TextField
                   label="Buscar Planos"
@@ -594,20 +594,20 @@ const ActivitiesPage = () => {
                   onChange={handleSearchActivityPlansChange}
                   InputProps={{
                     startAdornment: (
-                      <SearchIcon position="start" sx={{ color: colors.textSecondary, mr: 0.5}} />
+                      <SearchIcon position="start" sx={{ color: colors.textSecondary, mr: 0.5 }} />
                     ),
                   }}
-                  sx={{ minWidth: '280px'}}
+                  sx={{ minWidth: '280px' }}
                 />
               </Box>
-              {loadingPlans && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3}}><CircularProgress sx={{color: colors.primaryAction}}/></Box>}
-              {!loadingPlans && errorPlans && <Alert severity="error" sx={{my:2}}>{errorPlans}</Alert>}
+              {loadingPlans && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress sx={{ color: colors.primaryAction }} /></Box>}
+              {!loadingPlans && errorPlans && <Alert severity="error" sx={{ my: 2 }}>{errorPlans}</Alert>}
               {!loadingPlans && !errorPlans && (
                 !filteredActivityPlans.length ? (
                   <Typography sx={{ textAlign: 'center', color: colors.textSecondary, py: 4 }}>Nenhum plano para "{searchTermActivityPlans}"</Typography>
                 ) : (
                   <>
-                    <TableContainer sx={{ borderRadius: 1.5, border: `1px solid ${colors.borderColor}`}}>
+                    <TableContainer sx={{ borderRadius: 1.5, border: `1px solid ${colors.borderColor}` }}>
                       <Table sx={{ minWidth: 700 }} aria-label="tabela de planos de atividade" size="small">
                         <TableHead sx={{ backgroundColor: colors.tableHeader }}>
                           <TableRow>
@@ -637,7 +637,7 @@ const ActivitiesPage = () => {
                               <TableCell align="right" sx={{ py: 0.5, pr: 1.5, whiteSpace: 'nowrap' }}>
                                 <Tooltip title="Registrar Atividade"><IconButton size="small" sx={{ color: colors.secondaryAction, '&:hover': { color: colors.secondaryActionHover }, mr: 0.5 }} onClick={() => handleOpenLogActivityModal(plan)}><PlaylistPlayIcon fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="Editar Plano"><IconButton size="small" sx={{ color: colors.secondaryAction, '&:hover': { color: colors.secondaryActionHover }, mr: 0.5 }} onClick={() => handleOpenEditActivityPlanModal(plan)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                <Tooltip title="Excluir Plano"><IconButton size="small" sx={{ color: colors.deleteColor, '&:hover': {color: colors.deleteColorHover} }} onClick={() => handleDeleteActivityPlan(plan.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                <Tooltip title="Excluir Plano"><IconButton size="small" sx={{ color: colors.deleteColor, '&:hover': { color: colors.deleteColorHover } }} onClick={() => handleDeleteActivityPlan(plan.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -654,7 +654,7 @@ const ActivitiesPage = () => {
                       onRowsPerPageChange={handleChangeRowsPerPageActivityPlans}
                       labelRowsPerPage="Planos por página:"
                       labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                      sx={{ borderTop: `1px solid ${colors.borderColor}`, mt:0, borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', backgroundColor: colors.paperBackground }}
+                      sx={{ borderTop: `1px solid ${colors.borderColor}`, mt: 0, borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', backgroundColor: colors.paperBackground }}
                     />
                   </>
                 )
@@ -662,131 +662,131 @@ const ActivitiesPage = () => {
             </Paper>
           )}
 
-          {/* Aba 2: Histórico de Atividades (Grupo 6) */} 
+          {/* Aba 2: Histórico de Atividades (Grupo 6) */}
           {currentTab === 2 && selectedAnimal && (
             <Paper elevation={2} sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: 2, backgroundColor: colors.paperBackground }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5}}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
                 <Typography variant="h6" sx={{ color: colors.textPrimary, fontWeight: '500' }}>
-                    Histórico de Atividades de <span style={{ color: colors.primaryAction }}>{selectedAnimal.name}</span>
+                  Histórico de Atividades de <span style={{ color: colors.primaryAction }}>{selectedAnimal.name}</span>
                 </Typography>
-                <TextField 
-                    label="Buscar no Histórico (Nome, Data, Obs.)"
-                    variant="outlined" 
-                    size="small" 
-                    value={searchTermHistory}
-                    onChange={handleSearchHistoryChange} 
-                    InputProps={{startAdornment: (<SearchIcon position="start" sx={{ color: colors.textSecondary, mr: 0.5}} />)}}
-                    sx={{ minWidth: '300px'}}
+                <TextField
+                  label="Buscar no Histórico (Nome, Data, Obs.)"
+                  variant="outlined"
+                  size="small"
+                  value={searchTermHistory}
+                  onChange={handleSearchHistoryChange}
+                  InputProps={{ startAdornment: (<SearchIcon position="start" sx={{ color: colors.textSecondary, mr: 0.5 }} />) }}
+                  sx={{ minWidth: '300px' }}
                 />
               </Box>
-              {loadingHistory && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3}}><CircularProgress sx={{color: colors.primaryAction}}/></Box>}
-              {!loadingHistory && errorHistory && <Alert severity="error" sx={{my:2}}>{errorHistory}</Alert>}
+              {loadingHistory && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress sx={{ color: colors.primaryAction }} /></Box>}
+              {!loadingHistory && errorHistory && <Alert severity="error" sx={{ my: 2 }}>{errorHistory}</Alert>}
               {!loadingHistory && !errorHistory && (
                 !filteredActivityHistory.length ? (
-                    <Typography sx={{ textAlign: 'center', color: colors.textSecondary, py: 4 }}> 
-                        {searchTermHistory 
-                            ? `Nenhum registro encontrado para "${searchTermHistory}".` 
-                            : `Nenhum histórico de atividades encontrado para ${selectedAnimal.name}.`}
-                    </Typography>
+                  <Typography sx={{ textAlign: 'center', color: colors.textSecondary, py: 4 }}>
+                    {searchTermHistory
+                      ? `Nenhum registro encontrado para "${searchTermHistory}".`
+                      : `Nenhum histórico de atividades encontrado para ${selectedAnimal.name}.`}
+                  </Typography>
                 ) : (
-                <>
-                    <TableContainer sx={{ borderRadius: 1.5, border: `1px solid ${colors.borderColor}`}}>
-                        <Table sx={{ minWidth: 750 }} aria-label="tabela de histórico de atividades" size="small">
-                            <TableHead sx={{ backgroundColor: colors.tableHeader }}><TableRow>
-                                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Data e Hora</TableCell>
-                                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Atividade (Plano)</TableCell>
-                                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }} align="right">Duração</TableCell>
-                                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }} align="center">Esforço</TableCell>
-                                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }} align="center">Satisfação</TableCell>
-                                <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Observações</TableCell>
-                                <TableCell align="right" sx={{ color: colors.textPrimary, fontWeight: 'bold', pr: 2.5 }}>Ações</TableCell>
-                            </TableRow></TableHead>
-                            <TableBody>
-                            {filteredActivityHistory.slice(pageHistory * rowsPerPageHistory, pageHistory * rowsPerPageHistory + rowsPerPageHistory).map((log) => (
-                                <TableRow key={log.id} hover>
-                                    <TableCell component="th" scope="row">
-                                        {log.data_hora_inicio ? format(new Date(log.data_hora_inicio), 'dd/MM/yy HH:mm', { locale: ptBR }) : 'N/A'}
-                                    </TableCell>
-                                    <TableCell>{log.nome_atividade_plano || 'N/A' /* TODO: Popular este campo */}</TableCell>
-                                    <TableCell align="right">{log.duracao_realizada_minutos ? `${log.duracao_realizada_minutos} min` : '-'}</TableCell>
-                                    <TableCell align="center">
-                                        <Tooltip title={`${log.esforco_percebido}%` || 'N/A'}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <FitnessTrackerIcon fontSize="small" sx={{ opacity: Math.max(0.2, (log.esforco_percebido || 0) / 100), color: colors.primaryAction }}/>
-                                                <Typography variant="caption" sx={{ml:0.5}}>{log.esforco_percebido}%</Typography>
-                                            </Box>
-                                        </Tooltip>
-                                    </TableCell>
-                                    <TableCell align="center">
-                                        <Tooltip title={`${log.satisfacao} de 5` || 'N/A'}>
-                                        <Rating name="read-only-satisfaction" value={log.satisfacao} readOnly size="small" emptyIcon={<MoodIcon style={{ opacity: 0.55 }} fontSize="inherit" />}/>
-                                        </Tooltip>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Tooltip title={log.observacoes || 'Sem observações'}>
-                                            <Typography variant="body2" noWrap sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {log.observacoes || '-'}
-                                            </Typography>
-                                        </Tooltip>
-                                    </TableCell>
-                                    <TableCell align="right" sx={{ py: 0.5, pr: 1.5, whiteSpace: 'nowrap' }}>
-                                        <Tooltip title="Ver Detalhes (Em breve)"><IconButton size="small" disabled><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
-                                        <Tooltip title="Editar Log (Em breve)"><IconButton size="small" disabled sx={{mx:0.5}}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                        <Tooltip title="Excluir Log (Em breve)"><IconButton size="small" disabled><DeleteIcon fontSize="small" /></IconButton></Tooltip>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            </TableBody>
-                        </Table>
+                  <>
+                    <TableContainer sx={{ borderRadius: 1.5, border: `1px solid ${colors.borderColor}` }}>
+                      <Table sx={{ minWidth: 750 }} aria-label="tabela de histórico de atividades" size="small">
+                        <TableHead sx={{ backgroundColor: colors.tableHeader }}><TableRow>
+                          <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Data e Hora</TableCell>
+                          <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Atividade (Plano)</TableCell>
+                          <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }} align="right">Duração</TableCell>
+                          <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }} align="center">Esforço</TableCell>
+                          <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }} align="center">Satisfação</TableCell>
+                          <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold' }}>Observações</TableCell>
+                          <TableCell align="right" sx={{ color: colors.textPrimary, fontWeight: 'bold', pr: 2.5 }}>Ações</TableCell>
+                        </TableRow></TableHead>
+                        <TableBody>
+                          {filteredActivityHistory.slice(pageHistory * rowsPerPageHistory, pageHistory * rowsPerPageHistory + rowsPerPageHistory).map((log) => (
+                            <TableRow key={log.id} hover>
+                              <TableCell component="th" scope="row">
+                                {log.data_hora_inicio ? format(new Date(log.data_hora_inicio), 'dd/MM/yy HH:mm', { locale: ptBR }) : 'N/A'}
+                              </TableCell>
+                              <TableCell>{log.nome_atividade_plano || 'N/A' /* TODO: Popular este campo */}</TableCell>
+                              <TableCell align="right">{log.duracao_realizada_minutos ? `${log.duracao_realizada_minutos} min` : '-'}</TableCell>
+                              <TableCell align="center">
+                                <Tooltip title={`${log.esforco_percebido}%` || 'N/A'}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FitnessTrackerIcon fontSize="small" sx={{ opacity: Math.max(0.2, (log.esforco_percebido || 0) / 100), color: colors.primaryAction }} />
+                                    <Typography variant="caption" sx={{ ml: 0.5 }}>{log.esforco_percebido}%</Typography>
+                                  </Box>
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Tooltip title={`${log.satisfacao} de 5` || 'N/A'}>
+                                  <Rating name="read-only-satisfaction" value={log.satisfacao} readOnly size="small" emptyIcon={<MoodIcon style={{ opacity: 0.55 }} fontSize="inherit" />} />
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell>
+                                <Tooltip title={log.observacoes || 'Sem observações'}>
+                                  <Typography variant="body2" noWrap sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {log.observacoes || '-'}
+                                  </Typography>
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell align="right" sx={{ py: 0.5, pr: 1.5, whiteSpace: 'nowrap' }}>
+                                <Tooltip title="Ver Detalhes (Em breve)"><IconButton size="small" disabled><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+                                <Tooltip title="Editar Log (Em breve)"><IconButton size="small" disabled sx={{ mx: 0.5 }}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                                <Tooltip title="Excluir Log (Em breve)"><IconButton size="small" disabled><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </TableContainer>
-                    <TablePagination 
-                        rowsPerPageOptions={[5, 10, 20, 50]}
-                        component="div" 
-                        count={filteredActivityHistory.length} 
-                        rowsPerPage={rowsPerPageHistory}
-                        page={pageHistory}
-                        onPageChange={handleChangePageHistory}
-                        onRowsPerPageChange={handleChangeRowsPerPageHistory}
-                        labelRowsPerPage="Registros por página:"
-                        labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                        sx={{ borderTop: `1px solid ${colors.borderColor}`, mt:0, borderRadius: '0 0 8px 8px', backgroundColor: colors.paperBackground }}
+                    <TablePagination
+                      rowsPerPageOptions={[5, 10, 20, 50]}
+                      component="div"
+                      count={filteredActivityHistory.length}
+                      rowsPerPage={rowsPerPageHistory}
+                      page={pageHistory}
+                      onPageChange={handleChangePageHistory}
+                      onRowsPerPageChange={handleChangeRowsPerPageHistory}
+                      labelRowsPerPage="Registros por página:"
+                      labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                      sx={{ borderTop: `1px solid ${colors.borderColor}`, mt: 0, borderRadius: '0 0 8px 8px', backgroundColor: colors.paperBackground }}
                     />
-                </>
+                  </>
                 )
-            )}
-        </Paper>
-      )}
+              )}
+            </Paper>
+          )}
         </Box>
       )}
 
       {openActivityTypeModal && (
-        <ActivityTypeFormModal 
-            open={openActivityTypeModal}
-            onClose={handleCloseActivityTypeModal}
-            activityTypeData={selectedActivityType}
-            isEditing={isEditingActivityType}
-            onSaveSuccess={handleSaveActivityTypeSuccess}
+        <ActivityTypeFormModal
+          open={openActivityTypeModal}
+          onClose={handleCloseActivityTypeModal}
+          activityTypeData={selectedActivityType}
+          isEditing={isEditingActivityType}
+          onSaveSuccess={handleSaveActivityTypeSuccess}
         />
       )}
       {openActivityPlanModal && selectedAnimal && (
         <ActivityPlanFormModal
-            open={openActivityPlanModal}
-            onClose={handleCloseActivityPlanModal}
-            planData={selectedActivityPlan}
-            isEditing={isEditingActivityPlan}
-            onSaveSuccess={handleSaveActivityPlanSuccess}
-            animalId={selectedAnimal.id}
-            availableActivityTypes={activityTypes}
+          open={openActivityPlanModal}
+          onClose={handleCloseActivityPlanModal}
+          planData={selectedActivityPlan}
+          isEditing={isEditingActivityPlan}
+          onSaveSuccess={handleSaveActivityPlanSuccess}
+          animalId={selectedAnimal.id}
+          availableActivityTypes={activityTypes}
         />
       )}
-      
+
       {openLogActivityModal && selectedAnimal && planToLog && (
-        <LogActivityFormModal 
-            open={openLogActivityModal}
-            onClose={handleCloseLogActivityModal}
-            onSaveSuccess={handleLogActivitySuccess}
-            planToLog={planToLog}
-            animalId={selectedAnimal.id}
+        <LogActivityFormModal
+          open={openLogActivityModal}
+          onClose={handleCloseLogActivityModal}
+          onSaveSuccess={handleLogActivitySuccess}
+          planToLog={planToLog}
+          animalId={selectedAnimal.id}
         />
       )}
 

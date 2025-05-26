@@ -58,10 +58,10 @@ import CancelIcon from '@mui/icons-material/Cancel';
 // Paleta de cores definida no guia:
 const colors = {
   background: '#F9F9F9',
-  tableHeader: '#D8CAB8', // Marrom-claro suave
-  primaryAction: '#9DB8B2', // Cinza-esverdeado
+  tableHeader: '#24EC64', // Marrom-claro suave
+  primaryAction: '#24EC64', // Cinza-esverdeado
   primaryActionHover: '#82a8a0', // Tom mais escuro para hover
-  secondaryAction: '#CFE0C3', // Verde-oliva suave
+  secondaryAction: '#24EC64', // Verde-oliva suave
   secondaryActionHover: '#b8d4a8', // Tom mais escuro para hover
   textPrimary: '#333',
   textSecondary: '#555',
@@ -192,9 +192,9 @@ const DietsPage = () => {
     setLoadingData(false);
     console.log('[DietsPage] All fetches attempted. Final states:', { loadingData, error, diets, errorRestricted, restrictedFoods, errorSnacks, snacks });
     if (fetchError && !error) {
-       // If a specific error was set but not the general one (diets fetch succeeded)
-       // Optionally, set the general error as well, or rely on specific error displays per tab
-       // setError(fetchError); 
+      // If a specific error was set but not the general one (diets fetch succeeded)
+      // Optionally, set the general error as well, or rely on specific error displays per tab
+      // setError(fetchError); 
     }
 
   }, [selectedAnimal, isAuthenticated, currentTab]);
@@ -319,24 +319,24 @@ const DietsPage = () => {
   };
 
   const handleDeleteRestrictedFood = async (foodId) => {
-     if (window.confirm("Tem certeza que deseja remover este alimento restrito?")) {
-        setLoadingRestricted(true);
-        setErrorRestricted(null);
-        try {
-            await dietService.deleteRestrictedFood(foodId);
-            fetchDataForAnimal(); // Recarregar
-        } catch (err) {
-            console.error("Erro ao excluir alimento restrito:", err);
-            setErrorRestricted(err.detail || err.message || "Erro ao excluir alimento restrito.");
-        } finally {
-            setLoadingRestricted(false);
-        }
-     }
+    if (window.confirm("Tem certeza que deseja remover este alimento restrito?")) {
+      setLoadingRestricted(true);
+      setErrorRestricted(null);
+      try {
+        await dietService.deleteRestrictedFood(foodId);
+        fetchDataForAnimal(); // Recarregar
+      } catch (err) {
+        console.error("Erro ao excluir alimento restrito:", err);
+        setErrorRestricted(err.detail || err.message || "Erro ao excluir alimento restrito.");
+      } finally {
+        setLoadingRestricted(false);
+      }
+    }
   };
 
   const handleEditRestrictedInputChange = (event) => {
-     const { name, value } = event.target;
-     setEditRestrictedFoodData(prev => ({ ...prev, [name]: value }));
+    const { name, value } = event.target;
+    setEditRestrictedFoodData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleStartEditRestricted = (food) => {
@@ -352,25 +352,25 @@ const DietsPage = () => {
     setErrorRestricted(null);
   };
 
- const handleSaveEditRestricted = async (foodId) => {
+  const handleSaveEditRestricted = async (foodId) => {
     if (!editRestrictedFoodData.nome) {
-        // Mostrar erro no TextField?
-        console.error("O nome do alimento não pode ficar vazio.");
-        return;
+      // Mostrar erro no TextField?
+      console.error("O nome do alimento não pode ficar vazio.");
+      return;
     }
     setLoadingRestricted(true);
     setErrorRestricted(null);
     try {
-        await dietService.updateRestrictedFood(foodId, editRestrictedFoodData);
-        setEditingRestrictedFoodId(null); // Sair do modo de edição
-        fetchDataForAnimal(); // Recarregar
+      await dietService.updateRestrictedFood(foodId, editRestrictedFoodData);
+      setEditingRestrictedFoodId(null); // Sair do modo de edição
+      fetchDataForAnimal(); // Recarregar
     } catch (err) {
-        console.error("Erro ao salvar alimento restrito:", err);
-        setErrorRestricted(err.detail || err.message || "Erro ao salvar alimento restrito.");
+      console.error("Erro ao salvar alimento restrito:", err);
+      setErrorRestricted(err.detail || err.message || "Erro ao salvar alimento restrito.");
     } finally {
-        setLoadingRestricted(false);
+      setLoadingRestricted(false);
     }
- };
+  };
 
   // ---- Handlers para Snacks (Grupo 8) ----
   const handleSnackInputChange = (event) => {
@@ -398,33 +398,33 @@ const DietsPage = () => {
   };
 
   const handleDeleteSnack = async (snackId) => {
-     if (window.confirm("Tem certeza que deseja remover este snack?")) {
-        setLoadingSnacks(true);
-        setErrorSnacks(null);
-        try {
-            await dietService.deleteSnack(snackId);
-            fetchDataForAnimal(); // Recarregar
-        } catch (err) {
-            console.error("Erro ao excluir snack:", err);
-            setErrorSnacks(err.detail || err.message || "Erro ao excluir snack.");
-        } finally {
-            setLoadingSnacks(false);
-        }
-     }
+    if (window.confirm("Tem certeza que deseja remover este snack?")) {
+      setLoadingSnacks(true);
+      setErrorSnacks(null);
+      try {
+        await dietService.deleteSnack(snackId);
+        fetchDataForAnimal(); // Recarregar
+      } catch (err) {
+        console.error("Erro ao excluir snack:", err);
+        setErrorSnacks(err.detail || err.message || "Erro ao excluir snack.");
+      } finally {
+        setLoadingSnacks(false);
+      }
+    }
   };
 
   const handleEditSnackInputChange = (event) => {
-     const { name, value } = event.target;
-     setEditSnackData(prev => ({ ...prev, [name]: value }));
+    const { name, value } = event.target;
+    setEditSnackData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleStartEditSnack = (snack) => {
     setEditingSnackId(snack.id);
     setEditSnackData({
-        nome: snack.nome,
-        frequencia: snack.frequencia || '',
-        quantidade: snack.quantidade || '',
-        observacoes: snack.observacoes || ''
+      nome: snack.nome,
+      frequencia: snack.frequencia || '',
+      quantidade: snack.quantidade || '',
+      observacoes: snack.observacoes || ''
     });
     setNewSnack({ nome: '', frequencia: '', quantidade: '', observacoes: '' }); // Limpar form de adição
     setErrorSnacks(null);
@@ -436,24 +436,24 @@ const DietsPage = () => {
     setErrorSnacks(null);
   };
 
- const handleSaveEditSnack = async (snackId) => {
+  const handleSaveEditSnack = async (snackId) => {
     if (!editSnackData.nome) {
-        console.error("O nome do snack não pode ficar vazio.");
-        return;
+      console.error("O nome do snack não pode ficar vazio.");
+      return;
     }
     setLoadingSnacks(true);
     setErrorSnacks(null);
     try {
-        await dietService.updateSnack(snackId, editSnackData);
-        setEditingSnackId(null); // Sair do modo de edição
-        fetchDataForAnimal(); // Recarregar
+      await dietService.updateSnack(snackId, editSnackData);
+      setEditingSnackId(null); // Sair do modo de edição
+      fetchDataForAnimal(); // Recarregar
     } catch (err) {
-        console.error("Erro ao salvar snack:", err);
-        setErrorSnacks(err.detail || err.message || "Erro ao salvar snack.");
+      console.error("Erro ao salvar snack:", err);
+      setErrorSnacks(err.detail || err.message || "Erro ao salvar snack.");
     } finally {
-        setLoadingSnacks(false);
+      setLoadingSnacks(false);
     }
- };
+  };
 
   // ---- Handlers para o modal de Opção de Dieta (Grupo 4) ----
   const handleOpenAddOptionModal = (dietId) => {
@@ -483,19 +483,19 @@ const DietsPage = () => {
     console.log("Opção de dieta salva com sucesso (Grupo 4), atualizando detalhes da dieta...");
     handleCloseOptionFormModal();
     if (selectedDiet?.id) {
-        setLoadingData(true);
-        try {
-            const updatedDietDetails = await dietService.getDietById(selectedDiet.id);
-            setSelectedDiet(updatedDietDetails);
-        } catch (error) {
-            console.error("Erro ao re-buscar detalhes da dieta após salvar opção:", error);
-            setError("Erro ao atualizar detalhes da dieta.");
-            fetchDataForAnimal();
-        } finally {
-            setLoadingData(false);
-        }
-    } else {
+      setLoadingData(true);
+      try {
+        const updatedDietDetails = await dietService.getDietById(selectedDiet.id);
+        setSelectedDiet(updatedDietDetails);
+      } catch (error) {
+        console.error("Erro ao re-buscar detalhes da dieta após salvar opção:", error);
+        setError("Erro ao atualizar detalhes da dieta.");
         fetchDataForAnimal();
+      } finally {
+        setLoadingData(false);
+      }
+    } else {
+      fetchDataForAnimal();
     }
   };
 
@@ -509,7 +509,7 @@ const DietsPage = () => {
           const updatedDietDetails = await dietService.getDietById(selectedDiet.id);
           setSelectedDiet(updatedDietDetails);
         }
-         else {
+        else {
           fetchDataForAnimal();
         }
       } catch (err) {
@@ -549,19 +549,19 @@ const DietsPage = () => {
     console.log("Alimento salvo com sucesso (Grupo 6), atualizando detalhes da dieta...");
     handleCloseFoodFormModal();
     if (selectedDiet?.id) {
-        setLoadingData(true);
-        try {
-            const updatedDietDetails = await dietService.getDietById(selectedDiet.id);
-            setSelectedDiet(updatedDietDetails);
-        } catch (error) {
-            console.error("Erro ao re-buscar detalhes da dieta após salvar alimento:", error);
-            setError("Erro ao atualizar detalhes da dieta.");
-            fetchDataForAnimal();
-        } finally {
-            setLoadingData(false);
-        }
-    } else {
+      setLoadingData(true);
+      try {
+        const updatedDietDetails = await dietService.getDietById(selectedDiet.id);
+        setSelectedDiet(updatedDietDetails);
+      } catch (error) {
+        console.error("Erro ao re-buscar detalhes da dieta após salvar alimento:", error);
+        setError("Erro ao atualizar detalhes da dieta.");
         fetchDataForAnimal();
+      } finally {
+        setLoadingData(false);
+      }
+    } else {
+      fetchDataForAnimal();
     }
   };
 
@@ -575,7 +575,7 @@ const DietsPage = () => {
           const updatedDietDetails = await dietService.getDietById(selectedDiet.id);
           setSelectedDiet(updatedDietDetails);
         }
-         else {
+        else {
           fetchDataForAnimal();
         }
       } catch (err) {
@@ -687,7 +687,7 @@ const DietsPage = () => {
           {/* Grupo 1: Listagem de Dietas (Renderiza quando currentTab === 0) */}
           {currentTab === 0 && (
             <Paper elevation={2} sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: 2, backgroundColor: colors.paperBackground, mt: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5}}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
                 <Typography variant="h6" sx={{ color: colors.textPrimary, fontWeight: '500' }}>
                   Planos de Dieta Registrados
                 </Typography>
@@ -699,12 +699,12 @@ const DietsPage = () => {
                   onChange={handleSearchDietsChange}
                   InputProps={{
                     startAdornment: (
-                      <SearchIcon position="start" sx={{ color: colors.textSecondary, mr: 0.5}} />
+                      <SearchIcon position="start" sx={{ color: colors.textSecondary, mr: 0.5 }} />
                     ),
                   }}
-                  sx={{ minWidth: '280px'}}
+                  sx={{ minWidth: '280px' }}
                 />
-                 {/* TODO: Botão de Filtros Avançados */}
+                {/* TODO: Botão de Filtros Avançados */}
               </Box>
 
               {diets.length === 0 && !loadingData && (
@@ -713,7 +713,7 @@ const DietsPage = () => {
 
               {diets.length > 0 && (
                 <>
-                  <TableContainer sx={{ borderRadius: 1.5, border: `1px solid ${colors.borderColor}`}}>
+                  <TableContainer sx={{ borderRadius: 1.5, border: `1px solid ${colors.borderColor}` }}>
                     <Table sx={{ minWidth: 700 }} aria-label="tabela de dietas">
                       <TableHead sx={{ backgroundColor: colors.tableHeader }}>
                         <TableRow>
@@ -733,16 +733,16 @@ const DietsPage = () => {
                             <TableCell sx={{ py: 1 }}>{diet.data_inicio ? new Date(diet.data_inicio).toLocaleDateString() : '-'}</TableCell>
                             <TableCell sx={{ py: 1 }}>{diet.data_fim ? new Date(diet.data_fim).toLocaleDateString() : 'Em andamento'}</TableCell>
                             <TableCell sx={{ py: 1 }} align="center">
-                              <Chip 
-                                label={diet.status || '-'} 
+                              <Chip
+                                label={diet.status || '-'}
                                 size="small"
                                 color={diet.status === 'ativa' ? 'success' : diet.status === 'finalizada' ? 'default' : 'warning'}
-                                sx={{ fontWeight: '500', minWidth: '80px'}}
+                                sx={{ fontWeight: '500', minWidth: '80px' }}
                               />
                             </TableCell>
                             <TableCell align="right" sx={{ py: 0.5, pr: 1.5 }}>
                               <Tooltip title="Visualizar Detalhes">
-                                <IconButton size="small" sx={{ color: colors.primaryAction, mr: 0.5, '&:hover': { backgroundColor: 'rgba(157, 184, 178, 0.1)'} }} onClick={() => handleOpenViewDietModal(diet)}>
+                                <IconButton size="small" sx={{ color: colors.primaryAction, mr: 0.5, '&:hover': { backgroundColor: 'rgba(157, 184, 178, 0.1)' } }} onClick={() => handleOpenViewDietModal(diet)}>
                                   <VisibilityIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -752,7 +752,7 @@ const DietsPage = () => {
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Excluir Dieta">
-                                <IconButton size="small" sx={{ color: colors.deleteColor, '&:hover': {color: colors.deleteColorHover, backgroundColor: 'rgba(229, 115, 115, 0.1)'} }} onClick={() => handleDeleteDiet(diet.id)}>
+                                <IconButton size="small" sx={{ color: colors.deleteColor, '&:hover': { color: colors.deleteColorHover, backgroundColor: 'rgba(229, 115, 115, 0.1)' } }} onClick={() => handleDeleteDiet(diet.id)}>
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -760,11 +760,11 @@ const DietsPage = () => {
                           </TableRow>
                         ))}
                         {filteredDiets.length === 0 && searchTermDiets && (
-                            <TableRow>
-                                <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: colors.textSecondary }}>
-                                Nenhuma dieta encontrada com o termo "{searchTermDiets}".
-                                </TableCell>
-                            </TableRow>
+                          <TableRow>
+                            <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: colors.textSecondary }}>
+                              Nenhuma dieta encontrada com o termo "{searchTermDiets}".
+                            </TableCell>
+                          </TableRow>
                         )}
                       </TableBody>
                     </Table>
@@ -779,7 +779,7 @@ const DietsPage = () => {
                     onRowsPerPageChange={handleChangeRowsPerPageDiets}
                     labelRowsPerPage="Dietas por página:"
                     labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-                    sx={{ borderTop: `1px solid ${colors.borderColor}`, mt:0, borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', backgroundColor: colors.paperBackground }}
+                    sx={{ borderTop: `1px solid ${colors.borderColor}`, mt: 0, borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', backgroundColor: colors.paperBackground }}
                   />
                 </>
               )}
@@ -789,265 +789,265 @@ const DietsPage = () => {
           {/* Grupo 7: Gerenciamento de Alimentos Restritos (Renderiza quando currentTab === 1) */}
           {currentTab === 1 && (
             <Paper elevation={2} sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: 2, backgroundColor: colors.paperBackground }}>
-               <Typography variant="h6" sx={{ mb: 2, color: colors.textPrimary }}>Alimentos a Evitar</Typography>
-               {/* Exibir erro geral da aba aqui */}
-               {errorRestricted && !loadingRestricted && <Alert severity="error" sx={{ my: 2 }}>{errorRestricted}</Alert>}
-               
-               {/* Formulário Inline para Adicionar */} 
-               {!loadingRestricted && (
-                    <Paper elevation={2} sx={{ p: 2, mb: 3, backgroundColor: colors.background }}>
-                        <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: '500'}}>Adicionar Novo Alimento Restrito</Typography>
-                        <Grid container spacing={2} alignItems="flex-start"> { /* Mudar para flex-start */}
-                            <Grid item xs={12} sm={5}>
-                                <TextField
-                                   fullWidth
-                                   size="small"
-                                   label="Nome do Alimento"
-                                   name="nome"
-                                   value={newRestrictedFood.nome}
-                                   onChange={handleRestrictedInputChange}
-                                   disabled={loadingRestricted || !!editingRestrictedFoodId} // Desabilitar se estiver editando outro item
-                                   error={!newRestrictedFood.nome && !!errorRestricted} // Exemplo de erro inline
-                                   helperText={!newRestrictedFood.nome && !!errorRestricted ? "Nome obrigatório" : ""}
-                               />
-                            </Grid>
-                            <Grid item xs={12} sm={5}>
-                                <TextField
-                                   fullWidth
-                                   size="small"
-                                   label="Motivo (Opcional)"
-                                   name="motivo"
-                                   value={newRestrictedFood.motivo}
-                                   onChange={handleRestrictedInputChange}
-                                   disabled={loadingRestricted || !!editingRestrictedFoodId}
-                               />
-                            </Grid>
-                            <Grid item xs={12} sm={2} sx={{ textAlign: { xs: 'left', sm: 'right' }, pt: { xs: 1, sm: 'inherit' } }}> { /* Ajustar padding/align */}
-                                 <Button
-                                   variant="contained"
-                                   startIcon={<AddIcon />}
-                                   onClick={handleAddRestrictedFood}
-                                   disabled={loadingRestricted || !newRestrictedFood.nome || !!editingRestrictedFoodId}
-                                   size="small"
-                                   sx={{backgroundColor: colors.secondaryAction, color: colors.textPrimary, '&:hover': { backgroundColor: colors.secondaryActionHover } }}
-                                 >
-                                   Adicionar
-                                 </Button>
-                            </Grid>
-                        </Grid>
-                    </Paper>
-               )}
-               
-               {/* Indicador de loading da tabela */} 
-               {loadingRestricted && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress sx={{color: colors.primaryAction}}/></Box>}
+              <Typography variant="h6" sx={{ mb: 2, color: colors.textPrimary }}>Alimentos a Evitar</Typography>
+              {/* Exibir erro geral da aba aqui */}
+              {errorRestricted && !loadingRestricted && <Alert severity="error" sx={{ my: 2 }}>{errorRestricted}</Alert>}
 
-               {/* Tabela de Alimentos Restritos */} 
-               {!loadingRestricted && !errorRestricted && restrictedFoods.length === 0 && (
-                   <Typography sx={{ textAlign: 'center', color: colors.textSecondary, my: 3 }}>Nenhum alimento restrito cadastrado.</Typography>
-               )}
-               {!loadingRestricted && restrictedFoods.length > 0 && (
-                   <TableContainer component={Paper} elevation={1} sx={{border: `1px solid ${colors.borderColor}`}}>
-                       <Table size="small">
-                           <TableHead sx={{backgroundColor: colors.background}}>
-                               <TableRow>
-                                   <TableCell sx={{fontWeight: 'bold'}}>Alimento</TableCell>
-                                   <TableCell sx={{fontWeight: 'bold'}}>Motivo</TableCell>
-                                   <TableCell sx={{fontWeight: 'bold', textAlign: 'right'}}>Ações</TableCell>
-                               </TableRow>
-                           </TableHead>
-                           <TableBody>
-                               {restrictedFoods.map((food) => (
-                                   <TableRow key={food.id} hover sx={{ backgroundColor: editingRestrictedFoodId === food.id ? colors.tabBackgroundHover : 'inherit' }}>
-                                      {editingRestrictedFoodId === food.id ? (
-                                           <>
-                                               {/* Modo de Edição */}
-                                               <TableCell sx={{py: 0.5, width: '40%'}}> { /* Ajustar padding/width */}
-                                                   <TextField 
-                                                       size="small" 
-                                                       name="nome" 
-                                                       value={editRestrictedFoodData.nome}
-                                                       onChange={handleEditRestrictedInputChange}
-                                                       fullWidth
-                                                       error={!editRestrictedFoodData.nome}
-                                                       sx={{backgroundColor: colors.paperBackground}}
-                                                    />
-                                               </TableCell>
-                                               <TableCell sx={{py: 0.5, width: '40%'}}>
-                                                    <TextField 
-                                                       size="small" 
-                                                       name="motivo" 
-                                                       value={editRestrictedFoodData.motivo}
-                                                       onChange={handleEditRestrictedInputChange}
-                                                       fullWidth
-                                                       sx={{backgroundColor: colors.paperBackground}}
-                                                   />
-                                               </TableCell>
-                                               <TableCell align="right" sx={{whiteSpace: 'nowrap', py: 0.5}}>
-                                                   <Tooltip title="Salvar">
-                                                        <IconButton size="small" onClick={() => handleSaveEditRestricted(food.id)} disabled={loadingRestricted || !editRestrictedFoodData.nome} sx={{color: 'green', mr: 0.5}}>
-                                                           <SaveIcon fontSize="small" />
-                                                       </IconButton>
-                                                   </Tooltip>
-                                                   <Tooltip title="Cancelar">
-                                                        <IconButton size="small" onClick={handleCancelEditRestricted} disabled={loadingRestricted} sx={{color: colors.textSecondary}}>
-                                                           <CancelIcon fontSize="small" />
-                                                       </IconButton>
-                                                   </Tooltip>
-                                               </TableCell>
-                                           </>
-                                       ) : (
-                                           <>
-                                               {/* Modo de Visualização */}
-                                               <TableCell>{food.nome}</TableCell>
-                                               <TableCell>{food.motivo || '-'}</TableCell>
-                                               <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
-                                                   <Tooltip title="Editar">
-                                                       <IconButton size="small" onClick={() => handleStartEditRestricted(food)} sx={{ color: colors.secondaryAction, '&:hover': { color: colors.secondaryActionHover }, mr: 0.5 }} disabled={loadingRestricted || !!editingRestrictedFoodId}>
-                                                           <EditIcon fontSize="small"/>
-                                                       </IconButton>
-                                                   </Tooltip>
-                                                   <Tooltip title="Excluir">
-                                                       <IconButton size="small" onClick={() => handleDeleteRestrictedFood(food.id)} sx={{ color: colors.deleteColor, '&:hover': { color: colors.deleteColorHover } }} disabled={loadingRestricted || !!editingRestrictedFoodId}>
-                                                           <DeleteIcon fontSize="small" />
-                                                       </IconButton>
-                                                   </Tooltip>
-                                               </TableCell>
-                                           </>
-                                       )}
-                                   </TableRow>
-                               ))}
-                           </TableBody>
-                       </Table>
-                   </TableContainer>
-               )}
+              {/* Formulário Inline para Adicionar */}
+              {!loadingRestricted && (
+                <Paper elevation={2} sx={{ p: 2, mb: 3, backgroundColor: colors.background }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: '500' }}>Adicionar Novo Alimento Restrito</Typography>
+                  <Grid container spacing={2} alignItems="flex-start"> { /* Mudar para flex-start */}
+                    <Grid item xs={12} sm={5}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Nome do Alimento"
+                        name="nome"
+                        value={newRestrictedFood.nome}
+                        onChange={handleRestrictedInputChange}
+                        disabled={loadingRestricted || !!editingRestrictedFoodId} // Desabilitar se estiver editando outro item
+                        error={!newRestrictedFood.nome && !!errorRestricted} // Exemplo de erro inline
+                        helperText={!newRestrictedFood.nome && !!errorRestricted ? "Nome obrigatório" : ""}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={5}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Motivo (Opcional)"
+                        name="motivo"
+                        value={newRestrictedFood.motivo}
+                        onChange={handleRestrictedInputChange}
+                        disabled={loadingRestricted || !!editingRestrictedFoodId}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={2} sx={{ textAlign: { xs: 'left', sm: 'right' }, pt: { xs: 1, sm: 'inherit' } }}> { /* Ajustar padding/align */}
+                      <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={handleAddRestrictedFood}
+                        disabled={loadingRestricted || !newRestrictedFood.nome || !!editingRestrictedFoodId}
+                        size="small"
+                        sx={{ backgroundColor: colors.secondaryAction, color: colors.textPrimary, '&:hover': { backgroundColor: colors.secondaryActionHover } }}
+                      >
+                        Adicionar
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              )}
+
+              {/* Indicador de loading da tabela */}
+              {loadingRestricted && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress sx={{ color: colors.primaryAction }} /></Box>}
+
+              {/* Tabela de Alimentos Restritos */}
+              {!loadingRestricted && !errorRestricted && restrictedFoods.length === 0 && (
+                <Typography sx={{ textAlign: 'center', color: colors.textSecondary, my: 3 }}>Nenhum alimento restrito cadastrado.</Typography>
+              )}
+              {!loadingRestricted && restrictedFoods.length > 0 && (
+                <TableContainer component={Paper} elevation={1} sx={{ border: `1px solid ${colors.borderColor}` }}>
+                  <Table size="small">
+                    <TableHead sx={{ backgroundColor: colors.background }}>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Alimento</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Motivo</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', textAlign: 'right' }}>Ações</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {restrictedFoods.map((food) => (
+                        <TableRow key={food.id} hover sx={{ backgroundColor: editingRestrictedFoodId === food.id ? colors.tabBackgroundHover : 'inherit' }}>
+                          {editingRestrictedFoodId === food.id ? (
+                            <>
+                              {/* Modo de Edição */}
+                              <TableCell sx={{ py: 0.5, width: '40%' }}> { /* Ajustar padding/width */}
+                                <TextField
+                                  size="small"
+                                  name="nome"
+                                  value={editRestrictedFoodData.nome}
+                                  onChange={handleEditRestrictedInputChange}
+                                  fullWidth
+                                  error={!editRestrictedFoodData.nome}
+                                  sx={{ backgroundColor: colors.paperBackground }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.5, width: '40%' }}>
+                                <TextField
+                                  size="small"
+                                  name="motivo"
+                                  value={editRestrictedFoodData.motivo}
+                                  onChange={handleEditRestrictedInputChange}
+                                  fullWidth
+                                  sx={{ backgroundColor: colors.paperBackground }}
+                                />
+                              </TableCell>
+                              <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5 }}>
+                                <Tooltip title="Salvar">
+                                  <IconButton size="small" onClick={() => handleSaveEditRestricted(food.id)} disabled={loadingRestricted || !editRestrictedFoodData.nome} sx={{ color: 'green', mr: 0.5 }}>
+                                    <SaveIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Cancelar">
+                                  <IconButton size="small" onClick={handleCancelEditRestricted} disabled={loadingRestricted} sx={{ color: colors.textSecondary }}>
+                                    <CancelIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              {/* Modo de Visualização */}
+                              <TableCell>{food.nome}</TableCell>
+                              <TableCell>{food.motivo || '-'}</TableCell>
+                              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                                <Tooltip title="Editar">
+                                  <IconButton size="small" onClick={() => handleStartEditRestricted(food)} sx={{ color: colors.secondaryAction, '&:hover': { color: colors.secondaryActionHover }, mr: 0.5 }} disabled={loadingRestricted || !!editingRestrictedFoodId}>
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Excluir">
+                                  <IconButton size="small" onClick={() => handleDeleteRestrictedFood(food.id)} sx={{ color: colors.deleteColor, '&:hover': { color: colors.deleteColorHover } }} disabled={loadingRestricted || !!editingRestrictedFoodId}>
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </Paper>
           )}
 
           {/* Grupo 8: Gerenciamento de Snacks (Renderiza quando currentTab === 2) */}
           {currentTab === 2 && (
-             <Paper elevation={2} sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: 2, backgroundColor: colors.paperBackground }}>
-               <Typography variant="h6" sx={{ mb: 2, color: colors.textPrimary }}>Snacks Permitidos</Typography>
-               {/* Exibir erro geral da aba aqui */}
-               {errorSnacks && !loadingSnacks && <Alert severity="error" sx={{ my: 2 }}>{errorSnacks}</Alert>}
+            <Paper elevation={2} sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: 2, backgroundColor: colors.paperBackground }}>
+              <Typography variant="h6" sx={{ mb: 2, color: colors.textPrimary }}>Snacks Permitidos</Typography>
+              {/* Exibir erro geral da aba aqui */}
+              {errorSnacks && !loadingSnacks && <Alert severity="error" sx={{ my: 2 }}>{errorSnacks}</Alert>}
 
-               {/* Formulário Inline para Adicionar Snack */} 
-               {!loadingSnacks && (
-                    <Paper elevation={2} sx={{ p: 2, mb: 3, backgroundColor: colors.background }}>
-                        <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: '500'}}>Adicionar Novo Snack</Typography>
-                        <Grid container spacing={2} alignItems="flex-start">
-                            <Grid item xs={12} sm={6} md={3}>
-                                <TextField
-                                   fullWidth size="small" label="Nome do Snack"
-                                   name="nome" value={newSnack.nome}
-                                   onChange={handleSnackInputChange}
-                                   disabled={loadingSnacks || !!editingSnackId}
-                                   error={!newSnack.nome && !!errorSnacks}
-                                   helperText={!newSnack.nome && !!errorSnacks ? "Nome obrigatório" : ""}
-                               />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={2}>
-                                <TextField
-                                   fullWidth size="small" label="Frequência"
-                                   name="frequencia" value={newSnack.frequencia}
-                                   onChange={handleSnackInputChange}
-                                   disabled={loadingSnacks || !!editingSnackId}
-                                   placeholder="Ex: Diária, 2x/semana"
-                               />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={2}>
-                                <TextField
-                                   fullWidth size="small" label="Quantidade"
-                                   name="quantidade" value={newSnack.quantidade}
-                                   onChange={handleSnackInputChange}
-                                   disabled={loadingSnacks || !!editingSnackId}
-                                   placeholder="Ex: 1 unidade, 10g"
-                               />
-                            </Grid>
-                             <Grid item xs={12} sm={6} md={3}>
-                                <TextField
-                                   fullWidth size="small" label="Observações"
-                                   name="observacoes" value={newSnack.observacoes}
-                                   onChange={handleSnackInputChange}
-                                   disabled={loadingSnacks || !!editingSnackId}
-                               />
-                            </Grid>
-                            <Grid item xs={12} md={2} sx={{ textAlign: { xs: 'left', md: 'right' }, pt: { xs: 1, md: 'inherit' } }}>
-                                 <Button
-                                   variant="contained" startIcon={<AddIcon />}
-                                   onClick={handleAddSnack}
-                                   disabled={loadingSnacks || !newSnack.nome || !!editingSnackId}
-                                   size="small"
-                                   sx={{backgroundColor: colors.secondaryAction, color: colors.textPrimary, '&:hover': { backgroundColor: colors.secondaryActionHover } }}
-                                 >
-                                   Adicionar
-                                 </Button>
-                            </Grid>
-                        </Grid>
-                    </Paper>
-               )}
+              {/* Formulário Inline para Adicionar Snack */}
+              {!loadingSnacks && (
+                <Paper elevation={2} sx={{ p: 2, mb: 3, backgroundColor: colors.background }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: '500' }}>Adicionar Novo Snack</Typography>
+                  <Grid container spacing={2} alignItems="flex-start">
+                    <Grid item xs={12} sm={6} md={3}>
+                      <TextField
+                        fullWidth size="small" label="Nome do Snack"
+                        name="nome" value={newSnack.nome}
+                        onChange={handleSnackInputChange}
+                        disabled={loadingSnacks || !!editingSnackId}
+                        error={!newSnack.nome && !!errorSnacks}
+                        helperText={!newSnack.nome && !!errorSnacks ? "Nome obrigatório" : ""}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={2}>
+                      <TextField
+                        fullWidth size="small" label="Frequência"
+                        name="frequencia" value={newSnack.frequencia}
+                        onChange={handleSnackInputChange}
+                        disabled={loadingSnacks || !!editingSnackId}
+                        placeholder="Ex: Diária, 2x/semana"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={2}>
+                      <TextField
+                        fullWidth size="small" label="Quantidade"
+                        name="quantidade" value={newSnack.quantidade}
+                        onChange={handleSnackInputChange}
+                        disabled={loadingSnacks || !!editingSnackId}
+                        placeholder="Ex: 1 unidade, 10g"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <TextField
+                        fullWidth size="small" label="Observações"
+                        name="observacoes" value={newSnack.observacoes}
+                        onChange={handleSnackInputChange}
+                        disabled={loadingSnacks || !!editingSnackId}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={2} sx={{ textAlign: { xs: 'left', md: 'right' }, pt: { xs: 1, md: 'inherit' } }}>
+                      <Button
+                        variant="contained" startIcon={<AddIcon />}
+                        onClick={handleAddSnack}
+                        disabled={loadingSnacks || !newSnack.nome || !!editingSnackId}
+                        size="small"
+                        sx={{ backgroundColor: colors.secondaryAction, color: colors.textPrimary, '&:hover': { backgroundColor: colors.secondaryActionHover } }}
+                      >
+                        Adicionar
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              )}
 
-               {/* Indicador de loading da tabela */} 
-                {loadingSnacks && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress sx={{color: colors.primaryAction}}/></Box>}
+              {/* Indicador de loading da tabela */}
+              {loadingSnacks && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress sx={{ color: colors.primaryAction }} /></Box>}
 
-                {/* Tabela de Snacks */} 
-                {!loadingSnacks && !errorSnacks && snacks.length === 0 && (
-                    <Typography sx={{ textAlign: 'center', color: colors.textSecondary, my: 3 }}>Nenhum snack permitido cadastrado.</Typography>
-                )}
-                {!loadingSnacks && snacks.length > 0 && (
-                    <TableContainer component={Paper} elevation={1} sx={{border: `1px solid ${colors.borderColor}`}}>
-                        <Table size="small">
-                            <TableHead sx={{backgroundColor: colors.background}}>
-                                <TableRow>
-                                    <TableCell sx={{fontWeight: 'bold'}}>Snack</TableCell>
-                                    <TableCell sx={{fontWeight: 'bold'}}>Frequência</TableCell>
-                                    <TableCell sx={{fontWeight: 'bold'}}>Quantidade</TableCell>
-                                    <TableCell sx={{fontWeight: 'bold'}}>Observações</TableCell>
-                                    <TableCell sx={{fontWeight: 'bold', textAlign: 'right'}}>Ações</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {snacks.map((snack) => (
-                                    <TableRow key={snack.id} hover sx={{ backgroundColor: editingSnackId === snack.id ? colors.tabBackgroundHover : 'inherit' }}>
-                                       {editingSnackId === snack.id ? (
-                                            <>
-                                                {/* Modo de Edição */} 
-                                                <TableCell sx={{py: 0.5}}><TextField size="small" name="nome" value={editSnackData.nome} onChange={handleEditSnackInputChange} fullWidth error={!editSnackData.nome} sx={{backgroundColor: colors.paperBackground}}/></TableCell>
-                                                <TableCell sx={{py: 0.5}}><TextField size="small" name="frequencia" value={editSnackData.frequencia} onChange={handleEditSnackInputChange} fullWidth sx={{backgroundColor: colors.paperBackground}}/></TableCell>
-                                                <TableCell sx={{py: 0.5}}><TextField size="small" name="quantidade" value={editSnackData.quantidade} onChange={handleEditSnackInputChange} fullWidth sx={{backgroundColor: colors.paperBackground}}/></TableCell>
-                                                <TableCell sx={{py: 0.5}}><TextField size="small" name="observacoes" value={editSnackData.observacoes} onChange={handleEditSnackInputChange} fullWidth sx={{backgroundColor: colors.paperBackground}}/></TableCell>
-                                                <TableCell align="right" sx={{whiteSpace: 'nowrap', py: 0.5}}>
-                                                    <Tooltip title="Salvar">
-                                                        <IconButton size="small" onClick={() => handleSaveEditSnack(snack.id)} disabled={loadingSnacks || !editSnackData.nome} sx={{color: 'green', mr: 0.5}}><SaveIcon fontSize="small" /></IconButton>
-                                                    </Tooltip>
-                                                    <Tooltip title="Cancelar">
-                                                        <IconButton size="small" onClick={handleCancelEditSnack} disabled={loadingSnacks} sx={{color: colors.textSecondary}}><CancelIcon fontSize="small" /></IconButton>
-                                                    </Tooltip>
-                                                </TableCell>
-                                            </>
-                                        ) : (
-                                            <>
-                                                {/* Modo de Visualização */} 
-                                                <TableCell>{snack.nome}</TableCell>
-                                                <TableCell>{snack.frequencia || '-'}</TableCell>
-                                                <TableCell>{snack.quantidade || '-'}</TableCell>
-                                                <TableCell>{snack.observacoes || '-'}</TableCell>
-                                                <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
-                                                    <Tooltip title="Editar">
-                                                        <IconButton size="small" onClick={() => handleStartEditSnack(snack)} sx={{ color: colors.secondaryAction, '&:hover': { color: colors.secondaryActionHover }, mr: 0.5 }} disabled={loadingSnacks || !!editingSnackId}><EditIcon fontSize="small"/></IconButton>
-                                                    </Tooltip>
-                                                    <Tooltip title="Excluir">
-                                                        <IconButton size="small" onClick={() => handleDeleteSnack(snack.id)} sx={{ color: colors.deleteColor, '&:hover': { color: colors.deleteColorHover } }} disabled={loadingSnacks || !!editingSnackId}><DeleteIcon fontSize="small" /></IconButton>
-                                                    </Tooltip>
-                                                </TableCell>
-                                            </>
-                                        )}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                )}
-             </Paper>
+              {/* Tabela de Snacks */}
+              {!loadingSnacks && !errorSnacks && snacks.length === 0 && (
+                <Typography sx={{ textAlign: 'center', color: colors.textSecondary, my: 3 }}>Nenhum snack permitido cadastrado.</Typography>
+              )}
+              {!loadingSnacks && snacks.length > 0 && (
+                <TableContainer component={Paper} elevation={1} sx={{ border: `1px solid ${colors.borderColor}` }}>
+                  <Table size="small">
+                    <TableHead sx={{ backgroundColor: colors.background }}>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Snack</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Frequência</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Quantidade</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Observações</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', textAlign: 'right' }}>Ações</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {snacks.map((snack) => (
+                        <TableRow key={snack.id} hover sx={{ backgroundColor: editingSnackId === snack.id ? colors.tabBackgroundHover : 'inherit' }}>
+                          {editingSnackId === snack.id ? (
+                            <>
+                              {/* Modo de Edição */}
+                              <TableCell sx={{ py: 0.5 }}><TextField size="small" name="nome" value={editSnackData.nome} onChange={handleEditSnackInputChange} fullWidth error={!editSnackData.nome} sx={{ backgroundColor: colors.paperBackground }} /></TableCell>
+                              <TableCell sx={{ py: 0.5 }}><TextField size="small" name="frequencia" value={editSnackData.frequencia} onChange={handleEditSnackInputChange} fullWidth sx={{ backgroundColor: colors.paperBackground }} /></TableCell>
+                              <TableCell sx={{ py: 0.5 }}><TextField size="small" name="quantidade" value={editSnackData.quantidade} onChange={handleEditSnackInputChange} fullWidth sx={{ backgroundColor: colors.paperBackground }} /></TableCell>
+                              <TableCell sx={{ py: 0.5 }}><TextField size="small" name="observacoes" value={editSnackData.observacoes} onChange={handleEditSnackInputChange} fullWidth sx={{ backgroundColor: colors.paperBackground }} /></TableCell>
+                              <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5 }}>
+                                <Tooltip title="Salvar">
+                                  <IconButton size="small" onClick={() => handleSaveEditSnack(snack.id)} disabled={loadingSnacks || !editSnackData.nome} sx={{ color: 'green', mr: 0.5 }}><SaveIcon fontSize="small" /></IconButton>
+                                </Tooltip>
+                                <Tooltip title="Cancelar">
+                                  <IconButton size="small" onClick={handleCancelEditSnack} disabled={loadingSnacks} sx={{ color: colors.textSecondary }}><CancelIcon fontSize="small" /></IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              {/* Modo de Visualização */}
+                              <TableCell>{snack.nome}</TableCell>
+                              <TableCell>{snack.frequencia || '-'}</TableCell>
+                              <TableCell>{snack.quantidade || '-'}</TableCell>
+                              <TableCell>{snack.observacoes || '-'}</TableCell>
+                              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                                <Tooltip title="Editar">
+                                  <IconButton size="small" onClick={() => handleStartEditSnack(snack)} sx={{ color: colors.secondaryAction, '&:hover': { color: colors.secondaryActionHover }, mr: 0.5 }} disabled={loadingSnacks || !!editingSnackId}><EditIcon fontSize="small" /></IconButton>
+                                </Tooltip>
+                                <Tooltip title="Excluir">
+                                  <IconButton size="small" onClick={() => handleDeleteSnack(snack.id)} sx={{ color: colors.deleteColor, '&:hover': { color: colors.deleteColorHover } }} disabled={loadingSnacks || !!editingSnackId}><DeleteIcon fontSize="small" /></IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Paper>
           )}
         </Box>
       )}
@@ -1064,21 +1064,21 @@ const DietsPage = () => {
         />
       )}
       {openDietDetailsModal && selectedDiet && (
-         <DietDetailsModal
-            open={openDietDetailsModal}
-            onClose={handleCloseDietDetailsModal}
-            diet={selectedDiet}
-            onEdit={handleOpenEditDietModal}
-            onDelete={handleDeleteDiet}
-            onAddOption={handleOpenAddOptionModal}
-            onEditOption={handleOpenEditOptionModal}
-            onDeleteOption={handleDeleteOption}
-            onAddFood={handleOpenAddFoodModal}
-            onEditFood={handleOpenEditFoodModal}
-            onDeleteFood={handleDeleteFood}
-         />
+        <DietDetailsModal
+          open={openDietDetailsModal}
+          onClose={handleCloseDietDetailsModal}
+          diet={selectedDiet}
+          onEdit={handleOpenEditDietModal}
+          onDelete={handleDeleteDiet}
+          onAddOption={handleOpenAddOptionModal}
+          onEditOption={handleOpenEditOptionModal}
+          onDeleteOption={handleDeleteOption}
+          onAddFood={handleOpenAddFoodModal}
+          onEditFood={handleOpenEditFoodModal}
+          onDeleteFood={handleDeleteFood}
+        />
       )}
-       <DietOptionFormModal
+      <DietOptionFormModal
         open={openOptionFormModal}
         onClose={handleCloseOptionFormModal}
         dietId={selectedDietIdForOption}
@@ -1086,14 +1086,14 @@ const DietsPage = () => {
         isEditing={isEditingOption}
         onSaveSuccess={handleSaveOptionSuccess}
       />
-       <DietFoodFormModal
-            open={openFoodFormModal}
-            onClose={handleCloseFoodFormModal}
-            dietOptionId={selectedOptionIdForFood}
-            foodData={selectedFoodData}
-            isEditing={isEditingFood}
-            onSaveSuccess={handleSaveFoodSuccess}
-        />
+      <DietFoodFormModal
+        open={openFoodFormModal}
+        onClose={handleCloseFoodFormModal}
+        dietOptionId={selectedOptionIdForFood}
+        foodData={selectedFoodData}
+        isEditing={isEditingFood}
+        onSaveSuccess={handleSaveFoodSuccess}
+      />
 
     </Container>
   );
