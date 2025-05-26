@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Container, 
-  Button, 
-  Paper, 
-  TableContainer, 
-  Table, 
-  TableHead, 
-  TableRow, 
-  TableCell, 
-  TableBody, 
-  CircularProgress, 
-  TextField, 
+import {
+  Box,
+  Typography,
+  Container,
+  Button,
+  Paper,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  CircularProgress,
+  TextField,
   TablePagination,
   IconButton,
   Tooltip,
@@ -38,8 +38,8 @@ import AppointmentDetailsModal from '../components/appointments/AppointmentDetai
 // Paleta de cores
 const colors = {
   background: '#F9F9F9', // Creme claro
-  tableHeader: '#D8CAB8', // Marrom-claro suave
-  buttonPrimary: '#9DB8B2', // Cinza-esverdeado
+  tableHeader: '#24EC64', // Marrom-claro suave
+  buttonPrimary: '#24EC642', // Cinza-esverdeado
   buttonPrimaryHover: '#82a8a0',
   buttonSecondary: '#CFE0C3', // Verde-oliva suave
   buttonSecondaryHover: '#b8d4a8',
@@ -55,7 +55,7 @@ const AppointmentsPage = () => {
   const [error, setError] = useState(null);
   const { selectedAnimal, animals: allAnimals } = useAnimal(); // `animals` do contexto são todos os animais da clínica
   const { isAuthenticated, loading: authLoading } = useAuth();
-  
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -196,13 +196,13 @@ const AppointmentsPage = () => {
           variant="contained"
           startIcon={<AddIcon />}
           sx={{
-            backgroundColor: colors.buttonPrimary, 
-            color: colors.paperBackground, 
+            backgroundColor: colors.buttonPrimary,
+            color: colors.paperBackground,
             '&:hover': { backgroundColor: colors.buttonPrimaryHover },
             padding: '8px 16px',
             fontSize: '0.9rem'
           }}
-          onClick={handleOpenCreateModal} 
+          onClick={handleOpenCreateModal}
         >
           Novo Agendamento
         </Button>
@@ -211,10 +211,10 @@ const AppointmentsPage = () => {
       <Paper sx={{ p: 2.5, mb: 3, backgroundColor: colors.paperBackground, borderRadius: 2, boxShadow: '0px 4px 12px rgba(0,0,0,0.05)' }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={8}>
-            <TextField 
-              fullWidth 
+            <TextField
+              fullWidth
               label="Buscar por Descrição ou Status"
-              variant="outlined" 
+              variant="outlined"
               value={searchTerm}
               onChange={handleSearchChange}
               size="small"
@@ -249,7 +249,7 @@ const AppointmentsPage = () => {
         </Box>
       )}
       {error && (
-        <Paper sx={{ p:2, textAlign: 'center', my:3, backgroundColor: '#ffebee', color: '#c62828', borderRadius: 2}} elevation={3}>
+        <Paper sx={{ p: 2, textAlign: 'center', my: 3, backgroundColor: '#ffebee', color: '#c62828', borderRadius: 2 }} elevation={3}>
           <Typography variant="h6">Oops!</Typography>
           <Typography>{error}</Typography>
         </Paper>
@@ -263,7 +263,7 @@ const AppointmentsPage = () => {
                   <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold', py: 1.5 }}>Data</TableCell>
                   <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold', py: 1.5 }}>Hora</TableCell>
                   {/* Removido temporariamente até que o filtro do header seja o único */}
-                  { !selectedAnimal && <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold', py: 1.5 }}>Animal</TableCell> }
+                  {!selectedAnimal && <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold', py: 1.5 }}>Animal</TableCell>}
                   <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold', py: 1.5 }}>Descrição</TableCell>
                   <TableCell sx={{ color: colors.textPrimary, fontWeight: 'bold', py: 1.5 }}>Status</TableCell>
                   <TableCell align="right" sx={{ color: colors.textPrimary, fontWeight: 'bold', py: 1.5, pr: 2.5 }}>Ações</TableCell>
@@ -273,44 +273,44 @@ const AppointmentsPage = () => {
                 {filteredAppointments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((appointment) => (
                   <TableRow key={appointment.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                     <TableCell sx={{ py: 1 }}>{new Date(appointment.date).toLocaleDateString()}</TableCell>
-                    <TableCell sx={{ py: 1 }}>{appointment.start_time ? appointment.start_time.substring(0,5) : '--'}</TableCell>
+                    <TableCell sx={{ py: 1 }}>{appointment.start_time ? appointment.start_time.substring(0, 5) : '--'}</TableCell>
                     {/* Exibir o nome do animal apenas se nenhum animal estiver selecionado no header */}
-                    { !selectedAnimal && <TableCell sx={{ py: 1 }}>{getAnimalNameById(appointment.animal_id)}</TableCell> }
+                    {!selectedAnimal && <TableCell sx={{ py: 1 }}>{getAnimalNameById(appointment.animal_id)}</TableCell>}
                     <TableCell sx={{ py: 1, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                       <Tooltip title={appointment.description} placement="bottom-start">
-                           <span>{appointment.description || '-'}</span>
-                       </Tooltip>
+                      <Tooltip title={appointment.description} placement="bottom-start">
+                        <span>{appointment.description || '-'}</span>
+                      </Tooltip>
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>
-                        <Box component="span" sx={{
-                            p: '4px 8px', 
-                            borderRadius: '12px', 
-                            color: colors.paperBackground,
-                            backgroundColor: appointment.status === 'scheduled' ? colors.buttonPrimary : 
-                                             appointment.status === 'completed' ? colors.buttonSecondary : 
-                                             appointment.status === 'cancelled' ? '#f44336' : colors.textSecondary,
-                            fontSize: '0.75rem',
-                            fontWeight: '500'
-                        }}>
-                            {appointment.status === 'scheduled' ? 'Agendado' :
-                             appointment.status === 'completed' ? 'Concluído' :
-                             appointment.status === 'cancelled' ? 'Cancelado' : appointment.status}
-                        </Box>
+                      <Box component="span" sx={{
+                        p: '4px 8px',
+                        borderRadius: '12px',
+                        color: colors.paperBackground,
+                        backgroundColor: appointment.status === 'scheduled' ? colors.buttonPrimary :
+                          appointment.status === 'completed' ? colors.buttonSecondary :
+                            appointment.status === 'cancelled' ? '#f44336' : colors.textSecondary,
+                        fontSize: '0.75rem',
+                        fontWeight: '500'
+                      }}>
+                        {appointment.status === 'scheduled' ? 'Agendado' :
+                          appointment.status === 'completed' ? 'Concluído' :
+                            appointment.status === 'cancelled' ? 'Cancelado' : appointment.status}
+                      </Box>
                     </TableCell>
                     <TableCell align="right" sx={{ py: 0.5, pr: 1.5 }}>
                       <Tooltip title="Visualizar">
                         <IconButton size="small" sx={{ color: colors.buttonPrimary, mr: 0.5 }} onClick={() => handleOpenDetailsModal(appointment)}>
-                          <VisibilityIcon fontSize="small"/>
+                          <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Editar">
-                        <IconButton size="small" sx={{ color: colors.buttonSecondary, '&:hover': {color: colors.buttonSecondaryHover}, mr: 0.5 }} onClick={() => handleOpenEditModal(appointment)}>
-                          <EditIcon fontSize="small"/>
+                        <IconButton size="small" sx={{ color: colors.buttonSecondary, '&:hover': { color: colors.buttonSecondaryHover }, mr: 0.5 }} onClick={() => handleOpenEditModal(appointment)}>
+                          <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Excluir">
-                        <IconButton size="small" sx={{ color: '#e57373', '&:hover': {color: '#d32f2f'} }} onClick={() => handleDeleteAppointment(appointment.id)}>
-                          <DeleteIcon fontSize="small"/>
+                        <IconButton size="small" sx={{ color: '#e57373', '&:hover': { color: '#d32f2f' } }} onClick={() => handleDeleteAppointment(appointment.id)}>
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
@@ -342,21 +342,21 @@ const AppointmentsPage = () => {
       )}
       {/* TODO: Implementar AppointmentFormModal e AppointmentDetailsModal */}
       {openFormModal && (
-        <AppointmentFormModal 
-          open={openFormModal} 
-          onClose={handleCloseModals} 
-          appointment={selectedAppointment} 
-          isEditing={isEditing} 
-          allAnimals={allAnimals} 
-          selectedAnimalContext={selectedAnimal} 
+        <AppointmentFormModal
+          open={openFormModal}
+          onClose={handleCloseModals}
+          appointment={selectedAppointment}
+          isEditing={isEditing}
+          allAnimals={allAnimals}
+          selectedAnimalContext={selectedAnimal}
         />
       )}
       {openDetailsModal && (
-        <AppointmentDetailsModal 
-          open={openDetailsModal} 
-          onClose={handleCloseModals} 
-          appointment={selectedAppointment} 
-          getAnimalNameById={getAnimalNameById} 
+        <AppointmentDetailsModal
+          open={openDetailsModal}
+          onClose={handleCloseModals}
+          appointment={selectedAppointment}
+          getAnimalNameById={getAnimalNameById}
           onEdit={() => handleOpenEditModal(selectedAppointment)}
         />
       )}
