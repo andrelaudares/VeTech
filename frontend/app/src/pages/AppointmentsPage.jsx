@@ -20,6 +20,7 @@ import {
   Select,
   MenuItem,
   FormControl,
+  useTheme,
   InputLabel
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -50,6 +51,9 @@ const colors = {
 };
 
 const AppointmentsPage = () => {
+
+  const theme = useTheme();
+
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -198,7 +202,7 @@ const AppointmentsPage = () => {
           sx={{
             backgroundColor: colors.buttonPrimary,
             color: colors.paperBackground,
-            '&:hover': { backgroundColor: colors.buttonPrimaryHover },
+            '&:hover': { backgroundColor: '#209e41' },
             padding: '8px 16px',
             fontSize: '0.9rem'
           }}
@@ -221,7 +225,7 @@ const AppointmentsPage = () => {
             />
           </Grid>
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth variant="outlined" size="small">
+            <FormControl fullWidth variant="outlined" size="small" sx={{ minWidth: 200 }}>
               <InputLabel id="status-filter-label">Filtrar por Status</InputLabel>
               <Select
                 labelId="status-filter-label"
@@ -299,12 +303,12 @@ const AppointmentsPage = () => {
                     </TableCell>
                     <TableCell align="right" sx={{ py: 0.5, pr: 1.5 }}>
                       <Tooltip title="Visualizar">
-                        <IconButton size="small" sx={{ color: colors.buttonPrimary, mr: 0.5 }} onClick={() => handleOpenDetailsModal(appointment)}>
+                        <IconButton size="small" sx={{ color: '#169c44', mr: 0.5 }} onClick={() => handleOpenDetailsModal(appointment)}>
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Editar">
-                        <IconButton size="small" sx={{ color: colors.buttonSecondary, '&:hover': { color: colors.buttonSecondaryHover }, mr: 0.5 }} onClick={() => handleOpenEditModal(appointment)}>
+                        <IconButton size="small" sx={{ color: '#23e865', mr: 0.5 }} onClick={() => handleOpenEditModal(appointment)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -336,6 +340,7 @@ const AppointmentsPage = () => {
               labelRowsPerPage="Itens por página:"
               labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
               sx={{ borderTop: `1px solid ${colors.borderColor}` }}
+              style={{backgroundColor: '#23e865'}}
             />
           </TableContainer>
         </Paper>

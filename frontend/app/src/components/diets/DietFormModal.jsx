@@ -141,14 +141,14 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Dialog open={open} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ component: 'form', onSubmit: handleSubmit }}>
-        <DialogTitle sx={{ backgroundColor: colors.primaryAction, color: colors.paperBackground }}>
+        <DialogTitle sx={{ backgroundColor: '#23e865', color: colors.paperBackground }}>
           {isEditing ? 'Editar Plano de Dieta' : 'Novo Plano de Dieta'}
         </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}> {/* Adiciona padding top */}
+        <DialogContent sx={{ pt: 3 }}>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Grid container spacing={2.5}>
+          <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth sx={{ marginTop: '1rem', minWidth: 200 }} required>
                 <InputLabel id="tipo-dieta-label">Tipo</InputLabel>
                 <Select
                   labelId="tipo-dieta-label"
@@ -165,7 +165,7 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth required sx={{ marginTop: '1rem', minWidth: 200 }}>
                 <InputLabel id="objetivo-dieta-label">Objetivo</InputLabel>
                 <Select
                   labelId="objetivo-dieta-label"
@@ -181,41 +181,43 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
                 </Select>
               </FormControl>
             </Grid>
+
             <Grid item xs={12}>
-               <TextField
-                  margin="dense"
-                  id="observacoes"
-                  name="observacoes"
-                  label="Nome do Alimento"
-                  type="text"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  variant="outlined"
-                  value={formData.observacoes}
-                  onChange={handleChange}
-                />
+              <TextField
+                margin="dense"
+                id="observacoes"
+                name="observacoes"
+                label="Nome do Alimento"
+                type="text"
+                fullWidth
+                multiline
+                rows={2}
+                variant="outlined"
+                value={formData.observacoes}
+                onChange={handleChange}
+              />
             </Grid>
-             <Grid item xs={12} sm={6}>
-               <DatePicker
-                  label="Data de Início *"
-                  value={formData.data_inicio}
-                  onChange={(date) => handleDateChange('data_inicio', date)}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
-                  format="dd/MM/yyyy" // Formato brasileiro
-                />
+
+            <Grid item xs={12} sm={4}>
+              <DatePicker
+                label="Data de Início *"
+                value={formData.data_inicio}
+                onChange={(date) => handleDateChange('data_inicio', date)}
+                renderInput={(params) => <TextField {...params} fullWidth required />}
+                format="dd/MM/yyyy"
+              />
             </Grid>
-            <Grid item xs={12} sm={6}>
-               <DatePicker
-                  label="Data de Fim (Opcional)"
-                  value={formData.data_fim}
-                  onChange={(date) => handleDateChange('data_fim', date)}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                  format="dd/MM/yyyy" // Formato brasileiro
-                  minDate={formData.data_inicio || undefined} // Data fim não pode ser antes do início
-                />
+            <Grid item xs={12} sm={4}>
+              <DatePicker
+                label="Data de Fim (Opcional)"
+                value={formData.data_fim}
+                onChange={(date) => handleDateChange('data_fim', date)}
+                renderInput={(params) => <TextField {...params} fullWidth />}
+                format="dd/MM/yyyy"
+                minDate={formData.data_inicio || undefined}
+              />
             </Grid>
-             <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={4}>
               <FormControl fullWidth required>
                 <InputLabel id="status-dieta-label">Status</InputLabel>
                 <Select
@@ -234,6 +236,7 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
             </Grid>
           </Grid>
         </DialogContent>
+
         <DialogActions sx={{ p: '16px 24px' }}>
           <Button onClick={handleCloseModal} color="secondary" disabled={loading}>
             Cancelar
@@ -243,8 +246,8 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
             variant="contained"
             disabled={loading}
             sx={{
-              backgroundColor: colors.primaryAction,
-              '&:hover': { backgroundColor: colors.primaryActionHover },
+              backgroundColor: '#23e865',
+              '&:hover': { backgroundColor: '#209e41' },
               minWidth: '100px', // Largura mínima para o botão
             }}
           >
