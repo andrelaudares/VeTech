@@ -5,7 +5,6 @@ import logoVetech from '../assets/logo.svg';
 import calendar from '../assets/calendar.png';
 import dog from '../assets/dog.png';
 import hospital from '../assets/hospital.png';
-import syringe from '../assets/syringe.png'
 import diet from '../assets/diet.png'
 
 const LandingPage = () => {

@@ -1,121 +1,114 @@
 import React from 'react';
-// import { useAuth } from '../contexts/AuthContext';
-import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
-  Button,
-  Card,
-  CardContent,
-  CardActions,
+  Typography,
   Container,
   Grid,
-  Typography,
-  useTheme,
+  Paper,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip
 } from '@mui/material';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import PetsIcon from '@mui/icons-material/Pets';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import VaccinesIcon from '@mui/icons-material/Vaccines';
+import { useNavigate } from 'react-router-dom';
+
+const stats = [
+  { label: 'Consultas Hoje', value: 12, icon: <CalendarTodayIcon /> },
+  { label: 'Pendentes', value: 5, icon: <AccessTimeIcon /> },
+  { label: 'Animais Ativos', value: 256, icon: <PetsIcon /> },
+  { label: 'Vacinas Hoje', value: 8, icon: <VaccinesIcon /> },
+];
+
+const consultasHoje = [
+  { nome: 'Rex', dono: 'Ana Souza', hora: '09:00', status: 'Agendado' },
+  { nome: 'Luna', dono: 'Carlos Dias', hora: '10:30', status: 'Concluído' },
+  { nome: 'Mimi', dono: 'João Pedro', hora: '13:00', status: 'Agendado' },
+  { nome: 'Tobby', dono: 'Maria Clara', hora: '15:15', status: 'Cancelado' },
+];
 
 const DashboardPage = () => {
-  // const { user } = useAuth();
-  const theme = useTheme();
 
-  const cardStyle = {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    backgroundColor: theme.palette.background.paper,
-    borderRadius: 1,
-    boxShadow: theme.shadows[2],
-    transition: 'transform 0.2s ease-in-out',
-    '&:hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: theme.shadows[6],
-    },
-  };
-
-  const iconBoxStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    mb: 1.5,
-    color: theme.palette.secondary.main,
-  };
+  const navigate = useNavigate()
 
   return (
-    <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, color: 'text.primary' }}>
-        Bem-vindo à sua Página Inicial!
-      </Typography>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h4" fontWeight="bold" mb={4}>Dashboard</Typography>
 
-      <Grid container spacing={6}>
-        {/* Linha com dois cards */}
-        <Grid container spacing={3} item xs={12} md={8}>
-          <Grid item xs={12} md={6}>
-            <Card sx={cardStyle}>
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={iconBoxStyle}>
-                  <BarChartIcon sx={{ mr: 1.5, fontSize: '2rem' }} />
-                  <Typography variant="h6" component="h2">
-                    Estatísticas
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Visualize aqui as principais estatísticas da sua clínica. (Em desenvolvimento)
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button size="small" disabled>Ver Detalhes</Button>
-              </CardActions>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card sx={cardStyle}>
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={iconBoxStyle}>
-                  <AccountCircleIcon sx={{ mr: 1.5, fontSize: '2rem' }} />
-                  <Typography variant="h6" component="h2">
-                    Gerenciar Perfil
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Acesse e atualize as informações da sua clínica e do seu perfil.
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button size="small" component={RouterLink} to="/perfil" variant="outlined">
-                  Ir para Perfil
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        </Grid>
-
-        {/* Card Em Breve ocupando toda a largura */}
-        <Grid item xs={12} md={8}>
-          <Card sx={cardStyle}>
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Box sx={iconBoxStyle}>
-                <RocketLaunchIcon sx={{ mr: 1.5, fontSize: '2rem' }} />
-                <Typography variant="h6" component="h2">
-                  Em Breve
-                </Typography>
+      {/* Cards de Resumo */}
+      <Grid container spacing={3}>
+        {stats.map((item, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2, borderRadius: 2 }} elevation={3}>
+              <Box sx={{ fontSize: 32, color: '#23e865' }}>{item.icon}</Box>
+              <Box>
+                <Typography variant="h6" fontWeight="bold">{item.value}</Typography>
+                <Typography variant="body2" color="text.secondary">{item.label}</Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary" component="div">
-                Novas funcionalidades a caminho:
-                <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-                  <li>Gestão de Animais</li>
-                  <li>Agendamentos Detalhados</li>
-                  <li>Controle de Consultas</li>
-                </ul>
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button size="small" disabled>Saiba Mais</Button>
-            </CardActions>
-          </Card>
-        </Grid>
+            </Paper>
+          </Grid>
+        ))}
       </Grid>
+
+      {/* Tabela de Consultas */}
+      <Box mt={6}>
+        <Typography variant="h6" fontWeight="bold" mb={2}>Consultas de Hoje</Typography>
+        <Paper elevation={2}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Animal</TableCell>
+                  <TableCell>Dono</TableCell>
+                  <TableCell>Horário</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {consultasHoje.map((row, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{row.nome}</TableCell>
+                    <TableCell>{row.dono}</TableCell>
+                    <TableCell>{row.hora}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={row.status}
+                        color={
+                          row.status === 'Concluído' ? 'success' :
+                          row.status === 'Agendado' ? 'primary' :
+                          row.status === 'Cancelado' ? 'error' : 'default'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </Box>
+
+      {/* Avisos e Ações Rápidas */}
+      <Box mt={6}>
+        <Typography variant="h6" fontWeight="bold" mb={2}>Avisos</Typography>
+        <Paper sx={{ p: 3, backgroundColor: '#fff3cd' }} elevation={1}>
+          <Typography variant="body2">⚠️ 2 vacinas vencem essa semana.</Typography>
+          <Typography variant="body2">🔁 1 dieta personalizada está prestes a expirar.</Typography>
+        </Paper>
+
+        <Box display="flex" gap={2} mt={3}>
+          <Button variant="contained" color="primary" onClick={() => navigate('/agendamentos')}>+ Novo Agendamento</Button>
+          <Button variant="outlined" color="primary" onClick={() => {navigate('/animais')}}>+ Novo Animal</Button>
+        </Box>
+      </Box>
     </Container>
   );
 };

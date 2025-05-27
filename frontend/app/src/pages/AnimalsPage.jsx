@@ -190,9 +190,9 @@ const AnimalsPage = () => {
               startIcon={<AddIcon />}
               onClick={handleOpenNewAnimalDialog}
               sx={{
-                backgroundColor: theme.palette.secondary.main,
+                backgroundColor: theme.palette.primary.main,
                 color: theme.palette.text.primary,
-                '&:hover': { backgroundColor: theme.palette.primary.main, color: 'white' }
+                '&:hover': { backgroundColor: theme.palette.secondary.main, color: 'white' }
               }}
             >
               Novo Animal
