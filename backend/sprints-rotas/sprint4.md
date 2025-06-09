@@ -1,6 +1,19 @@
 
 ## Nutrição e Dietas
 
+### Fluxo Recomendado para Criação de Dietas Completas
+
+1. **Criar a dieta** usando `POST /animals/{animal_id}/diets`
+2. **Adicionar opções de dieta** usando `POST /diets/{diet_id}/options`
+3. **Adicionar alimentos específicos** usando `POST /diet-options/{option_id}/foods`
+4. **Configurar preferências do pet** usando `POST /animals/{animal_id}/preferences`
+5. **Definir alimentos restritos** usando `POST /animals/{animal_id}/restricted-foods`
+6. **Configurar snacks permitidos** usando `POST /animals/{animal_id}/snacks`
+
+Este fluxo garante que o tutor tenha informações completas e detalhadas sobre a alimentação do pet.
+
+---
+
 ### 1. Dietas
 
 #### `POST /animals/{animal_id}/diets`
@@ -110,6 +123,8 @@ http://localhost:8000/api/v1/diets/uuid
 
 ### 2. Opções de Dieta
 
+As opções de dieta são os detalhes específicos de como implementar um plano alimentar. Cada dieta pode ter múltiplas opções (ex: "Ração Premium", "Ração Econômica", "Alimentação Caseira"), permitindo que o tutor escolha a mais adequada.
+
 #### `POST /diets/{diet_id}/options`
 Criação de uma opção de dieta.
 
@@ -128,10 +143,11 @@ http://localhost:8000/api/v1/diets/uuid/options
 ```json
 {
   "nome": "Ração Premium Light",
-  "valor_mensal": 150,
-  "calorias_totais": 2000,
-  "porcao_por_refeicao": "250g",
-  "numero_refeicoes": 3
+  "valor_mensal_estimado": 150.00,
+  "calorias_totais_dia": 2000,
+  "porcao_refeicao": "250g",
+  "refeicoes_por_dia": 3,
+  "indicacao": "Ideal para cães com sobrepeso. Administrar com água fresca sempre disponível."
 }
 ```
 
@@ -453,4 +469,76 @@ http://localhost:8000/api/v1/animals/uuid/snacks/uuid
 
 **Responses:**
 - `204 No Content`: Snack removido com sucesso.
+
+---
+
+### 6. Preferências do Pet
+
+#### `POST /animals/{animal_id}/preferences`
+Cria ou atualiza as preferências alimentares de um pet.
+
+**Exemplo de URL:**
+```
+http://localhost:8000/api/v1/animals/uuid/preferences
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Request Body:**
+```json
+{
+  "gosta_de": "Frango, arroz, cenoura, petiscos de fígado",
+  "nao_gosta_de": "Peixe, verduras cruas, medicamentos"
+}
+```
+
+**Responses:**
+- `200 OK`: Preferências criadas ou atualizadas com sucesso.
+
+#### `GET /animals/{animal_id}/preferences`
+Obtém as preferências alimentares de um pet.
+
+**Exemplo de URL:**
+```
+http://localhost:8000/api/v1/animals/uuid/preferences
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Responses:**
+- `200 OK`: Preferências do pet.
+- `404 Not Found`: Pet não possui preferências cadastradas.
+
+#### `PATCH /animals/{animal_id}/preferences`
+Atualiza as preferências alimentares de um pet.
+
+**Exemplo de URL:**
+```
+http://localhost:8000/api/v1/animals/uuid/preferences
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Request Body:**
+```json
+{
+  "gosta_de": "Frango, arroz, cenoura, petiscos de fígado, biscoitos",
+  "nao_gosta_de": "Peixe, verduras cruas"
+}
+```
+
+**Responses:**
+- `200 OK`: Preferências atualizadas com sucesso.
 ```

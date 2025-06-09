@@ -33,6 +33,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useAnimal } from '../contexts/AnimalContext';
 import dietService from '../services/dietService';
+import animalService from '../services/animalService';
 import DietFormModal from '../components/diets/DietFormModal';
 import DietDetailsModal from '../components/diets/DietDetailsModal';
 import DietOptionFormModal from '../components/diets/DietOptionFormModal';
@@ -54,6 +55,7 @@ import BlockIcon from '@mui/icons-material/Block'; // Para Alimentos Restritos
 import CookieIcon from '@mui/icons-material/Cookie'; // Para Snacks
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import FavoriteIcon from '@mui/icons-material/Favorite'; // Para Preferências
 
 // Paleta de cores definida no guia:
 const colors = {
@@ -84,7 +86,7 @@ const DietsPage = () => {
   const [snacks, setSnacks] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState(null);
-  const [currentTab, setCurrentTab] = useState(0); // 0: Dietas, 1: Alimentos Restritos, 2: Snacks
+  const [currentTab, setCurrentTab] = useState(0); // 0: Dietas, 1: Alimentos Restritos, 2: Snacks, 3: Preferências
 
   // Estados para o Grupo 1: Listagem de Dietas
   const [page, setPage] = useState(0);
@@ -119,14 +121,23 @@ const DietsPage = () => {
   const [editingSnackId, setEditingSnackId] = useState(null);
   const [editSnackData, setEditSnackData] = useState({ nome: '', frequencia: '', quantidade: '', observacoes: '' });
 
+  // Estados para Preferências do Pet (Nova funcionalidade)
+  const [petPreferences, setPetPreferences] = useState(null);
+  const [loadingPreferences, setLoadingPreferences] = useState(false);
+  const [errorPreferences, setErrorPreferences] = useState(null);
+  const [editingPreferences, setEditingPreferences] = useState(false);
+  const [preferenceData, setPreferenceData] = useState({ gosta_de: '', nao_gosta_de: '' });
+
   const fetchDataForAnimal = useCallback(async () => {
     if (!selectedAnimal || !isAuthenticated) {
       setDiets([]);
       setRestrictedFoods([]);
       setSnacks([]);
+      setPetPreferences(null);
       setError(null);
       setErrorRestricted(null);
       setErrorSnacks(null);
+      setErrorPreferences(null);
       setPage(0); // Resetar paginação
       return;
     }
@@ -135,12 +146,15 @@ const DietsPage = () => {
     setLoadingData(true); // Indicate general loading start
     setLoadingRestricted(true);
     setLoadingSnacks(true);
+    setLoadingPreferences(true);
     setError(null);
     setErrorRestricted(null);
     setErrorSnacks(null);
+    setErrorPreferences(null);
     setDiets([]); // Clear previous data
     setRestrictedFoods([]);
     setSnacks([]);
+    setPetPreferences(null);
 
     let fetchError = null; // Track if any fetch failed
 
@@ -186,6 +200,28 @@ const DietsPage = () => {
     } finally {
       setLoadingSnacks(false); // Snacks loading finished
       console.log('[DietsPage] Finished fetching snacks. States:', { loadingSnacks, errorSnacks, snacks });
+    }
+
+    // Fetch Pet Preferences
+    try {
+      const preferencesResponse = await animalService.getAnimalPreferences(selectedAnimal.id);
+      setPetPreferences(preferencesResponse || null);
+      if (preferencesResponse) {
+        setPreferenceData({
+          gosta_de: preferencesResponse.gosta_de || '',
+          nao_gosta_de: preferencesResponse.nao_gosta_de || ''
+        });
+      } else {
+        setPreferenceData({ gosta_de: '', nao_gosta_de: '' });
+      }
+    } catch (err) {
+      console.error("Erro ao buscar preferências do pet:", err);
+      const errorMsg = err.message || err.detail || "Falha ao carregar preferências do pet.";
+      setErrorPreferences(errorMsg);
+      if (!fetchError) fetchError = errorMsg;
+    } finally {
+      setLoadingPreferences(false);
+      console.log('[DietsPage] Finished fetching preferences. States:', { loadingPreferences, errorPreferences, petPreferences });
     }
 
     // Update general loading and error states after all fetches attempted
@@ -455,6 +491,52 @@ const DietsPage = () => {
     }
   };
 
+  // ---- Handlers para Preferências do Pet (Nova funcionalidade) ----
+  const handlePreferenceInputChange = (event) => {
+    const { name, value } = event.target;
+    setPreferenceData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleStartEditPreferences = () => {
+    setEditingPreferences(true);
+    setErrorPreferences(null);
+  };
+
+  const handleCancelEditPreferences = () => {
+    setEditingPreferences(false);
+    setErrorPreferences(null);
+    // Restaurar dados originais
+    if (petPreferences) {
+      setPreferenceData({
+        gosta_de: petPreferences.gosta_de || '',
+        nao_gosta_de: petPreferences.nao_gosta_de || ''
+      });
+    } else {
+      setPreferenceData({ gosta_de: '', nao_gosta_de: '' });
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setLoadingPreferences(true);
+    setErrorPreferences(null);
+    try {
+      if (petPreferences) {
+        // Atualizar preferências existentes
+        await animalService.updateAnimalPreferences(selectedAnimal.id, preferenceData);
+      } else {
+        // Criar novas preferências
+        await animalService.createAnimalPreferences(selectedAnimal.id, preferenceData);
+      }
+      setEditingPreferences(false);
+      fetchDataForAnimal(); // Recarregar para obter dados atualizados
+    } catch (err) {
+      console.error("Erro ao salvar preferências:", err);
+      setErrorPreferences(err.detail || err.message || "Erro ao salvar preferências do pet.");
+    } finally {
+      setLoadingPreferences(false);
+    }
+  };
+
   // ---- Handlers para o modal de Opção de Dieta (Grupo 4) ----
   const handleOpenAddOptionModal = (dietId) => {
     console.log("Abrir modal de adicionar Opção de Dieta (Grupo 4) para a dieta:", dietId);
@@ -664,6 +746,7 @@ const DietsPage = () => {
           <Tab icon={<RestaurantMenuIcon />} iconPosition="start" label="Planos de Dieta" sx={{ fontWeight: currentTab === 0 ? '600' : 'normal' }} />
           <Tab icon={<BlockIcon />} iconPosition="start" label="Alimentos Restritos" sx={{ fontWeight: currentTab === 1 ? '600' : 'normal' }} />
           <Tab icon={<CookieIcon />} iconPosition="start" label="Snacks Permitidos" sx={{ fontWeight: currentTab === 2 ? '600' : 'normal' }} />
+          <Tab icon={<FavoriteIcon />} iconPosition="start" label="Preferências do Pet" sx={{ fontWeight: currentTab === 3 ? '600' : 'normal' }} />
         </Tabs>
       </Paper>
 
@@ -1049,6 +1132,149 @@ const DietsPage = () => {
               )}
             </Paper>
           )}
+
+          {/* Grupo 9: Gerenciamento de Preferências do Pet (Renderiza quando currentTab === 3) */}
+          {currentTab === 3 && (
+            <Paper elevation={2} sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: 2, backgroundColor: colors.paperBackground }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ color: colors.textPrimary }}>
+                  Preferências Alimentares de <span style={{ color: colors.primaryAction }}>{selectedAnimal.name}</span>
+                </Typography>
+                {!editingPreferences && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<EditIcon />}
+                    onClick={handleStartEditPreferences}
+                    disabled={loadingPreferences}
+                    sx={{ 
+                      borderColor: colors.secondaryAction, 
+                      color: colors.secondaryAction,
+                      '&:hover': { 
+                        borderColor: colors.secondaryActionHover, 
+                        color: colors.secondaryActionHover,
+                        backgroundColor: 'rgba(207, 224, 195, 0.1)'
+                      }
+                    }}
+                  >
+                    {petPreferences ? 'Editar Preferências' : 'Adicionar Preferências'}
+                  </Button>
+                )}
+              </Box>
+
+              {/* Exibir erro geral da aba aqui */}
+              {errorPreferences && !loadingPreferences && <Alert severity="error" sx={{ my: 2 }}>{errorPreferences}</Alert>}
+
+              {/* Indicador de loading */}
+              {loadingPreferences && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress sx={{ color: colors.primaryAction }} /></Box>}
+
+              {!loadingPreferences && !errorPreferences && (
+                <>
+                  {editingPreferences ? (
+                    // Modo de Edição
+                    <Paper elevation={2} sx={{ p: 3, backgroundColor: colors.background }}>
+                      <Typography variant="subtitle1" sx={{ mb: 2.5, fontWeight: '500' }}>
+                        {petPreferences ? 'Editando Preferências' : 'Adicionando Preferências'}
+                      </Typography>
+                      <Grid container spacing={3}>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            label="O que o pet GOSTA de comer"
+                            name="gosta_de"
+                            value={preferenceData.gosta_de}
+                            onChange={handlePreferenceInputChange}
+                            disabled={loadingPreferences}
+                            placeholder="Ex: Frango, arroz, cenoura, petiscos de fígado..."
+                            sx={{ backgroundColor: colors.paperBackground }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            label="O que o pet NÃO GOSTA de comer"
+                            name="nao_gosta_de"
+                            value={preferenceData.nao_gosta_de}
+                            onChange={handlePreferenceInputChange}
+                            disabled={loadingPreferences}
+                            placeholder="Ex: Peixe, verduras cruas, medicamentos..."
+                            sx={{ backgroundColor: colors.paperBackground }}
+                          />
+                        </Grid>
+                      </Grid>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
+                        <Button
+                          variant="outlined"
+                          startIcon={<CancelIcon />}
+                          onClick={handleCancelEditPreferences}
+                          disabled={loadingPreferences}
+                          sx={{ 
+                            borderColor: colors.textSecondary, 
+                            color: colors.textSecondary,
+                            '&:hover': { borderColor: colors.textPrimary, color: colors.textPrimary }
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          variant="contained"
+                          startIcon={<SaveIcon />}
+                          onClick={handleSavePreferences}
+                          disabled={loadingPreferences}
+                          sx={{
+                            backgroundColor: colors.primaryAction,
+                            color: colors.paperBackground,
+                            '&:hover': { backgroundColor: colors.primaryActionHover }
+                          }}
+                        >
+                          Salvar Preferências
+                        </Button>
+                      </Box>
+                    </Paper>
+                  ) : (
+                    // Modo de Visualização
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <Paper elevation={1} sx={{ p: 2.5, border: `1px solid ${colors.borderColor}` }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: '600', mb: 1.5, color: 'green' }}>
+                            ✅ Gosta de comer:
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: colors.textSecondary, lineHeight: 1.6 }}>
+                            {petPreferences?.gosta_de || 'Nenhuma preferência cadastrada ainda.'}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Paper elevation={1} sx={{ p: 2.5, border: `1px solid ${colors.borderColor}` }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: '600', mb: 1.5, color: colors.deleteColor }}>
+                            ❌ Não gosta de comer:
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: colors.textSecondary, lineHeight: 1.6 }}>
+                            {petPreferences?.nao_gosta_de || 'Nenhuma restrição de preferência cadastrada ainda.'}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  )}
+
+                  {!petPreferences && !editingPreferences && (
+                    <Paper elevation={1} sx={{ p: 4, textAlign: 'center', mt: 3, backgroundColor: colors.background }}>
+                      <FavoriteIcon sx={{ fontSize: 48, color: colors.primaryAction, mb: 2 }} />
+                      <Typography variant="h6" sx={{ color: colors.textPrimary, mb: 1 }}>
+                        Ainda não há preferências cadastradas
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: colors.textSecondary, mb: 3 }}>
+                        Registre as preferências alimentares de {selectedAnimal.name} para personalizar ainda mais as dietas e recomendações.
+                      </Typography>
+                    </Paper>
+                  )}
+                </>
+              )}
+            </Paper>
+          )}
         </Box>
       )}
 
@@ -1061,6 +1287,7 @@ const DietsPage = () => {
           dietData={selectedDiet}
           isEditing={isEditingDiet}
           onSaveSuccess={handleSaveDietSuccess}
+          onDietCreated={handleOpenAddOptionModal}
         />
       )}
       {openDietDetailsModal && selectedDiet && (

@@ -125,6 +125,16 @@ async def list_diets(
             )
             
             options = supabase_admin.process_response(options_response)
+            if options:
+                # Para cada opção, buscar os alimentos
+                for option in options:
+                    foods_response = await supabase_admin._request(
+                        "GET",
+                        f"/rest/v1/alimentos_dieta?opcao_dieta_id=eq.{option['id']}"
+                    )
+                    foods = supabase_admin.process_response(foods_response)
+                    option["alimentos"] = foods if foods else []
+            
             diet["opcoes_dieta"] = options if options else []
             
         return diets
@@ -166,6 +176,16 @@ async def get_diet(
         )
         
         options = supabase_admin.process_response(options_response)
+        if options:
+            # Para cada opção, buscar os alimentos
+            for option in options:
+                foods_response = await supabase_admin._request(
+                    "GET",
+                    f"/rest/v1/alimentos_dieta?opcao_dieta_id=eq.{option['id']}"
+                )
+                foods = supabase_admin.process_response(foods_response)
+                option["alimentos"] = foods if foods else []
+        
         diet["opcoes_dieta"] = options if options else []
         
         return diet
@@ -244,7 +264,18 @@ async def update_diet(
             f"/rest/v1/opcoes_dieta?dieta_id=eq.{diet_id}"
         )
         
-        updated_diet["opcoes_dieta"] = supabase_admin.process_response(options_response)
+        options = supabase_admin.process_response(options_response)
+        if options:
+            # Para cada opção, buscar os alimentos
+            for option in options:
+                foods_response = await supabase_admin._request(
+                    "GET",
+                    f"/rest/v1/alimentos_dieta?opcao_dieta_id=eq.{option['id']}"
+                )
+                foods = supabase_admin.process_response(foods_response)
+                option["alimentos"] = foods if foods else []
+        
+        updated_diet["opcoes_dieta"] = options if options else []
         
         return updated_diet
         
