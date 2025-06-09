@@ -276,7 +276,7 @@ const AppointmentsPage = () => {
               <TableBody>
                 {filteredAppointments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((appointment) => (
                   <TableRow key={appointment.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                    <TableCell sx={{ py: 1 }}>{new Date(appointment.date).toLocaleDateString()}</TableCell>
+                    <TableCell sx={{ py: 1 }}>{appointment.date ? new Date(appointment.date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
                     <TableCell sx={{ py: 1 }}>{appointment.start_time ? appointment.start_time.substring(0, 5) : '--'}</TableCell>
                     {/* Exibir o nome do animal apenas se nenhum animal estiver selecionado no header */}
                     {!selectedAnimal && <TableCell sx={{ py: 1 }}>{getAnimalNameById(appointment.animal_id)}</TableCell>}

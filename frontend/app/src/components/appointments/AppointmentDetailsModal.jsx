@@ -64,7 +64,7 @@ const AppointmentDetailsModal = ({ open, onClose, appointment, getAnimalNameById
       </DialogTitle>
       <DialogContent sx={{ pt: '20px !important' }}>
         <Grid container spacing={1}>
-          <DetailItem icon={<EventIcon />} label="Data" value={new Date(appointment.date).toLocaleDateString()} />
+          <DetailItem icon={<EventIcon />} label="Data" value={appointment.date ? new Date(appointment.date + 'T00:00:00').toLocaleDateString() : '-'} />
           <DetailItem icon={<AccessTimeIcon />} label="Hora" value={appointment.start_time ? appointment.start_time.substring(0,5) : '--'} />
           <DetailItem icon={<PetsIcon />} label="Animal" value={animalName} />
           <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>

@@ -645,3 +645,167 @@ http://localhost:8000/api/v1/animals/c7020821-b8fe-4608-9f7f-2bad17877ca4/activi
 - `401 Unauthorized`: Token inválido ou expirado
 - `404 Not Found`: Animal não encontrado
 - `500 Internal Server Error`: Erro ao calcular métricas
+
+# Sprint 5 - Dashboard Integrado
+
+## Dashboard com Dados Reais
+
+### 1. Estatísticas Gerais
+
+#### `GET /dashboard/stats`
+Obtém estatísticas agregadas para o dashboard da clínica.
+
+**Exemplo de URL:**
+```
+http://localhost:8000/api/v1/dashboard/stats
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Response Body:**
+```json
+{
+  "consultas_hoje": 5,
+  "animais_ativos": 12,
+  "animais_sem_dietas": 3,
+  "animais_sem_atividades": 7
+}
+```
+
+**Responses:**
+- `200 OK`: Estatísticas obtidas com sucesso.
+- `401 Unauthorized`: Usuário não autenticado.
+
+---
+
+### 2. Agendamentos de Hoje
+
+#### `GET /dashboard/appointments-today`
+Lista todos os agendamentos do dia atual da clínica.
+
+**Exemplo de URL:**
+```
+http://localhost:8000/api/v1/dashboard/appointments-today
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Response Body:**
+```json
+[
+  {
+    "id": "uuid",
+    "animal_name": "Rex",
+    "owner_name": "Ana Souza",
+    "time_scheduled": "09:00:00",
+    "status": "agendado",
+    "service_type": "Consulta",
+    "notes": "Consulta de rotina"
+  },
+  {
+    "id": "uuid",
+    "animal_name": "Luna",
+    "owner_name": "Carlos Dias", 
+    "time_scheduled": "14:30:00",
+    "status": "confirmado",
+    "service_type": "Vacinação",
+    "notes": ""
+  }
+]
+```
+
+**Responses:**
+- `200 OK`: Lista de agendamentos de hoje.
+- `401 Unauthorized`: Usuário não autenticado.
+
+---
+
+### 3. Alertas do Dashboard
+
+#### `GET /dashboard/alerts`
+Obtém alertas e notificações importantes para exibir no dashboard.
+
+**Exemplo de URL:**
+```
+http://localhost:8000/api/v1/dashboard/alerts
+```
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Response Body:**
+```json
+[
+  {
+    "type": "warning",
+    "icon": "🔁",
+    "message": "2 dieta(s) personalizada(s) expira(m) nos próximos 7 dias."
+  },
+  {
+    "type": "info",
+    "icon": "🍽️",
+    "message": "5 animal(is) ainda não possui(em) plano de dieta."
+  },
+  {
+    "type": "info",
+    "icon": "🏃‍♂️",
+    "message": "3 animal(is) ainda não possui(em) plano de atividades."
+  }
+]
+```
+
+**Tipos de Alertas:**
+- `warning`: Situações que requerem atenção imediata
+- `info`: Informações importantes mas não críticas
+- `error`: Problemas que precisam ser resolvidos
+
+**Responses:**
+- `200 OK`: Lista de alertas.
+- `401 Unauthorized`: Usuário não autenticado.
+
+---
+
+## Melhorias Implementadas
+
+### Frontend (DashboardPage.jsx)
+- ✅ **Dados reais** substituindo dados mockados
+- ✅ **Estados de loading** e tratamento de erros
+- ✅ **Refresh manual** dos dados
+- ✅ **Formatação adequada** de horários e status
+- ✅ **Cards atualizados** com métricas relevantes:
+  - Consultas Hoje (agendamentos do dia)
+  - Animais Ativos (total de pets cadastrados)
+  - Sem Dietas (pets que precisam de plano alimentar)
+  - Sem Atividades (pets que precisam de plano de exercícios)
+
+### Backend (dashboard.py)
+- ✅ **Consultas otimizadas** ao banco de dados
+- ✅ **Agregação de dados** em tempo real
+- ✅ **Segurança** com validação de clínica
+- ✅ **Performance** com consultas paralelas
+
+### Integrações
+- ✅ **dashboardService.js** para comunicação com API
+- ✅ **Contexto de autenticação** integrado
+- ✅ **Navegação funcional** para outras páginas
+- ✅ **Alertas dinâmicos** baseados em dados reais
+
+---
+
+## Estatísticas Calculadas
+
+### Animais Sem Dietas
+Conta animais que não possuem nenhum registro na tabela `dietas`.
+
+### Animais Sem Atividades  
+Conta animais que não possuem nenhum registro na tabela `planos_atividade`.
+
+### Consultas Hoje
+Conta agendamentos (`appointments`) com `date_scheduled` igual à data atual.
+
+### Alertas Inteligentes
+- Dietas expirando nos próximos 7 dias
+- Pets sem planos nutricionais
+- Pets sem planos de exercícios
