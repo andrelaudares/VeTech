@@ -1,3 +1,5 @@
+// routes/index.jsx
+
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +22,8 @@ import NotFoundPage from '../pages/NotFoundPage';
 const ProtectedLayout = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
+  // console.log("ProtectedLayout: isAuthenticated:", isAuthenticated, "loading:", loading); // Log aqui
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -29,6 +33,7 @@ const ProtectedLayout = ({ children }) => {
     );
   }
 
+  // Se não está autenticado, sempre redireciona para o login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -38,26 +43,34 @@ const ProtectedLayout = ({ children }) => {
 
 const AppRoutes = () => {
   const { isAuthenticated, loading } = useAuth();
-  console.log({ isAuthenticated, loading, path: window.location.pathname });
+  console.log("AppRoutes Global Log:", { isAuthenticated, loading, path: window.location.pathname });
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-screen">Carregando...</div>;
-  }
+  // Exibir um spinner de carregamento global enquanto a autenticação está sendo verificada
+  // if (loading) {
+  //   return (
+  //     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+  //       <CircularProgress />
+  //       <Typography sx={{ ml: 2 }}>Verificando sessão...</Typography>
+  //     </Box>
+  //   );
+  // }
 
   return (
     <Routes>
-      {/* Landing page é a raiz do sistema - verifica autenticação */}
-      <Route 
-        path="/" 
-        element={isAuthenticated ? <Navigate to="/inicio" replace /> : <LandingPage />} 
+      {/* Rota da raiz: Se autenticado, vai para /inicio. Caso contrário, para a LandingPage */}
+      <Route
+        path="/"
+        element={isAuthenticated ? <Navigate to="/inicio" replace /> : <LandingPage />}
       />
 
-      <Route 
-        path="/login" 
+      {/* Rota de Login: Se autenticado, vai para /inicio. Caso contrário, exibe o LoginPage */}
+      <Route
+        path="/login"
         element={isAuthenticated ? <Navigate to="/inicio" replace /> : <LoginPage />}
       />
 
-      {/* Rotas protegidas */}
+      {/* Rotas protegidas (exigem autenticação) */}
+      {/* O ProtectedLayout já lida com o redirecionamento para /login se não autenticado */}
       <Route element={<ProtectedLayout />}>
         <Route path="/inicio" element={<DashboardPage />} />
         <Route path="/perfil" element={<ProfilePage />} />
@@ -65,9 +78,10 @@ const AppRoutes = () => {
         <Route path="/agendamentos" element={<AppointmentsPage />} />
         <Route path="/consultas" element={<ConsultationsPage />} />
         <Route path="/dietas" element={<DietsPage />} />
-        <Route path="atividades" element={<ActivitiesPage />} />
+        <Route path="/atividades" element={<ActivitiesPage />} />
       </Route>
 
+      {/* Rota para páginas não encontradas */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

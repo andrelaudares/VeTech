@@ -210,7 +210,7 @@ const DashboardPage = () => {
           <TableContainer>
             <Table>
               <TableHead>
-                <TableRow>
+                <TableRow style={{backgroundColor: '#23e865'}}>
                   <TableCell>Animal</TableCell>
                   <TableCell>Dono</TableCell>
                   <TableCell>Horário</TableCell>

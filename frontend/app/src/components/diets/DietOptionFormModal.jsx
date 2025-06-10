@@ -131,7 +131,7 @@ const DietOptionFormModal = ({ open, onClose, dietId, optionData, isEditing, onS
 
   return (
     <Dialog open={open} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ component: 'form', onSubmit: handleSubmit }}>
-      <DialogTitle sx={{ backgroundColor: colors.secondaryAction, color: colors.textPrimary }}>
+      <DialogTitle sx={{ backgroundColor: '#23e865', color: colors.textPrimary }}>
         {isEditing ? 'Editar Opção de Dieta' : 'Nova Opção de Dieta'}
       </DialogTitle>
       <DialogContent sx={{ pt: 3 }}>
@@ -233,8 +233,8 @@ const DietOptionFormModal = ({ open, onClose, dietId, optionData, isEditing, onS
           variant="contained"
           disabled={loading}
           sx={{
-            backgroundColor: colors.primaryAction,
-            '&:hover': { backgroundColor: colors.primaryActionHover },
+            backgroundColor: '#23e865',
+            '&:hover': { backgroundColor: '#008a2e' },
             minWidth: '120px', // Ajustar largura
           }}
         >

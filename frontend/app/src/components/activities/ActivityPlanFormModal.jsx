@@ -148,7 +148,7 @@ const ActivityPlanFormModal = ({
 
   return (
     <Dialog open={open} onClose={handleCloseModal} maxWidth="md" fullWidth PaperProps={{ sx: { backgroundColor: colors.paperBackground } }}>
-      <DialogTitle sx={{ color: colors.textPrimary, borderBottom: `1px solid ${colors.borderColor}` }}>
+      <DialogTitle sx={{ backgroundColor: '#23e865', color: colors.textPrimary, borderBottom: `1px solid ${colors.borderColor}` }}>
         {isEditing ? 'Editar Plano de Atividade' : 'Novo Plano de Atividade'}
       </DialogTitle>
       <DialogContent sx={{ pt: '20px !important' }}>
@@ -165,13 +165,14 @@ const ActivityPlanFormModal = ({
         <Grid container spacing={2.5}>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth margin="dense" variant="outlined" error={!!error && !formData.atividade_id}>
-              <InputLabel id="activity-type-select-label">Tipo de Atividade *</InputLabel>
+              <InputLabel id="activity-type-select-label" shrink={true}>Tipo de Atividade *</InputLabel>
               <Select
                 labelId="activity-type-select-label"
                 name="atividade_id"
                 value={formData.atividade_id}
                 onChange={handleChange}
                 label="Tipo de Atividade *"
+                displayEmpty
               >
                 <MenuItem value="">
                   <em>Selecione um tipo de atividade</em>
@@ -213,13 +214,14 @@ const ActivityPlanFormModal = ({
           </Grid>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth margin="dense" variant="outlined">
-              <InputLabel id="intensity-select-label">Intensidade</InputLabel>
+              <InputLabel id="intensity-select-label" shrink={true}>Intensidade</InputLabel>
               <Select
                 labelId="intensity-select-label"
                 name="intensidade"
                 value={formData.intensidade}
                 onChange={handleChange}
                 label="Intensidade"
+                displayEmpty
               >
                 {intensityOptions.map(opt => (
                   <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>

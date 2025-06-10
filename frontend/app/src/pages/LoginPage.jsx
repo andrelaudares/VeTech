@@ -1,11 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-// import { LockOutlined } from '@mui/icons-material'; // Não será mais usado
-import logoVetech from '../assets/logo.svg'; // Importando o logo
+import logoVetech from '../assets/logo.svg';
 
-// Importações do Material UI
-// import Avatar from '@mui/material/Avatar'; // Não será mais usado para o ícone
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Link from '@mui/material/Link';
@@ -15,40 +12,71 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
-import Paper from '@mui/material/Paper'; // Para um card mais suave
-
-// O tema darkTheme local não é mais necessário, pois o tema global está em main.jsx
-// const darkTheme = createTheme({...}); 
+import Paper from '@mui/material/Paper';
+import { useState, useEffect } from 'react'; // Importar useState e useEffect
 
 const LoginPage = () => {
   const { register, handleSubmit, formState: { errors } } = useForm();
-  const { login, error: authError, loading } = useAuth(); // Renomeado error para authError para evitar conflito
+  // Renomeamos 'error' para 'authError' no useAuth para evitar conflito com o nome padrão 'error'
+  // Removendo 'loading' daqui pois usaremos um estado local para o botão.
+  const { login, authError } = useAuth(); 
   const navigate = useNavigate();
-  // const [loginError, setLoginError] = useState(''); // Removido, usando authError diretamente
+
+  // Novo estado local para controlar o loading do botão
+  const [isButtonLoading, setIsButtonLoading] = useState(false); 
+  // Estado para a animação de shake
+  const [shouldShake, setShouldShake] = useState(false); 
 
   const onSubmit = async (data) => {
-    // setLoginError(''); // Removido
+    console.log("LoginPage: Formulário submetido. Dados:", data);
+    setShouldShake(false); // Resetar tremor ao submeter
+    setIsButtonLoading(true); // Ativar loading no botão
+
     try {
+      console.log("LoginPage: Chamando a função login do AuthContext...");
       await login(data.email, data.password);
-      navigate('/dashboard');
+      console.log("LoginPage: Login bem-sucedido. Navegando para /inicio...");
+      navigate('/inicio'); // Ajustado para /inicio conforme suas rotas protegidas
     } catch (err) {
-      // O AuthContext já deve estar tratando e expondo o erro através de 'authError'
-      // Se precisar de uma mensagem específica aqui, pode-se adicionar, mas vamos tentar usar o erro global primeiro.
-      console.error("Erro no login:", err.response || err);
+      // O erro é capturado aqui. O AuthContext já deve ter setado 'authError'.
+      console.error("LoginPage: Erro no login capturado no componente:", err.response || err);
+      // setShouldShake(true); // O useEffect abaixo já vai cuidar disso
+      console.log("LoginPage: authError do AuthContext (após render):", authError); 
+      // Não é necessário setar o shouldShake aqui diretamente, o useEffect logo abaixo fará isso
+    } finally {
+      setIsButtonLoading(false); // Desativar loading no botão, independente de sucesso ou falha
     }
   };
+
+  // Efeito para limpar o tremor após a animação
+  useEffect(() => {
+    if (shouldShake) {
+      const timer = setTimeout(() => {
+        setShouldShake(false);
+      }, 500); // Duração da animação
+      return () => clearTimeout(timer);
+    }
+  }, [shouldShake]);
+
+  // Efeito para ativar o tremor sempre que um novo erro de autenticação surgir
+  useEffect(() => {
+    if (authError) {
+      setShouldShake(true);
+      // console.log("LoginPage: authError atualizado, ativando shake.");
+    }
+  }, [authError]); // Depende do authError do contexto
 
   return (
     <Container component="main" maxWidth="xs" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
       <Paper elevation={3} sx={{
-        padding: 4, // Aumentar padding
+        padding: 4,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        width: '100%', // Garantir que o Paper ocupe a largura do Container
-        borderRadius: '12px', // Bordas mais suaves
-      }}>
-        <Box sx={{ mb: 3 }}> {/* Adiciona margem abaixo do logo */}
+        width: '100%',
+        borderRadius: '12px',
+      }} className={shouldShake ? 'shake-animation' : ''}> {/* Aplicar classe de animação */}
+        <Box sx={{ mb: 3 }}>
           <img onClick={() => navigate('/')} src={logoVetech} alt="VeTech Logo" style={{ height: '80px', cursor: 'pointer'}} />
         </Box>
         <Typography component="h1" variant="h5" sx={{ mb: 1 }}>
@@ -60,7 +88,7 @@ const LoginPage = () => {
         
         {authError && (
           <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-            {typeof authError === 'string' ? authError : (authError.response?.data?.detail || 'Email ou senha incorretos.')}
+            {authError}
           </Alert>
         )}
 
@@ -103,11 +131,11 @@ const LoginPage = () => {
             type="submit"
             fullWidth
             variant="contained"
-            color="primary" // Usa a cor primária do tema
-            disabled={loading}
-            sx={{ mt: 2, mb: 2, py: 1.2, fontSize: '1rem', borderRadius: '8px' }} // Ajustes no botão
+            color="primary"
+            disabled={isButtonLoading} // Usa o novo estado local de loading
+            sx={{ mt: 2, mb: 2, py: 1.2, fontSize: '1rem', borderRadius: '8px' }}
           >
-            {loading ? <CircularProgress size={24} color="inherit" /> : 'Entrar'}
+            {isButtonLoading ? <CircularProgress size={24} color="inherit" /> : 'Entrar'}
           </Button>
           <Grid container justifyContent="flex-end">
             <Grid item>
@@ -127,4 +155,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage; 
+export default LoginPage;
