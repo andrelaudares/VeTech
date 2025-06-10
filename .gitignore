@@ -2,6 +2,13 @@
 __pycache__/
 __pycache__
 *.pyc
+/backend/__pycache__/
+/backend/app/api/__pycache__/
+/backend/app/core/__pycache__/
+/backend/app/models/__pycache__/
+/backend/app/schemas/__pycache__/
+/backend/app/utils/__pycache__/
+/backend/app/utils/__pycache__/
 
 # Node.js dependencies
 node_modules/

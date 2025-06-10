@@ -13,7 +13,8 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
-  Box
+  Box,
+  DialogContentText
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 // Certifique-se de que o caminho para AdapterDateFns está correto para sua versão do MUI X Date Pickers
@@ -32,7 +33,7 @@ const colors = {
   textPrimary: '#333',
 };
 
-const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuccess }) => {
+const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuccess, onDietCreated }) => {
   const [formData, setFormData] = useState({
     tipo: '',
     objetivo: '',
@@ -43,6 +44,8 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showAddOptionDialog, setShowAddOptionDialog] = useState(false);
+  const [createdDietId, setCreatedDietId] = useState(null);
 
   useEffect(() => {
     if (isEditing && dietData) {
@@ -108,16 +111,18 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
     try {
       if (isEditing && dietData?.id) {
         await dietService.updateDiet(dietData.id, dataToSend);
+        onSaveSuccess(); // Chama a função de callback do pai
+        handleCloseModal(); // Fecha o modal
       } else {
         if (!animalId) {
             setError("ID do animal não fornecido para criar a dieta.");
             setLoading(false);
             return;
         }
-        await dietService.createDiet(animalId, dataToSend);
+        const createdDiet = await dietService.createDiet(animalId, dataToSend);
+        setCreatedDietId(createdDiet.id);
+        setShowAddOptionDialog(true); // Mostrar diálogo para adicionar opção
       }
-      onSaveSuccess(); // Chama a função de callback do pai
-      handleCloseModal(); // Fecha o modal
     } catch (err) {
       console.error("Erro ao salvar dieta:", err);
       setError(err.detail || err.message || 'Erro desconhecido ao salvar dieta.');
@@ -129,7 +134,25 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
   const handleCloseModal = () => { // Renomeado para evitar conflito de escopo com onClose prop
     if (loading) return; // Não fechar se estiver carregando
     setError(null);
+    setShowAddOptionDialog(false);
+    setCreatedDietId(null);
     onClose(); // Chama a função onClose passada pelo pai
+  };
+
+  const handleAddOptionYes = () => {
+    setShowAddOptionDialog(false);
+    onSaveSuccess(); // Atualizar a lista de dietas
+    handleCloseModal(); // Fechar o modal de criação
+    // Chamar callback para abrir modal de opção se fornecido
+    if (onDietCreated && createdDietId) {
+      onDietCreated(createdDietId);
+    }
+  };
+
+  const handleAddOptionNo = () => {
+    setShowAddOptionDialog(false);
+    onSaveSuccess(); // Atualizar a lista de dietas
+    handleCloseModal(); // Fechar o modal
   };
 
 
@@ -140,7 +163,8 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-      <Dialog open={open} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ component: 'form', onSubmit: handleSubmit }}>
+      {/* Modal principal de criação/edição */}
+      <Dialog open={open && !showAddOptionDialog} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ component: 'form', onSubmit: handleSubmit }}>
         <DialogTitle sx={{ backgroundColor: '#23e865', color: colors.paperBackground }}>
           {isEditing ? 'Editar Plano de Dieta' : 'Novo Plano de Dieta'}
         </DialogTitle>
@@ -252,6 +276,43 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
             }}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : (isEditing ? 'Salvar Alterações' : 'Criar Dieta')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de confirmação para adicionar opção */}
+      <Dialog open={showAddOptionDialog} onClose={() => {}} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ backgroundColor: colors.primaryAction, color: colors.paperBackground }}>
+          Dieta Criada com Sucesso! 🎉
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <DialogContentText sx={{ mb: 2, fontSize: '1rem' }}>
+            Sua dieta foi criada com sucesso! Agora você pode adicionar opções específicas com detalhes como:
+          </DialogContentText>
+          <Box component="ul" sx={{ pl: 2, mb: 2 }}>
+            <li>Porções por refeição</li>
+            <li>Número de refeições por dia</li>
+            <li>Calorias totais diárias</li>
+            <li>Valor mensal estimado</li>
+            <li>Indicações específicas</li>
+          </Box>
+          <DialogContentText sx={{ fontWeight: '500' }}>
+            Deseja adicionar uma opção de dieta agora?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: '16px 24px' }}>
+          <Button onClick={handleAddOptionNo} color="secondary">
+            Não, adicionar depois
+          </Button>
+          <Button
+            onClick={handleAddOptionYes}
+            variant="contained"
+            sx={{
+              backgroundColor: colors.primaryAction,
+              '&:hover': { backgroundColor: colors.primaryActionHover }
+            }}
+          >
+            Sim, adicionar opção
           </Button>
         </DialogActions>
       </Dialog>
