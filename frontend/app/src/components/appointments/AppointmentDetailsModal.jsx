@@ -59,7 +59,7 @@ const AppointmentDetailsModal = ({ open, onClose, appointment, getAnimalNameById
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ backgroundColor: colors.tableHeader, color: colors.textPrimary }}>
+      <DialogTitle sx={{ backgroundColor: '#23e865', color: colors.textPrimary }}>
         Detalhes do Agendamento
       </DialogTitle>
       <DialogContent sx={{ pt: '20px !important' }}>
@@ -96,7 +96,7 @@ const AppointmentDetailsModal = ({ open, onClose, appointment, getAnimalNameById
                 onEdit(); // Depois chama a função para abrir o de edição
             }}
             variant="contained" 
-            sx={{ backgroundColor: colors.buttonPrimary, '&:hover': { backgroundColor: '#82a8a0'} }}
+            sx={{ backgroundColor: '#23e865', '&:hover': { backgroundColor: '#008a2e'} }}
         >
             Editar Agendamento
         </Button>

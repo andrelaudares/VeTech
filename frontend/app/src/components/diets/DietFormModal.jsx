@@ -282,11 +282,11 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
 
       {/* Diálogo de confirmação para adicionar opção */}
       <Dialog open={showAddOptionDialog} onClose={() => {}} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ backgroundColor: colors.primaryAction, color: colors.paperBackground }}>
+        <DialogTitle sx={{ backgroundColor: '#23e865', color: colors.paperBackground }}>
           Dieta Criada com Sucesso! 🎉
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
-          <DialogContentText sx={{ mb: 2, fontSize: '1rem' }}>
+          <DialogContentText sx={{ mb: 2, mt: 2, fontSize: '1rem' }}>
             Sua dieta foi criada com sucesso! Agora você pode adicionar opções específicas com detalhes como:
           </DialogContentText>
           <Box component="ul" sx={{ pl: 2, mb: 2 }}>
@@ -308,8 +308,8 @@ const DietFormModal = ({ open, onClose, animalId, dietData, isEditing, onSaveSuc
             onClick={handleAddOptionYes}
             variant="contained"
             sx={{
-              backgroundColor: colors.primaryAction,
-              '&:hover': { backgroundColor: colors.primaryActionHover }
+              backgroundColor: '#23e865',
+              '&:hover': { backgroundColor: '#008a2e' }
             }}
           >
             Sim, adicionar opção
