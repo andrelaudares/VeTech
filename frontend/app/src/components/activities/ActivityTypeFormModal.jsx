@@ -120,7 +120,7 @@ const ActivityTypeFormModal = ({ open, onClose, activityTypeData, isEditing, onS
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{ sx: { backgroundColor: colors.paperBackground } }}>
-      <DialogTitle sx={{ color: colors.textPrimary, borderBottom: `1px solid ${colors.borderColor}` }}>
+      <DialogTitle sx={{ backgroundColor: '#23e865', color: colors.textPrimary, borderBottom: `1px solid ${colors.borderColor}` }}>
         {isEditing ? 'Editar Tipo de Atividade' : 'Novo Tipo de Atividade'}
       </DialogTitle>
       <DialogContent sx={{ pt: '20px !important' }}> {/* Adiciona padding top ao conteúdo */}
@@ -143,13 +143,14 @@ const ActivityTypeFormModal = ({ open, onClose, activityTypeData, isEditing, onS
           </Grid>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth margin="dense" variant="outlined" error={!!error && !formData.tipo}>
-              <InputLabel id="tipo-atividade-label">Tipo</InputLabel>
+              <InputLabel id="tipo-atividade-label" shrink={true}>Tipo</InputLabel>
               <Select
                 labelId="tipo-atividade-label"
                 name="tipo"
                 value={formData.tipo}
                 onChange={handleChange}
                 label="Tipo"
+                displayEmpty
               >
                 <MenuItem value="">
                   <em>Selecione um tipo</em>
@@ -205,7 +206,7 @@ const ActivityTypeFormModal = ({ open, onClose, activityTypeData, isEditing, onS
             color="primary" 
             variant="contained" 
             disabled={loading || !formData.nome || !formData.tipo}
-            sx={{ backgroundColor: colors.primaryAction, '&:hover': { backgroundColor: colors.primaryActionHover } }}
+            sx={{ backgroundColor: '#23e865', '&:hover': { backgroundColor: '#008a2e'} }}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : (isEditing ? 'Salvar Alterações' : 'Criar Tipo')}
         </Button>

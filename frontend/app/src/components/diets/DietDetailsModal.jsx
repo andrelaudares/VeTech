@@ -62,7 +62,7 @@ const DietDetailsModal = ({ open, onClose, diet, onEdit, onDelete, onAddOption, 
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth scroll="paper">
-      <DialogTitle sx={{ backgroundColor: colors.primaryAction, color: colors.paperBackground, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <DialogTitle sx={{ backgroundColor: '#23e865', color: colors.paperBackground, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         Detalhes do Plano de Dieta
         <IconButton onClick={onClose} sx={{ color: colors.paperBackground }}>
           <CloseIcon />
@@ -116,9 +116,9 @@ const DietDetailsModal = ({ open, onClose, diet, onEdit, onDelete, onAddOption, 
                     onClick={() => onAddOption(diet.id)} // Chama handleOpenAddOptionModal da DietsPage
                     size="small"
                     sx={{
-                        backgroundColor: colors.secondaryAction,
+                        backgroundColor: '#23e865',
                         color: colors.textPrimary,
-                        '&:hover': { backgroundColor: colors.secondaryActionHover },
+                        '&:hover': { backgroundColor: '#008a2e' },
                     }}
                     >Adicionar Opção
                 </Button>
