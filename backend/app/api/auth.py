@@ -6,6 +6,7 @@ from datetime import datetime
 import logging
 
 from ..models.user import UserCreate, UserResponse, ClinicProfileUpdate
+from ..models.client import DualLoginData, UserTypeResponse, ClientAuthResponse
 from ..db.supabase import supabase_admin
 
 router = APIRouter()
@@ -260,6 +261,125 @@ async def login(email: str = Body(...),
         raise HTTPException(
             status_code=401,
             detail="Credenciais inválidas"
+        )
+
+@router.post("/check-user-type")
+async def check_user_type(email: str = Body(...)) -> UserTypeResponse:
+    """
+    Verifica se o email pertence a uma clínica ou cliente (tutor).
+    """
+    try:
+        # Primeiro, verificar na tabela clinics
+        clinic_query = f"/rest/v1/clinics?email=eq.{email}&select=id,name,email"
+        clinic_response = await supabase_admin._request("GET", clinic_query)
+        clinic_data = supabase_admin.process_response(clinic_response)
+        
+        if clinic_data:
+            clinic = clinic_data[0]
+            return UserTypeResponse(
+                user_type="clinic",
+                user_id=clinic["id"],
+                email=clinic["email"],
+                name=clinic["name"],
+                redirect_url="/clinic/dashboard"
+            )
+        
+        # Se não encontrou na tabela clinics, verificar na tabela animals
+        animal_query = f"/rest/v1/animals?email=eq.{email}&select=tutor_user_id,tutor_name,email"
+        animal_response = await supabase_admin._request("GET", animal_query)
+        animal_data = supabase_admin.process_response(animal_response)
+        
+        if animal_data:
+            animal = animal_data[0]
+            return UserTypeResponse(
+                user_type="client",
+                user_id=animal["tutor_user_id"],
+                email=animal["email"],
+                name=animal["tutor_name"],
+                redirect_url="/client/dashboard"
+            )
+        
+        # Se não encontrou em nenhuma tabela
+        raise HTTPException(
+            status_code=404,
+            detail="Usuário não encontrado"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao verificar tipo de usuário: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao verificar tipo de usuário"
+        )
+
+@router.post("/dual-login")
+async def dual_login(login_data: DualLoginData) -> Dict[str, Any]:
+    """
+    Login unificado que funciona para clínicas e clientes.
+    """
+    try:
+        # Primeiro, verificar o tipo de usuário
+        user_type_response = await check_user_type(login_data.email)
+        
+        # Fazer login no Supabase Auth
+        url = f"{supabase_admin.url}/auth/v1/token?grant_type=password"
+        data = {
+            "email": login_data.email,
+            "password": login_data.password
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                headers=supabase_admin.headers,
+                json=data
+            )
+            response.raise_for_status()
+            
+            auth_response = response.json()
+            token = auth_response.get("access_token", "")
+            user = auth_response.get("user", {})
+            
+            # Retornar resposta baseada no tipo de usuário
+            if user_type_response.user_type == "clinic":
+                return {
+                    "access_token": token,
+                    "token_type": "bearer",
+                    "user_type": "clinic",
+                    "redirect_url": "/clinic/dashboard",
+                    "clinic": {
+                        "id": user.get("id", ""),
+                        "name": user_type_response.name,
+                        "email": user.get("email", "")
+                    }
+                }
+            else:  # client
+                return {
+                    "access_token": token,
+                    "token_type": "bearer",
+                    "user_type": "client",
+                    "redirect_url": "/client/dashboard",
+                    "client": {
+                        "id": user_type_response.user_id,
+                        "name": user_type_response.name,
+                        "email": user.get("email", "")
+                    }
+                }
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro no login dual: {str(e)}")
+        if isinstance(e, httpx.HTTPStatusError):
+            raise HTTPException(
+                status_code=401,
+                detail="Credenciais inválidas"
+            )
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno durante o login"
         )
 
 @router.post("/logout")

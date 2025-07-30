@@ -19,6 +19,9 @@ import DietsPage from '../pages/DietsPage';
 import ActivitiesPage from '../pages/ActivitiesPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
+// Importar rotas do cliente
+import ClientRoutes from '../client/routes/ClientRoutes';
+
 const ProtectedLayout = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -68,6 +71,9 @@ const AppRoutes = () => {
         path="/login"
         element={isAuthenticated ? <Navigate to="/inicio" replace /> : <LoginPage />}
       />
+
+      {/* Rotas da área do cliente (tutor) */}
+      <Route path="/client/*" element={<ClientRoutes />} />
 
       {/* Rotas protegidas (exigem autenticação) */}
       {/* O ProtectedLayout já lida com o redirecionamento para /login se não autenticado */}

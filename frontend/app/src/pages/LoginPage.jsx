@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import logoVetech from '../assets/logo.svg';
+import dualAuthService from '../services/dualAuthService';
 
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -33,16 +34,46 @@ const LoginPage = () => {
     setIsButtonLoading(true); // Ativar loading no botão
 
     try {
-      console.log("LoginPage: Chamando a função login do AuthContext...");
-      await login(data.email, data.password);
-      console.log("LoginPage: Login bem-sucedido. Navegando para /inicio...");
-      navigate('/inicio'); // Ajustado para /inicio conforme suas rotas protegidas
+      console.log("LoginPage: Realizando login dual...");
+      
+      // Usar o serviço de login dual
+      const loginResult = await dualAuthService.dualLogin(data.email, data.password);
+      
+      console.log("LoginPage: Login dual bem-sucedido:", loginResult);
+      
+      // Armazenar token no localStorage
+      localStorage.setItem('token', loginResult.access_token);
+      
+      // Redirecionar baseado no tipo de usuário
+      if (loginResult.user_type === 'clinic') {
+        console.log("LoginPage: Usuário é clínica, redirecionando para área da clínica...");
+        // Para clínicas, usar o sistema de autenticação existente
+        await login(data.email, data.password);
+        navigate('/inicio');
+      } else if (loginResult.user_type === 'client') {
+        console.log("LoginPage: Usuário é cliente, redirecionando para área do cliente...");
+        // Para clientes, redirecionar para a área específica
+        navigate('/client/dashboard');
+      } else {
+        throw new Error('Tipo de usuário não reconhecido');
+      }
+      
     } catch (err) {
-      // O erro é capturado aqui. O AuthContext já deve ter setado 'authError'.
-      console.error("LoginPage: Erro no login capturado no componente:", err.response || err);
-      // setShouldShake(true); // O useEffect abaixo já vai cuidar disso
-      console.log("LoginPage: authError do AuthContext (após render):", authError); 
-      // Não é necessário setar o shouldShake aqui diretamente, o useEffect logo abaixo fará isso
+      // O erro é capturado aqui
+      console.error("LoginPage: Erro no login dual capturado no componente:", err.response || err);
+      
+      // Se for erro de credenciais inválidas, tentar login tradicional como fallback
+      if (err.response?.status === 401 || err.response?.status === 404) {
+        try {
+          console.log("LoginPage: Tentando login tradicional como fallback...");
+          await login(data.email, data.password);
+          console.log("LoginPage: Login tradicional bem-sucedido. Navegando para /inicio...");
+          navigate('/inicio');
+        } catch (fallbackErr) {
+          console.error("LoginPage: Erro no login tradicional:", fallbackErr);
+          // O AuthContext já deve ter setado 'authError'
+        }
+      }
     } finally {
       setIsButtonLoading(false); // Desativar loading no botão, independente de sucesso ou falha
     }
@@ -83,7 +114,7 @@ const LoginPage = () => {
           Bem-vindo à VeTech
         </Typography>
         <Typography component="p" variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
-          Acesse sua conta para gerenciar sua clínica.
+          Acesse sua conta como clínica veterinária ou tutor.
         </Typography>
         
         {authError && (
@@ -137,7 +168,17 @@ const LoginPage = () => {
           >
             {isButtonLoading ? <CircularProgress size={24} color="inherit" /> : 'Entrar'}
           </Button>
-          <Grid container justifyContent="flex-end">
+          <Grid container justifyContent="space-between">
+            <Grid item>
+              <Link 
+                component="button" 
+                variant="body2" 
+                onClick={() => navigate('/client/login')}
+                sx={{ color: 'secondary.main', textDecoration: 'none' }}
+              >
+                Sou tutor de pet
+              </Link>
+            </Grid>
             <Grid item>
               <Link href="#" variant="body2" onClick={() => alert('Funcionalidade de recuperação de senha estará disponível em breve!')} sx={{ color: 'secondary.main' }}>
                 Esqueceu sua senha?
