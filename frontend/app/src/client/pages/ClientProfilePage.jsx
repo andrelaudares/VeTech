@@ -1,226 +1,518 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Container,
+  Grid,
+  Paper,
+  TextField,
+  Button,
+  Avatar,
+  Divider,
+  Alert,
+  CircularProgress,
+  Card,
+  CardContent,
+  CardActions,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import PetsIcon from '@mui/icons-material/Pets';
+import SecurityIcon from '@mui/icons-material/Security';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useClientAuth } from '../contexts/ClientAuthContext';
-import { clientAuthService } from '../services/clientAuthService';
 
 const ClientProfilePage = () => {
-  const { client, updateClient } = useClientAuth();
+  const { isAuthenticated, loading: authLoading } = useClientAuth();
+  
+  // Estados para dados do perfil (mockup)
   const [profile, setProfile] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: ''
+    name: 'João Silva',
+    email: 'joao.silva@email.com',
+    phone: '(11) 99999-9999',
+    address: 'Rua das Flores, 123',
+    city: 'São Paulo',
+    state: 'SP',
+    cep: '01234-567',
+    birth_date: '1985-06-15',
+    cpf: '123.456.789-00',
+    emergency_contact: 'Maria Silva - (11) 88888-8888'
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  
+  const [editMode, setEditMode] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({...profile});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [changePasswordDialog, setChangePasswordDialog] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profileData = await clientAuthService.getProfile();
-        setProfile({
-          name: profileData.name || '',
-          email: profileData.email || '',
-          phone: profileData.phone || '',
-          address: profileData.address || ''
-        });
-      } catch (error) {
-        console.error('Erro ao carregar perfil:', error);
-        setMessage('Erro ao carregar dados do perfil');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Configurações de notificação (mockup)
+  const [notifications, setNotifications] = useState({
+    email_appointments: true,
+    email_reminders: true,
+    sms_appointments: false,
+    sms_reminders: true
+  });
 
-    loadProfile();
-  }, []);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setProfile(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage('');
-
+  // Função para buscar dados do perfil (mockup)
+  const fetchProfile = async () => {
+    if (!isAuthenticated) return;
+    
     try {
-      const updatedProfile = await clientAuthService.updateProfile(profile);
-      updateClient(updatedProfile);
-      setMessage('Perfil atualizado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao atualizar perfil:', error);
-      setMessage('Erro ao atualizar perfil. Tente novamente.');
+      setLoading(true);
+      setError(null);
+
+      // Simular carregamento
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Dados já estão mockados no estado inicial
+      
+    } catch (err) {
+      console.error('Erro ao buscar perfil:', err);
+      setError('Erro ao carregar dados do perfil. Tente novamente.');
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
+  // Função para salvar alterações do perfil (mockup)
+  const handleSaveProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Simular salvamento
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setProfile({...editedProfile});
+      setEditMode(false);
+      setSuccess(true);
+      
+      // Limpar mensagem de sucesso após 3 segundos
+      setTimeout(() => setSuccess(false), 3000);
+
+    } catch (err) {
+      console.error('Erro ao salvar perfil:', err);
+      setError('Erro ao salvar alterações. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para alterar senha (mockup)
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError('As senhas não coincidem.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Simular alteração de senha
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setChangePasswordDialog(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setSuccess(true);
+      
+      setTimeout(() => setSuccess(false), 3000);
+
+    } catch (err) {
+      console.error('Erro ao alterar senha:', err);
+      setError('Erro ao alterar senha. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Buscar dados quando a autenticação estiver pronta
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      fetchProfile();
+    }
+  }, [isAuthenticated, authLoading]);
+
+  // Função para cancelar edição
+  const handleCancelEdit = () => {
+    setEditedProfile({...profile});
+    setEditMode(false);
+    setError(null);
+  };
+
+  // Função para atualizar campo editado
+  const handleFieldChange = (field, value) => {
+    setEditedProfile(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Estados de carregamento e erro
+  if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-      </div>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Carregando...</Typography>
+      </Container>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="warning">Você precisa estar logado para acessar o perfil.</Alert>
+      </Container>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Meu Perfil</h1>
-              <p className="text-gray-600">Gerencie suas informações pessoais</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">{client?.name}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Box>
+          <Typography variant="h4" fontWeight="bold">Meu Perfil</Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+            Gerencie suas informações pessoais e configurações
+          </Typography>
+        </Box>
+        {!editMode && (
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={() => setEditMode(true)}
+            disabled={loading}
+          >
+            Editar Perfil
+          </Button>
+        )}
+      </Box>
 
-      {/* Main Content */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <div className="mb-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Informações Pessoais
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Mantenha seus dados atualizados para melhor atendimento.
-              </p>
-            </div>
+      {/* Alertas */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      
+      {success && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(false)}>
+          Informações atualizadas com sucesso!
+        </Alert>
+      )}
 
-            {message && (
-              <div className={`mb-4 p-4 rounded-md ${
-                message.includes('sucesso') 
-                  ? 'bg-green-50 text-green-700 border border-green-200' 
-                  : 'bg-red-50 text-red-700 border border-red-200'
-              }`}>
-                {message}
-              </div>
-            )}
+      <Grid container spacing={3}>
+        {/* Informações Pessoais */}
+        <Grid item xs={12} md={8}>
+          <Paper elevation={2} sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <PersonIcon sx={{ mr: 1, color: '#23e865' }} />
+              <Typography variant="h6" fontWeight="bold">Informações Pessoais</Typography>
+            </Box>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                    Nome Completo
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    id="name"
-                    value={profile.name}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
-                  />
-                </div>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Nome Completo"
+                  value={editMode ? editedProfile.name : profile.name}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="CPF"
+                  value={editMode ? editedProfile.cpf : profile.cpf}
+                  onChange={(e) => handleFieldChange('cpf', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    E-mail
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    id="email"
-                    value={profile.email}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
-                  />
-                </div>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={editMode ? editedProfile.email : profile.email}
+                  onChange={(e) => handleFieldChange('email', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
 
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                    Telefone
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    id="phone"
-                    value={profile.phone}
-                    onChange={handleInputChange}
-                    placeholder="(11) 99999-9999"
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Telefone"
+                  value={editMode ? editedProfile.phone : profile.phone}
+                  onChange={(e) => handleFieldChange('phone', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
 
-                <div className="sm:col-span-2">
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                    Endereço
-                  </label>
-                  <textarea
-                    name="address"
-                    id="address"
-                    rows={3}
-                    value={profile.address}
-                    onChange={handleInputChange}
-                    placeholder="Rua, número, bairro, cidade, CEP"
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-              </div>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Data de Nascimento"
+                  type="date"
+                  value={editMode ? editedProfile.birth_date : profile.birth_date}
+                  onChange={(e) => handleFieldChange('birth_date', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
 
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Contato de Emergência"
+                  value={editMode ? editedProfile.emergency_contact : profile.emergency_contact}
+                  onChange={(e) => handleFieldChange('emergency_contact', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Endereço */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <LocationOnIcon sx={{ mr: 1, color: '#23e865' }} />
+              <Typography variant="h6" fontWeight="bold">Endereço</Typography>
+            </Box>
+
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Endereço"
+                  value={editMode ? editedProfile.address : profile.address}
+                  onChange={(e) => handleFieldChange('address', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Cidade"
+                  value={editMode ? editedProfile.city : profile.city}
+                  onChange={(e) => handleFieldChange('city', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  fullWidth
+                  label="Estado"
+                  value={editMode ? editedProfile.state : profile.state}
+                  onChange={(e) => handleFieldChange('state', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  fullWidth
+                  label="CEP"
+                  value={editMode ? editedProfile.cep : profile.cep}
+                  onChange={(e) => handleFieldChange('cep', e.target.value)}
+                  disabled={!editMode || loading}
+                  variant="outlined"
+                />
+              </Grid>
+            </Grid>
+
+            {/* Botões de Ação */}
+            {editMode && (
+              <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<CancelIcon />}
+                  onClick={handleCancelEdit}
+                  disabled={loading}
                 >
-                  {saving ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Salvando...
-                    </>
-                  ) : (
-                    'Salvar Alterações'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveIcon />}
+                  onClick={handleSaveProfile}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={20} /> : 'Salvar'}
+                </Button>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
 
-        {/* Security Section */}
-        <div className="mt-8 bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <div className="mb-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Segurança
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Gerencie a segurança da sua conta.
-              </p>
-            </div>
+        {/* Sidebar */}
+        <Grid item xs={12} md={4}>
+          {/* Avatar e Resumo */}
+          <Paper elevation={2} sx={{ p: 3, mb: 3, textAlign: 'center' }}>
+            <Avatar
+              sx={{ 
+                width: 80, 
+                height: 80, 
+                mx: 'auto', 
+                mb: 2, 
+                bgcolor: '#23e865',
+                fontSize: '2rem'
+              }}
+            >
+              {profile.name.charAt(0).toUpperCase()}
+            </Avatar>
+            <Typography variant="h6" fontWeight="bold">{profile.name}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {profile.email}
+            </Typography>
+            <Chip 
+              label="Tutor Ativo" 
+              color="success" 
+              size="small"
+              icon={<PetsIcon />}
+            />
+          </Paper>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900">Alterar Senha</h4>
-                  <p className="text-sm text-gray-500">Atualize sua senha regularmente para manter sua conta segura.</p>
-                </div>
-                <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                  Alterar Senha
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          {/* Segurança */}
+          <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <SecurityIcon sx={{ mr: 1, color: '#23e865' }} />
+              <Typography variant="h6" fontWeight="bold">Segurança</Typography>
+            </Box>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setChangePasswordDialog(true)}
+              disabled={loading}
+            >
+              Alterar Senha
+            </Button>
+          </Paper>
+
+          {/* Configurações de Notificação */}
+          <Paper elevation={2} sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <NotificationsIcon sx={{ mr: 1, color: '#23e865' }} />
+              <Typography variant="h6" fontWeight="bold">Notificações</Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Configure como deseja receber notificações sobre seus pets
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Chip 
+                label="Email: Agendamentos" 
+                color={notifications.email_appointments ? "primary" : "default"}
+                size="small"
+              />
+              <Chip 
+                label="Email: Lembretes" 
+                color={notifications.email_reminders ? "primary" : "default"}
+                size="small"
+              />
+              <Chip 
+                label="SMS: Agendamentos" 
+                color={notifications.sms_appointments ? "primary" : "default"}
+                size="small"
+              />
+              <Chip 
+                label="SMS: Lembretes" 
+                color={notifications.sms_reminders ? "primary" : "default"}
+                size="small"
+              />
+            </Box>
+            <Button
+              fullWidth
+              variant="outlined"
+              size="small"
+              sx={{ mt: 2 }}
+              disabled
+            >
+              Configurar (Em Breve)
+            </Button>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Dialog para Alterar Senha */}
+      <Dialog 
+        open={changePasswordDialog} 
+        onClose={() => setChangePasswordDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Alterar Senha</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <TextField
+              fullWidth
+              label="Senha Atual"
+              type="password"
+              value={passwordData.currentPassword}
+              onChange={(e) => setPasswordData(prev => ({...prev, currentPassword: e.target.value}))}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Nova Senha"
+              type="password"
+              value={passwordData.newPassword}
+              onChange={(e) => setPasswordData(prev => ({...prev, newPassword: e.target.value}))}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Confirmar Nova Senha"
+              type="password"
+              value={passwordData.confirmPassword}
+              onChange={(e) => setPasswordData(prev => ({...prev, confirmPassword: e.target.value}))}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setChangePasswordDialog(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleChangePassword}
+            variant="contained"
+            disabled={loading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+          >
+            {loading ? <CircularProgress size={20} /> : 'Alterar Senha'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
   );
 };
 

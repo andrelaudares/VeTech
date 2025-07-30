@@ -1,8 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ClientAuthProvider } from '../contexts/ClientAuthContext';
 import ClientProtectedRoute from '../components/ClientProtectedRoute';
 import ClientLayout from '../components/ClientLayout';
-import ClientLoginPage from '../pages/ClientLoginPage';
 import ClientDashboardPage from '../pages/ClientDashboardPage';
 import ClientAnimalsPage from '../pages/ClientAnimalsPage';
 import ClientAppointmentsPage from '../pages/ClientAppointmentsPage';
@@ -12,7 +11,8 @@ const ClientRoutes = () => {
   return (
     <ClientAuthProvider>
       <Routes>
-        <Route path="/login" element={<ClientLoginPage />} />
+        {/* Redirecionar /client/login para a página principal de login */}
+        <Route path="/login" element={<Navigate to="/login" replace />} />
         <Route 
           path="/" 
           element={

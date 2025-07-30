@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
+import { useClientAuth } from '../client/contexts/ClientAuthContext';
 import { useNavigate } from 'react-router-dom';
 import logoVetech from '../assets/logo.svg';
 import dualAuthService from '../services/dualAuthService';
@@ -21,6 +22,7 @@ const LoginPage = () => {
   // Renomeamos 'error' para 'authError' no useAuth para evitar conflito com o nome padrão 'error'
   // Removendo 'loading' daqui pois usaremos um estado local para o botão.
   const { login, authError } = useAuth(); 
+  const clientAuth = useClientAuth();
   const navigate = useNavigate();
 
   // Novo estado local para controlar o loading do botão
@@ -52,7 +54,29 @@ const LoginPage = () => {
         navigate('/inicio');
       } else if (loginResult.user_type === 'client') {
         console.log("LoginPage: Usuário é cliente, redirecionando para área do cliente...");
-        // Para clientes, redirecionar para a área específica
+        console.log("LoginPage: Dados do cliente recebidos:", loginResult.client_data);
+        
+        // Para clientes, armazenar token e dados no localStorage
+        localStorage.setItem('client_token', loginResult.access_token);
+        
+        // Verificar se client_data existe antes de armazenar
+        if (loginResult.client_data) {
+          localStorage.setItem('clientData', JSON.stringify(loginResult.client_data));
+          console.log("LoginPage: clientData armazenado no localStorage");
+        } else if (loginResult.client) {
+          localStorage.setItem('clientData', JSON.stringify(loginResult.client));
+          console.log("LoginPage: client armazenado no localStorage");
+        } else {
+          console.error("LoginPage: Nenhum dado de cliente encontrado na resposta");
+        }
+        
+        // Forçar atualização do ClientAuthContext
+        if (clientAuth.refreshAuth) {
+          clientAuth.refreshAuth();
+        }
+        
+        // Usar navigate em vez de window.location.href
+        console.log("LoginPage: Redirecionando para /client/dashboard...");
         navigate('/client/dashboard');
       } else {
         throw new Error('Tipo de usuário não reconhecido');
@@ -168,17 +192,8 @@ const LoginPage = () => {
           >
             {isButtonLoading ? <CircularProgress size={24} color="inherit" /> : 'Entrar'}
           </Button>
-          <Grid container justifyContent="space-between">
-            <Grid item>
-              <Link 
-                component="button" 
-                variant="body2" 
-                onClick={() => navigate('/client/login')}
-                sx={{ color: 'secondary.main', textDecoration: 'none' }}
-              >
-                Sou tutor de pet
-              </Link>
-            </Grid>
+          
+          <Grid container justifyContent="flex-end">
             <Grid item>
               <Link href="#" variant="body2" onClick={() => alert('Funcionalidade de recuperação de senha estará disponível em breve!')} sx={{ color: 'secondary.main' }}>
                 Esqueceu sua senha?
