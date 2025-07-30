@@ -305,3 +305,44 @@ http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/prefer
 - `400 Bad Request`: Nenhum dado fornecido para atualização
 - `404 Not Found`: Animal não encontrado ou não pertence à clínica autenticada / Preferências não encontradas
 - `500 Internal Server Error`: Erro ao atualizar preferências
+
+### `GET /api/v1/animals/{animal_id}/activate-client`
+
+Obtém as preferências alimentares de um animal.
+
+**URL de Exemplo:**
+```
+http://localhost:8000/api/v1/animals/3e2ce4a2-f75b-468c-9353-04ba4996f548/preferences
+```
+
+**Path Parameters:**
+- `animal_id`: ID UUID do animal (obrigatório)
+
+**Header Parameters:**
+- `Authorization`: Token JWT no formato "Bearer {token}" (obrigatório)
+
+**Request Body:**
+```json
+{
+  {
+  "tutor_name": "João Silva",
+  "email": "tutor12@tutor.com",
+  "phone": "11999887766",
+  "password": "senha123",
+  "is_temporary_password": true
+}
+}
+
+**Responses:**
+- `200 OK`: Preferências obtidas com sucesso
+  ```json
+  {
+    "success": true,
+    "message": "Acesso do cliente ativado com sucesso",
+    "user_id": "1b9b3483-9a54-46c8-9a95-96107c2ef164",
+    "login_url": "/tutor/login",
+    "temporary_password": "fxzBn3yB"
+}
+  ```
+- `404 Not Found`: 
+- `500 Internal Server Error`: Erro ao obter preferências

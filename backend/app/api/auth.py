@@ -1,5 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body, Depends, Header
-from pydantic import EmailStr
+from fastapi import APIRouter, HTTPException, Depends, Body, status, Header
 from typing import Dict, Any, Optional
 import httpx
 import jwt
@@ -201,7 +200,7 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
         )
 
 @router.post("/login")
-async def login(email: EmailStr = Body(...), 
+async def login(email: str = Body(...), 
     password: str = Body(...)) -> Dict[str, Any]:
     try:
         # Endpoint para login

@@ -1,14 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Container, Typography, Button, Box, CircularProgress, Paper, TableContainer, 
-  Table, TableHead, TableRow, TableCell, TableBody, TablePagination, TextField, Grid, IconButton, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
+import {
+  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, 
+  TableHead, TableRow, Paper, IconButton, TextField, TablePagination,
+  CircularProgress, Snackbar, Alert, Dialog, DialogActions, DialogContent,
+  DialogContentText, DialogTitle, Chip, useTheme, Container, Grid, Tooltip
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
-import animalService from '../services/animalService';
+import {
+  Add as AddIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  PersonAdd as PersonAddIcon,
+  ToggleOff as ToggleOffIcon,
+  ToggleOn as ToggleOnIcon
+} from '@mui/icons-material';
+import { Plus, Eye, Edit, Trash2, Settings, ToggleLeft, ToggleRight } from 'lucide-react';
+import { animalService } from '../services/animalService';
 import AnimalFormDialog from '../components/AnimalFormDialog';
 import AnimalDetailDialog from '../components/AnimalDetailDialog';
 import AnimalPreferencesDialog from '../components/AnimalPreferencesDialog';
-import { useTheme } from '@mui/material/styles';
+import ClientActivationDialog from '../components/ClientActivationDialog';
 
 const AnimalsPage = () => {
   const theme = useTheme();
@@ -35,6 +46,10 @@ const AnimalsPage = () => {
 
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [animalToDelete, setAnimalToDelete] = useState(null);
+
+  // Estados para ativação de cliente
+  const [openActivationDialog, setOpenActivationDialog] = useState(false);
+  const [activatingAnimal, setActivatingAnimal] = useState(null);
 
   const showSnackbar = (message, severity = 'success') => {
     setSnackbarMessage(message);
@@ -159,6 +174,69 @@ const AnimalsPage = () => {
     }
   };
 
+  // Funções para ativação de cliente
+  const handleOpenActivationDialog = (animal) => {
+    setActivatingAnimal(animal);
+    setOpenActivationDialog(true);
+  };
+
+  const handleCloseActivationDialog = () => {
+    setOpenActivationDialog(false);
+    setActivatingAnimal(null);
+  };
+
+  const handleActivationSuccess = () => {
+    handleCloseActivationDialog();
+    fetchAnimals(); // Recarregar a lista para atualizar o status
+    showSnackbar('Cliente ativado com sucesso!', 'success');
+  };
+
+  const handleToggleClientStatus = async (animalId, currentStatus) => {
+    try {
+      await animalService.toggleClientStatus(animalId, !currentStatus);
+      fetchAnimals(); // Recarregar a lista
+      showSnackbar(
+        `Acesso do cliente ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`, 
+        'success'
+      );
+    } catch (err) {
+      showSnackbar('Erro ao alterar status do cliente.', 'error');
+    }
+  };
+
+  const getClientStatusChip = (animal) => {
+    if (!animal.tutor_name || !animal.email) {
+      return (
+        <Chip 
+          label="Não Configurado" 
+          size="small" 
+          color="default"
+          variant="outlined"
+        />
+      );
+    }
+    
+    if (animal.client_active) {
+      return (
+        <Chip 
+          label="Ativo" 
+          size="small" 
+          color="success"
+          variant="filled"
+        />
+      );
+    } else {
+      return (
+        <Chip 
+          label="Inativo" 
+          size="small" 
+          color="warning"
+          variant="outlined"
+        />
+      );
+    }
+  };
+
   if (loading && !openFormDialog && !openDetailDialog && !openPreferencesDialog) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}> 
@@ -221,6 +299,7 @@ const AnimalsPage = () => {
                 <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Raça</TableCell>
                 <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Idade</TableCell>
                 <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Peso (kg)</TableCell>
+                <TableCell sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Status Cliente</TableCell>
                 <TableCell align="center" sx={{ color: theme.palette.primary.contrastText, fontWeight: 'bold' }}>Ações</TableCell>
               </TableRow>
             </TableHead>
@@ -235,10 +314,47 @@ const AnimalsPage = () => {
                   <TableCell>{animal.breed || '-'}</TableCell>
                   <TableCell>{animal.age !== null ? animal.age : '-'}</TableCell>
                   <TableCell>{animal.weight !== null ? animal.weight : '-'}</TableCell>
+                  <TableCell>{getClientStatusChip(animal)}</TableCell>
                   <TableCell align="center">
-                    <IconButton onClick={() => handleViewAnimalClick(animal.id)} size="small" sx={{ color: '#169c44' }}><VisibilityIcon /></IconButton>
-                    <IconButton onClick={() => handleEditAnimal(animal)} size="small" color="primary"><EditIcon /></IconButton>
-                    <IconButton onClick={() => handleDeleteRequest(animal.id)} size="small" sx={{ color: theme.palette.error.main }}><DeleteIcon /></IconButton>
+                    <Tooltip title="Visualizar">
+                      <IconButton onClick={() => handleViewAnimalClick(animal.id)} size="small" sx={{ color: '#169c44' }}>
+                        <VisibilityIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Editar">
+                      <IconButton onClick={() => handleEditAnimal(animal)} size="small" color="primary">
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    
+                    {/* Botões de ativação de cliente */}
+                    {!animal.tutor_name || !animal.email ? (
+                      <Tooltip title="Ativar Cliente">
+                        <IconButton 
+                          onClick={() => handleOpenActivationDialog(animal)} 
+                          size="small" 
+                          sx={{ color: '#2196f3' }}
+                        >
+                          <PersonAddIcon />
+                        </IconButton>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title={animal.client_active ? "Desativar Cliente" : "Ativar Cliente"}>
+                        <IconButton 
+                          onClick={() => handleToggleClientStatus(animal.id, animal.client_active)} 
+                          size="small" 
+                          sx={{ color: animal.client_active ? '#ff9800' : '#4caf50' }}
+                        >
+                          {animal.client_active ? <ToggleOffIcon /> : <ToggleOnIcon />}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    
+                    <Tooltip title="Excluir">
+                      <IconButton onClick={() => handleDeleteRequest(animal.id)} size="small" sx={{ color: theme.palette.error.main }}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -286,6 +402,15 @@ const AnimalsPage = () => {
           animalId={managingPreferencesForAnimalId}
           currentPreferences={currentAnimalPreferences}
           onSuccess={handlePreferencesSuccess}
+        />
+      )}
+
+      {activatingAnimal && (
+        <ClientActivationDialog
+          open={openActivationDialog}
+          onClose={handleCloseActivationDialog}
+          animal={activatingAnimal}
+          onSuccess={handleActivationSuccess}
         />
       )}
 

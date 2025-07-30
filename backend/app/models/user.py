@@ -1,11 +1,11 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from datetime import datetime
 import bcrypt
 
 class UserCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
-    email: EmailStr
+    email: str
     password: str = Field(..., min_length=6)  # Mantemos para validação, mas não será armazenado
     phone: str = Field(..., min_length=10, max_length=15)
     subscription_tier: Literal["basic", "premium", "enterprise"] = "basic"
@@ -13,7 +13,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: str
     name: str
-    email: EmailStr
+    email: str
     phone: str
     created_at: Optional[datetime] = None
 
@@ -32,4 +32,4 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(
         plain_password.encode('utf-8'),
         hashed_password.encode('utf-8')
-    ) 
+    )

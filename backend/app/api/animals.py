@@ -1,10 +1,17 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, Path
 from typing import Dict, Any, Annotated, Optional
-from ..models.animal import AnimalCreate, AnimalResponse, AnimalUpdate
+from ..models.animal import (
+    AnimalCreate, AnimalResponse, AnimalUpdate, 
+    ClientActivationRequest, ClientActivationResponse,
+    ClientStatusToggleRequest, ClientStatusToggleResponse,
+    ClientInfoResponse
+)
 from ..models.animal_preferences import PetPreferencesCreate, PetPreferencesUpdate, PetPreferencesResponse
 from ..db.supabase import supabase_admin
 from uuid import UUID
 import logging
+import secrets
+import string
 from ..api.auth import get_current_user
 
 # Configuração básica de logging
@@ -38,7 +45,11 @@ async def create_animal(
             "breed": animal.breed,
             "age": animal.age,
             "weight": animal.weight,
-            "medical_history": animal.medical_history
+            "medical_history": animal.medical_history,
+            "date_birth": animal.date_birth.isoformat() if animal.date_birth else None,
+            "tutor_name": animal.tutor_name,
+            "email": animal.email,
+            "phone": animal.phone
         }
         
         logger.info(f"Tentando inserir animal na tabela 'animals' com dados: {animal_data}")
@@ -546,3 +557,360 @@ async def update_animal_preferences(
         if hasattr(e, 'response') and e.response is not None:
             error_detail = f"{error_detail} - Response: {e.response.text}"
         raise HTTPException(status_code=500, detail=f"Erro interno ao atualizar preferências: {error_detail}")
+
+
+# Função auxiliar para gerar senha temporária
+def generate_temporary_password(length: int = 8) -> str:
+    """Gera uma senha temporária segura"""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+
+@router.post("/{animal_id}/activate-client", response_model=ClientActivationResponse)
+async def activate_client_access(
+    animal_id: UUID = Path(..., description="ID do animal"),
+    activation_data: ClientActivationRequest = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> ClientActivationResponse:
+    """
+    Ativa o acesso do cliente/tutor para um animal específico.
+    Cria usuário em auth.users e vincula ao animal.
+    """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+    logger.info(f"Ativando acesso do cliente para animal {animal_id} (clínica: {clinic_id})")
+
+    try:
+        # 1. Verificar se o animal pertence à clínica
+        animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id,name,email,tutor_user_id"
+        )
+        animal_data = supabase_admin.process_response(animal_response, single_item=True)
+        
+        if not animal_data:
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence à clínica")
+
+        # 2. Verificar se já existe usuário vinculado
+        if animal_data.get("tutor_user_id"):
+            raise HTTPException(status_code=400, detail="Animal já possui tutor ativado. Use a rota de atualização.")
+
+        # 3. Verificar se email já existe em auth.users
+        try:
+            # Usar uma consulta SQL direta para verificar se o email existe
+            
+            check_email_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/rpc/check_user_email_exists",
+                params={"email_to_check": activation_data.email},
+                headers=supabase_admin.admin_headers
+            )
+            
+            # Se a função RPC não existir, usar método alternativo
+            if check_email_response.status_code == 404:
+                # Método alternativo: consultar diretamente a view auth.users
+                existing_user_response = await supabase_admin._request(
+                    "GET",
+                    "/rest/v1/auth_users",
+                    params={"email": f"eq.{activation_data.email}", "select": "email"},
+                    headers=supabase_admin.admin_headers
+                )
+                
+                existing_users = supabase_admin.process_response(existing_user_response)
+                if existing_users and len(existing_users) > 0:
+                    raise HTTPException(status_code=400, detail="Email já está em uso por outro usuário")
+            else:
+                email_exists = supabase_admin.process_response(check_email_response)
+                if email_exists:
+                    raise HTTPException(status_code=400, detail="Email já está em uso por outro usuário")
+                    
+        except HTTPException as http_exc:
+            if http_exc.status_code == 400:
+                raise http_exc
+            # Se der erro na consulta, continuar (pode ser que não tenha usuários ainda)
+            logger.warning(f"Erro ao verificar usuários existentes: {http_exc.detail}")
+        except Exception as e:
+            # Se der erro na consulta, continuar (pode ser que não tenha usuários ainda)
+            logger.warning(f"Erro ao verificar usuários existentes: {str(e)}")
+
+        # 4. Gerar senha se necessário
+        password = activation_data.password
+        temporary_password = None
+        
+        if activation_data.generate_password or not password:
+            temporary_password = generate_temporary_password()
+            password = temporary_password
+            logger.info(f"Senha temporária gerada para usuário {activation_data.email}")
+
+        # 5. Criar usuário em auth.users usando Admin API
+        user_data = {
+            "email": activation_data.email,
+            "password": password,
+            "email_confirm": True,  # Confirma email automaticamente
+            "user_metadata": {
+                "name": activation_data.tutor_name,
+                "phone": activation_data.phone,
+                "role": "tutor",
+                "clinic_id": str(clinic_id),
+                "animal_id": str(animal_id),
+                "temporary_password": bool(temporary_password)
+            }
+        }
+
+        create_user_response = await supabase_admin._request(
+            method="POST",
+            endpoint="/auth/v1/admin/users",
+            json=user_data,
+            headers=supabase_admin.admin_headers
+        )
+
+        created_user = supabase_admin.process_response(create_user_response, single_item=True)
+        if not created_user or not created_user.get("id"):
+            raise HTTPException(status_code=500, detail="Falha ao criar usuário no sistema de autenticação")
+
+        user_id = created_user["id"]
+        logger.info(f"Usuário criado com sucesso: {user_id}")
+
+        # 6. Atualizar dados do animal com informações do tutor e vinculação
+        update_data = {
+            "tutor_name": activation_data.tutor_name,
+            "email": activation_data.email,
+            "phone": activation_data.phone,
+            "tutor_user_id": user_id,
+            "client_active": True,
+            "client_activated_at": "now()"
+        }
+
+        # Atualizar o animal
+        update_response = await supabase_admin._request(
+            method="PATCH",
+            endpoint="/rest/v1/animals",
+            params={"id": f"eq.{animal_id}", "clinic_id": f"eq.{clinic_id}"},
+            json=update_data,
+            headers={**supabase_admin.admin_headers, "Prefer": "return=representation"}
+        )
+
+        updated_animal = supabase_admin.process_response(update_response)
+        if not updated_animal:
+            # Se falhou ao atualizar animal, tentar deletar o usuário criado
+            try:
+                await supabase_admin._request(
+                    method="DELETE",
+                    endpoint=f"/auth/v1/admin/users/{user_id}",
+                    headers=supabase_admin.admin_headers
+                )
+            except Exception as cleanup_error:
+                logger.error(f"Erro ao limpar usuário após falha: {cleanup_error}")
+            
+            raise HTTPException(status_code=500, detail="Falha ao vincular tutor ao animal")
+
+        logger.info(f"Acesso do cliente ativado com sucesso para animal {animal_id}")
+
+        return ClientActivationResponse(
+            success=True,
+            message="Acesso do cliente ativado com sucesso",
+            user_id=user_id,
+            login_url="/tutor/login",
+            temporary_password=temporary_password
+        )
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Erro ao ativar acesso do cliente para animal {animal_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+
+@router.patch("/{animal_id}/client-status", response_model=ClientStatusToggleResponse)
+async def toggle_client_status(
+    animal_id: UUID = Path(..., description="ID do animal"),
+    status_data: ClientStatusToggleRequest = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> ClientStatusToggleResponse:
+    """
+    Ativa ou desativa o acesso do cliente/tutor.
+    Não remove o usuário de auth.users, apenas controla o acesso.
+    """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+    logger.info(f"Alterando status do cliente para animal {animal_id}: {status_data.active}")
+
+    try:
+        # Verificar se o animal pertence à clínica
+        animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id,client_active,tutor_user_id"
+        )
+        animal_data = supabase_admin.process_response(animal_response, single_item=True)
+        
+        if not animal_data:
+            raise HTTPException(status_code=404, detail="Animal não encontrado")
+
+        if not animal_data.get("tutor_user_id"):
+            raise HTTPException(status_code=400, detail="Animal não possui tutor cadastrado")
+
+        # Atualizar status
+        update_data = {"client_active": status_data.active}
+        if status_data.active and not animal_data.get("client_active"):
+            update_data["client_activated_at"] = "now()"
+
+        update_response = await supabase_admin._request(
+            method="PATCH",
+            endpoint="/rest/v1/animals",
+            params={"id": f"eq.{animal_id}", "clinic_id": f"eq.{clinic_id}"},
+            json=update_data,
+            headers={**supabase_admin.admin_headers, "Prefer": "return=representation"}
+        )
+
+        updated_animal = supabase_admin.process_response(update_response)
+        if not updated_animal:
+            raise HTTPException(status_code=500, detail="Falha ao atualizar status")
+
+        return ClientStatusToggleResponse(
+            success=True,
+            message=f"Acesso do cliente {'ativado' if status_data.active else 'desativado'} com sucesso",
+            client_active=status_data.active
+        )
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Erro ao alterar status do cliente: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+
+@router.get("/{animal_id}/client-info", response_model=ClientInfoResponse)
+async def get_client_info(
+    animal_id: UUID = Path(..., description="ID do animal"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> ClientInfoResponse:
+    """
+    Obtém informações do cliente/tutor de um animal.
+    """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+    try:
+        # Buscar informações do cliente
+        response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=tutor_name,email,phone,tutor_user_id,client_active,client_activated_at,client_last_login"
+        )
+        
+        animal_data = supabase_admin.process_response(response, single_item=True)
+        if not animal_data:
+            raise HTTPException(status_code=404, detail="Animal não encontrado")
+
+        return ClientInfoResponse(
+            tutor_name=animal_data.get("tutor_name"),
+            email=animal_data.get("email"),
+            phone=animal_data.get("phone"),
+            tutor_user_id=animal_data.get("tutor_user_id"),
+            client_active=animal_data.get("client_active", False),
+            client_activated_at=animal_data.get("client_activated_at"),
+            client_last_login=animal_data.get("client_last_login")
+        )
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Erro ao obter informações do cliente: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+
+@router.patch("/{animal_id}/update-client", response_model=ClientActivationResponse)
+async def update_client_info(
+    animal_id: UUID = Path(..., description="ID do animal"),
+    activation_data: ClientActivationRequest = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> ClientActivationResponse:
+    """
+    Atualiza informações do cliente/tutor existente.
+    Atualiza tanto auth.users quanto a tabela animals.
+    """
+    clinic_id = current_user.get("id")
+    if not clinic_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+    logger.info(f"Atualizando informações do cliente para animal {animal_id}")
+
+    try:
+        # 1. Verificar se o animal pertence à clínica e tem tutor
+        animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}&select=id,tutor_user_id,email"
+        )
+        animal_data = supabase_admin.process_response(animal_response, single_item=True)
+        
+        if not animal_data:
+            raise HTTPException(status_code=404, detail="Animal não encontrado")
+
+        tutor_user_id = animal_data.get("tutor_user_id")
+        if not tutor_user_id:
+            raise HTTPException(status_code=400, detail="Animal não possui tutor cadastrado. Use a rota de ativação.")
+
+        # 2. Atualizar usuário em auth.users
+        user_update_data = {
+            "email": activation_data.email,
+            "user_metadata": {
+                "name": activation_data.tutor_name,
+                "phone": activation_data.phone,
+                "role": "tutor",
+                "clinic_id": str(clinic_id),
+                "animal_id": str(animal_id)
+            }
+        }
+
+        # Se nova senha foi fornecida, atualizar
+        if activation_data.password:
+            user_update_data["password"] = activation_data.password
+
+        update_user_response = await supabase_admin._request(
+            method="PUT",
+            endpoint=f"/auth/v1/admin/users/{tutor_user_id}",
+            json=user_update_data,
+            headers=supabase_admin.admin_headers
+        )
+
+        updated_user = supabase_admin.process_response(update_user_response, single_item=True)
+        if not updated_user:
+            raise HTTPException(status_code=500, detail="Falha ao atualizar usuário")
+
+        # 3. Atualizar dados do animal
+        animal_update_data = {
+            "tutor_name": activation_data.tutor_name,
+            "email": activation_data.email,
+            "phone": activation_data.phone
+        }
+
+        update_response = await supabase_admin._request(
+            method="PATCH",
+            endpoint="/rest/v1/animals",
+            params={"id": f"eq.{animal_id}", "clinic_id": f"eq.{clinic_id}"},
+            json=animal_update_data,
+            headers={**supabase_admin.admin_headers, "Prefer": "return=representation"}
+        )
+
+        updated_animal = supabase_admin.process_response(update_response)
+        if not updated_animal:
+            raise HTTPException(status_code=500, detail="Falha ao atualizar dados do animal")
+
+        logger.info(f"Informações do cliente atualizadas com sucesso para animal {animal_id}")
+
+        return ClientActivationResponse(
+            success=True,
+            message="Informações do cliente atualizadas com sucesso",
+            user_id=tutor_user_id,
+            login_url="/tutor/login"
+        )
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Erro ao atualizar informações do cliente: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")

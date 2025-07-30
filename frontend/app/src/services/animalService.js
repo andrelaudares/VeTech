@@ -1,45 +1,81 @@
-import api from './api'; // Sua instância configurada do Axios ou similar
+import api from './api';
 
-const getAnimals = () => {
-  return api.get('/animals'); // Endpoint para listar animais da clínica logada
-};
-
-// Adicionar outros métodos conforme necessário (create, update, delete, getById)
-
-const animalService = {
-  getAnimals,
-  getAllAnimals: async () => {
-    const token = localStorage.getItem('userToken'); // Adicionado para debug
-    console.log('AnimalService: Token lido do localStorage para getAllAnimals:', token); // Adicionado para debug
+export const animalService = {
+  // Operações básicas de animais
+  async getAnimals() {
     const response = await api.get('/animals');
     return response.data;
   },
-  createAnimal: async (animalData) => {
+
+  async getAllAnimals() {
+    const response = await api.get('/animals');
+    return response.data;
+  },
+
+  async getAnimal(id) {
+    const response = await api.get(`/animals/${id}`);
+    return response.data;
+  },
+
+  async getAnimalById(id) {
+    const response = await api.get(`/animals/${id}`);
+    return response.data;
+  },
+
+  async createAnimal(animalData) {
     const response = await api.post('/animals', animalData);
     return response.data;
   },
-  getAnimalById: async (animalId) => {
-    const response = await api.get(`/animals/${animalId}`);
+
+  async updateAnimal(id, animalData) {
+    const response = await api.put(`/animals/${id}`, animalData);
     return response.data;
   },
-  updateAnimal: async (animalId, animalData) => {
-    const response = await api.patch(`/animals/${animalId}`, animalData);
+
+  async deleteAnimal(id) {
+    const response = await api.delete(`/animals/${id}`);
     return response.data;
   },
-  deleteAnimal: async (animalId) => {
-    const response = await api.delete(`/animals/${animalId}`);
-    return response.data; // Ou response.status se não houver corpo na resposta
+
+  // Operações de preferências
+  async createPreferences(animalId, preferences) {
+    const response = await api.post(`/animals/${animalId}/preferences`, preferences);
+    return response.data;
   },
-  getAnimalPreferences: async (animalId) => {
+
+  async getPreferences(animalId) {
     const response = await api.get(`/animals/${animalId}/preferences`);
     return response.data;
   },
-  createAnimalPreferences: async (animalId, preferencesData) => {
-    const response = await api.post(`/animals/${animalId}/preferences`, preferencesData);
+
+  async getAnimalPreferences(animalId) {
+    const response = await api.get(`/animals/${animalId}/preferences`);
     return response.data;
   },
-  updateAnimalPreferences: async (animalId, preferencesData) => {
-    const response = await api.patch(`/animals/${animalId}/preferences`, preferencesData);
+
+  async updatePreferences(animalId, preferences) {
+    const response = await api.put(`/animals/${animalId}/preferences`, preferences);
+    return response.data;
+  },
+
+  // Operações de ativação de cliente/tutor
+  async activateClientAccess(animalId, activationData) {
+    const response = await api.post(`/animals/${animalId}/activate-client`, activationData);
+    return response.data;
+  },
+
+  async updateClientInfo(animalId, clientData) {
+    const response = await api.patch(`/animals/${animalId}/update-client`, clientData);
+    return response.data;
+  },
+
+  async toggleClientStatus(animalId, active) {
+    const response = await api.patch(`/animals/${animalId}/client-status`, { active });
+    return response.data;
+  },
+
+  async getClientInfo(animalId) {
+    const response = await api.get(`/animals/${animalId}/client-info`);
     return response.data;
   }
 };
