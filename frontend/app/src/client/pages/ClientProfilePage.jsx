@@ -19,7 +19,11 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -27,36 +31,49 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PetsIcon from '@mui/icons-material/Pets';
 import SecurityIcon from '@mui/icons-material/Security';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ScaleIcon from '@mui/icons-material/Scale';
+import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import { useClientAuth } from '../contexts/ClientAuthContext';
+import { clientAnimalService } from '../services/clientAnimalService';
 
 const ClientProfilePage = () => {
-  const { isAuthenticated, loading: authLoading } = useClientAuth();
+  const { client, isAuthenticated, token } = useClientAuth();
   
-  // Estados para dados do perfil (mockup)
-  const [profile, setProfile] = useState({
-    name: 'João Silva',
-    email: 'joao.silva@email.com',
-    phone: '(11) 99999-9999',
-    address: 'Rua das Flores, 123',
-    city: 'São Paulo',
-    state: 'SP',
-    cep: '01234-567',
-    birth_date: '1985-06-15',
-    cpf: '123.456.789-00',
-    emergency_contact: 'Maria Silva - (11) 88888-8888'
+  // Estados para dados do animal/tutor
+  const [animalData, setAnimalData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  // Estados para edição
+  const [editingTutor, setEditingTutor] = useState(false);
+  const [editingAnimal, setEditingAnimal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  // Estados para formulários
+  const [tutorForm, setTutorForm] = useState({
+    tutor_name: '',
+    phone: '',
+    email: ''
   });
   
-  const [editMode, setEditMode] = useState(false);
-  const [editedProfile, setEditedProfile] = useState({...profile});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
-  const [changePasswordDialog, setChangePasswordDialog] = useState(false);
-  const [passwordData, setPasswordData] = useState({
+  const [animalForm, setAnimalForm] = useState({
+    name: '',
+    species: '',
+    breed: '',
+    age: '',
+    weight: '',
+    date_birth: '',
+    medical_history: ''
+  });
+  
+  // Estados para mudança de senha
+  const [passwordDialog, setPasswordDialog] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -70,107 +87,177 @@ const ClientProfilePage = () => {
     sms_reminders: true
   });
 
-  // Função para buscar dados do perfil (mockup)
-  const fetchProfile = async () => {
-    if (!isAuthenticated) return;
-    
+  // Carregar dados do animal ao montar o componente
+  useEffect(() => {
+    loadAnimalData();
+  }, []);
+
+  const loadAnimalData = async () => {
     try {
       setLoading(true);
-      setError(null);
-
-      // Simular carregamento
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Dados já estão mockados no estado inicial
+      setError('');
+      
+      const data = await clientAnimalService.getMyAnimal();
+      setAnimalData(data);
+      
+      // Preencher formulários com dados atuais
+      setTutorForm({
+        tutor_name: data.tutor_name || '',
+        phone: data.phone || '',
+        email: data.email || ''
+      });
+      
+      setAnimalForm({
+        name: data.name || '',
+        species: data.species || '',
+        breed: data.breed || '',
+        age: data.age?.toString() || '',
+        weight: data.weight?.toString() || '',
+        date_birth: data.date_birth ? data.date_birth.split('T')[0] : '',
+        medical_history: data.medical_history || ''
+      });
       
     } catch (err) {
-      console.error('Erro ao buscar perfil:', err);
+      console.error('Erro ao carregar dados:', err);
       setError('Erro ao carregar dados do perfil. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Função para salvar alterações do perfil (mockup)
-  const handleSaveProfile = async () => {
+  const handleTutorSave = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      // Simular salvamento
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setProfile({...editedProfile});
-      setEditMode(false);
-      setSuccess(true);
+      setSaving(true);
+      setError('');
       
-      // Limpar mensagem de sucesso após 3 segundos
-      setTimeout(() => setSuccess(false), 3000);
-
+      await clientAnimalService.updateMyAnimal({
+        tutor_name: tutorForm.tutor_name,
+        phone: tutorForm.phone
+        // email não pode ser alterado
+      });
+      
+      setSuccess('Dados do tutor atualizados com sucesso!');
+      setEditingTutor(false);
+      await loadAnimalData(); // Recarregar dados
+      
     } catch (err) {
-      console.error('Erro ao salvar perfil:', err);
-      setError('Erro ao salvar alterações. Tente novamente.');
+      console.error('Erro ao salvar dados do tutor:', err);
+      setError('Erro ao salvar dados do tutor. Tente novamente.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  // Função para alterar senha (mockup)
-  const handleChangePassword = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError('As senhas não coincidem.');
-      return;
-    }
-
+  const handleAnimalSave = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      // Simular alteração de senha
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setChangePasswordDialog(false);
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setSuccess(true);
+      setSaving(true);
+      setError('');
       
-      setTimeout(() => setSuccess(false), 3000);
+      const updateData = {
+        name: animalForm.name,
+        species: animalForm.species,
+        breed: animalForm.breed,
+        age: animalForm.age ? parseInt(animalForm.age) : null,
+        weight: animalForm.weight ? parseFloat(animalForm.weight) : null,
+        date_birth: animalForm.date_birth || null,
+        medical_history: animalForm.medical_history
+      };
+      
+      await clientAnimalService.updateMyAnimal(updateData);
+      
+      setSuccess('Dados do animal atualizados com sucesso!');
+      setEditingAnimal(false);
+      await loadAnimalData(); // Recarregar dados
+      
+    } catch (err) {
+      console.error('Erro ao salvar dados do animal:', err);
+      setError('Erro ao salvar dados do animal. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
+  const handlePasswordChange = async () => {
+    try {
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        setError('As senhas não coincidem.');
+        return;
+      }
+      
+      if (passwordForm.newPassword.length < 6) {
+        setError('A nova senha deve ter pelo menos 6 caracteres.');
+        return;
+      }
+      
+      setSaving(true);
+      setError('');
+      
+      await clientAnimalService.changePassword(
+        passwordForm.currentPassword,
+        passwordForm.newPassword
+      );
+      
+      setSuccess('Senha alterada com sucesso!');
+      setPasswordDialog(false);
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      
     } catch (err) {
       console.error('Erro ao alterar senha:', err);
-      setError('Erro ao alterar senha. Tente novamente.');
+      setError('Erro ao alterar senha. Verifique a senha atual.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  // Buscar dados quando a autenticação estiver pronta
+  const handleCancelEdit = (type) => {
+    if (type === 'tutor') {
+      setEditingTutor(false);
+      // Restaurar dados originais
+      if (animalData) {
+        setTutorForm({
+          tutor_name: animalData.tutor_name || '',
+          phone: animalData.phone || '',
+          email: animalData.email || ''
+        });
+      }
+    } else if (type === 'animal') {
+      setEditingAnimal(false);
+      // Restaurar dados originais
+      if (animalData) {
+        setAnimalForm({
+          name: animalData.name || '',
+          species: animalData.species || '',
+          breed: animalData.breed || '',
+          age: animalData.age?.toString() || '',
+          weight: animalData.weight?.toString() || '',
+          date_birth: animalData.date_birth ? animalData.date_birth.split('T')[0] : '',
+          medical_history: animalData.medical_history || ''
+        });
+      }
+    }
+  };
+
+  // Limpar mensagens após 5 segundos
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      fetchProfile();
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess('');
+        setError('');
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, authLoading]);
+  }, [success, error]);
 
-  // Função para cancelar edição
-  const handleCancelEdit = () => {
-    setEditedProfile({...profile});
-    setEditMode(false);
-    setError(null);
-  };
-
-  // Função para atualizar campo editado
-  const handleFieldChange = (field, value) => {
-    setEditedProfile(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Estados de carregamento e erro
-  if (authLoading) {
+  if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Carregando...</Typography>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress size={60} />
+        </Box>
       </Container>
     );
   }
@@ -185,330 +272,470 @@ const ClientProfilePage = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold">Meu Perfil</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-            Gerencie suas informações pessoais e configurações
-          </Typography>
-        </Box>
-        {!editMode && (
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={() => setEditMode(true)}
-            disabled={loading}
-          >
-            Editar Perfil
-          </Button>
-        )}
+      {/* Cabeçalho da página */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Meu Perfil
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Gerencie suas informações pessoais e dados do seu pet
+        </Typography>
       </Box>
 
-      {/* Alertas */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
+      {/* Alertas de sucesso e erro */}
+      {success && (
+        <Alert severity="success" sx={{ mb: 3 }}>
+          {success}
         </Alert>
       )}
       
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(false)}>
-          Informações atualizadas com sucesso!
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
         </Alert>
       )}
 
       <Grid container spacing={3}>
-        {/* Informações Pessoais */}
-        <Grid item xs={12} md={8}>
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <PersonIcon sx={{ mr: 1, color: '#23e865' }} />
-              <Typography variant="h6" fontWeight="bold">Informações Pessoais</Typography>
-            </Box>
+        {/* Card de Dados do Tutor */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                <Box display="flex" alignItems="center">
+                  <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                    <PersonIcon />
+                  </Avatar>
+                  <Typography variant="h6">Dados do Tutor</Typography>
+                </Box>
+                {!editingTutor && (
+                  <IconButton 
+                    onClick={() => setEditingTutor(true)}
+                    color="primary"
+                  >
+                    <EditIcon />
+                  </IconButton>
+                )}
+              </Box>
 
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Nome Completo"
-                  value={editMode ? editedProfile.name : profile.name}
-                  onChange={(e) => handleFieldChange('name', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="CPF"
-                  value={editMode ? editedProfile.cpf : profile.cpf}
-                  onChange={(e) => handleFieldChange('cpf', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
+              <Divider sx={{ mb: 2 }} />
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={editMode ? editedProfile.email : profile.email}
-                  onChange={(e) => handleFieldChange('email', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
+              {editingTutor ? (
+                <Box component="form" noValidate>
+                  <TextField
+                    fullWidth
+                    label="Nome"
+                    value={tutorForm.tutor_name}
+                    onChange={(e) => setTutorForm(prev => ({ ...prev, tutor_name: e.target.value }))}
+                    margin="normal"
+                    InputProps={{
+                      startAdornment: <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    }}
+                  />
+                  
+                  <TextField
+                    fullWidth
+                    label="Telefone"
+                    value={tutorForm.phone}
+                    onChange={(e) => setTutorForm(prev => ({ ...prev, phone: e.target.value }))}
+                    margin="normal"
+                    InputProps={{
+                      startAdornment: <PhoneIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    }}
+                  />
+                  
+                  <TextField
+                    fullWidth
+                    label="E-mail"
+                    value={tutorForm.email}
+                    disabled
+                    margin="normal"
+                    helperText="O e-mail não pode ser alterado"
+                    InputProps={{
+                      startAdornment: <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    }}
+                  />
+                </Box>
+              ) : (
+                <Box>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Nome</Typography>
+                      <Typography variant="body1">{animalData?.tutor_name || 'Não informado'}</Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <PhoneIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Telefone</Typography>
+                      <Typography variant="body1">{animalData?.phone || 'Não informado'}</Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">E-mail</Typography>
+                      <Typography variant="body1">{animalData?.email || 'Não informado'}</Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+            </CardContent>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Telefone"
-                  value={editMode ? editedProfile.phone : profile.phone}
-                  onChange={(e) => handleFieldChange('phone', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Data de Nascimento"
-                  type="date"
-                  value={editMode ? editedProfile.birth_date : profile.birth_date}
-                  onChange={(e) => handleFieldChange('birth_date', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Contato de Emergência"
-                  value={editMode ? editedProfile.emergency_contact : profile.emergency_contact}
-                  onChange={(e) => handleFieldChange('emergency_contact', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 3 }} />
-
-            {/* Endereço */}
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <LocationOnIcon sx={{ mr: 1, color: '#23e865' }} />
-              <Typography variant="h6" fontWeight="bold">Endereço</Typography>
-            </Box>
-
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Endereço"
-                  value={editMode ? editedProfile.address : profile.address}
-                  onChange={(e) => handleFieldChange('address', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Cidade"
-                  value={editMode ? editedProfile.city : profile.city}
-                  onChange={(e) => handleFieldChange('city', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  fullWidth
-                  label="Estado"
-                  value={editMode ? editedProfile.state : profile.state}
-                  onChange={(e) => handleFieldChange('state', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  fullWidth
-                  label="CEP"
-                  value={editMode ? editedProfile.cep : profile.cep}
-                  onChange={(e) => handleFieldChange('cep', e.target.value)}
-                  disabled={!editMode || loading}
-                  variant="outlined"
-                />
-              </Grid>
-            </Grid>
-
-            {/* Botões de Ação */}
-            {editMode && (
-              <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end' }}>
+            {editingTutor && (
+              <CardActions>
                 <Button
-                  variant="outlined"
+                  onClick={handleTutorSave}
+                  variant="contained"
+                  startIcon={<SaveIcon />}
+                  disabled={saving}
+                >
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </Button>
+                <Button
+                  onClick={() => handleCancelEdit('tutor')}
                   startIcon={<CancelIcon />}
-                  onClick={handleCancelEdit}
-                  disabled={loading}
+                  disabled={saving}
                 >
                   Cancelar
                 </Button>
+              </CardActions>
+            )}
+          </Card>
+        </Grid>
+
+        {/* Card de Dados do Animal */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                <Box display="flex" alignItems="center">
+                  <Avatar sx={{ bgcolor: 'secondary.main', mr: 2 }}>
+                    <PetsIcon />
+                  </Avatar>
+                  <Typography variant="h6">Dados do Pet</Typography>
+                </Box>
+                {!editingAnimal && (
+                  <IconButton 
+                    onClick={() => setEditingAnimal(true)}
+                    color="primary"
+                  >
+                    <EditIcon />
+                  </IconButton>
+                )}
+              </Box>
+
+              <Divider sx={{ mb: 2 }} />
+
+              {editingAnimal ? (
+                <Box component="form" noValidate>
+                  <TextField
+                    fullWidth
+                    label="Nome do Pet"
+                    value={animalForm.name}
+                    onChange={(e) => setAnimalForm(prev => ({ ...prev, name: e.target.value }))}
+                    margin="normal"
+                    InputProps={{
+                      startAdornment: <PetsIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    }}
+                  />
+                  
+                  <FormControl fullWidth margin="normal">
+                    <InputLabel>Espécie</InputLabel>
+                    <Select
+                      value={animalForm.species}
+                      label="Espécie"
+                      onChange={(e) => setAnimalForm(prev => ({ ...prev, species: e.target.value }))}
+                    >
+                      <MenuItem value="Cão">Cão</MenuItem>
+                      <MenuItem value="Gato">Gato</MenuItem>
+                      <MenuItem value="Pássaro">Pássaro</MenuItem>
+                      <MenuItem value="Coelho">Coelho</MenuItem>
+                      <MenuItem value="Hamster">Hamster</MenuItem>
+                      <MenuItem value="Outro">Outro</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  <TextField
+                    fullWidth
+                    label="Raça"
+                    value={animalForm.breed}
+                    onChange={(e) => setAnimalForm(prev => ({ ...prev, breed: e.target.value }))}
+                    margin="normal"
+                  />
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Idade (anos)"
+                        type="number"
+                        value={animalForm.age}
+                        onChange={(e) => setAnimalForm(prev => ({ ...prev, age: e.target.value }))}
+                        margin="normal"
+                        InputProps={{
+                          startAdornment: <CalendarTodayIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Peso (kg)"
+                        type="number"
+                        step="0.1"
+                        value={animalForm.weight}
+                        onChange={(e) => setAnimalForm(prev => ({ ...prev, weight: e.target.value }))}
+                        margin="normal"
+                        InputProps={{
+                          startAdornment: <ScaleIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <TextField
+                    fullWidth
+                    label="Data de Nascimento"
+                    type="date"
+                    value={animalForm.date_birth}
+                    onChange={(e) => setAnimalForm(prev => ({ ...prev, date_birth: e.target.value }))}
+                    margin="normal"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                  
+                  <TextField
+                    fullWidth
+                    label="Histórico Médico"
+                    multiline
+                    rows={3}
+                    value={animalForm.medical_history}
+                    onChange={(e) => setAnimalForm(prev => ({ ...prev, medical_history: e.target.value }))}
+                    margin="normal"
+                    placeholder="Descreva o histórico médico do seu pet..."
+                    InputProps={{
+                      startAdornment: <MedicalServicesIcon sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
+                    }}
+                  />
+                </Box>
+              ) : (
+                <Box>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <PetsIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Nome</Typography>
+                      <Typography variant="body1">{animalData?.name || 'Não informado'}</Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Espécie e Raça</Typography>
+                      <Typography variant="body1">
+                        {animalData?.species || 'Não informado'} 
+                        {animalData?.breed && ` - ${animalData.breed}`}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Grid container spacing={2} mb={2}>
+                    <Grid item xs={6}>
+                      <Box display="flex" alignItems="center">
+                        <CalendarTodayIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">Idade</Typography>
+                          <Typography variant="body1">{animalData?.age ? `${animalData.age} anos` : 'Não informado'}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Box display="flex" alignItems="center">
+                        <ScaleIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">Peso</Typography>
+                          <Typography variant="body1">{animalData?.weight ? `${animalData.weight} kg` : 'Não informado'}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                  
+                  {animalData?.date_birth && (
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <CalendarTodayIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Data de Nascimento</Typography>
+                        <Typography variant="body1">
+                          {new Date(animalData.date_birth).toLocaleDateString('pt-BR')}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                  
+                  {animalData?.medical_history && (
+                    <Box display="flex" alignItems="flex-start" mb={2}>
+                      <MedicalServicesIcon sx={{ mr: 1, color: 'text.secondary', mt: 0.5 }} />
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Histórico Médico</Typography>
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {animalData.medical_history}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </CardContent>
+
+            {editingAnimal && (
+              <CardActions>
                 <Button
+                  onClick={handleAnimalSave}
                   variant="contained"
                   startIcon={<SaveIcon />}
-                  onClick={handleSaveProfile}
-                  disabled={loading}
+                  disabled={saving}
                 >
-                  {loading ? <CircularProgress size={20} /> : 'Salvar'}
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </Button>
+                <Button
+                  onClick={() => handleCancelEdit('animal')}
+                  startIcon={<CancelIcon />}
+                  disabled={saving}
+                >
+                  Cancelar
+                </Button>
+              </CardActions>
+            )}
+          </Card>
+        </Grid>
+
+        {/* Card de Segurança */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" mb={2}>
+                <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
+                  <SecurityIcon />
+                </Avatar>
+                <Typography variant="h6">Segurança</Typography>
+              </Box>
+
+              <Divider sx={{ mb: 2 }} />
+
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body1" gutterBottom>
+                    Alterar Senha
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Mantenha sua conta segura alterando sua senha regularmente
+                  </Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  startIcon={<SecurityIcon />}
+                  onClick={() => setPasswordDialog(true)}
+                >
+                  Alterar Senha
                 </Button>
               </Box>
-            )}
-          </Paper>
+            </CardContent>
+          </Card>
         </Grid>
 
-        {/* Sidebar */}
-        <Grid item xs={12} md={4}>
-          {/* Avatar e Resumo */}
-          <Paper elevation={2} sx={{ p: 3, mb: 3, textAlign: 'center' }}>
-            <Avatar
-              sx={{ 
-                width: 80, 
-                height: 80, 
-                mx: 'auto', 
-                mb: 2, 
-                bgcolor: '#23e865',
-                fontSize: '2rem'
-              }}
-            >
-              {profile.name.charAt(0).toUpperCase()}
-            </Avatar>
-            <Typography variant="h6" fontWeight="bold">{profile.name}</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {profile.email}
-            </Typography>
-            <Chip 
-              label="Tutor Ativo" 
-              color="success" 
-              size="small"
-              icon={<PetsIcon />}
-            />
-          </Paper>
+        {/* Card de Gamificação (se disponível) */}
+        {animalData && (animalData.gamification_level || animalData.total_points) && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+                    <NotificationsIcon />
+                  </Avatar>
+                  <Typography variant="h6">Gamificação</Typography>
+                </Box>
 
-          {/* Segurança */}
-          <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <SecurityIcon sx={{ mr: 1, color: '#23e865' }} />
-              <Typography variant="h6" fontWeight="bold">Segurança</Typography>
-            </Box>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => setChangePasswordDialog(true)}
-              disabled={loading}
-            >
-              Alterar Senha
-            </Button>
-          </Paper>
+                <Divider sx={{ mb: 2 }} />
 
-          {/* Configurações de Notificação */}
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <NotificationsIcon sx={{ mr: 1, color: '#23e865' }} />
-              <Typography variant="h6" fontWeight="bold">Notificações</Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Configure como deseja receber notificações sobre seus pets
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Chip 
-                label="Email: Agendamentos" 
-                color={notifications.email_appointments ? "primary" : "default"}
-                size="small"
-              />
-              <Chip 
-                label="Email: Lembretes" 
-                color={notifications.email_reminders ? "primary" : "default"}
-                size="small"
-              />
-              <Chip 
-                label="SMS: Agendamentos" 
-                color={notifications.sms_appointments ? "primary" : "default"}
-                size="small"
-              />
-              <Chip 
-                label="SMS: Lembretes" 
-                color={notifications.sms_reminders ? "primary" : "default"}
-                size="small"
-              />
-            </Box>
-            <Button
-              fullWidth
-              variant="outlined"
-              size="small"
-              sx={{ mt: 2 }}
-              disabled
-            >
-              Configurar (Em Breve)
-            </Button>
-          </Paper>
-        </Grid>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Box textAlign="center">
+                      <Typography variant="h4" color="primary">
+                        {animalData.gamification_level || 0}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Nível
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Box textAlign="center">
+                      <Typography variant="h4" color="secondary">
+                        {animalData.total_points || 0}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Pontos Totais
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
       </Grid>
 
-      {/* Dialog para Alterar Senha */}
+      {/* Dialog para alterar senha */}
       <Dialog 
-        open={changePasswordDialog} 
-        onClose={() => setChangePasswordDialog(false)}
+        open={passwordDialog} 
+        onClose={() => setPasswordDialog(false)}
         maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Alterar Senha</DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <TextField
-              fullWidth
-              label="Senha Atual"
-              type="password"
-              value={passwordData.currentPassword}
-              onChange={(e) => setPasswordData(prev => ({...prev, currentPassword: e.target.value}))}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              label="Nova Senha"
-              type="password"
-              value={passwordData.newPassword}
-              onChange={(e) => setPasswordData(prev => ({...prev, newPassword: e.target.value}))}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              label="Confirmar Nova Senha"
-              type="password"
-              value={passwordData.confirmPassword}
-              onChange={(e) => setPasswordData(prev => ({...prev, confirmPassword: e.target.value}))}
-            />
-          </Box>
+          <TextField
+            fullWidth
+            label="Senha Atual"
+            type="password"
+            value={passwordForm.currentPassword}
+            onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Nova Senha"
+            type="password"
+            value={passwordForm.newPassword}
+            onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+            margin="normal"
+            helperText="Mínimo de 6 caracteres"
+          />
+          <TextField
+            fullWidth
+            label="Confirmar Nova Senha"
+            type="password"
+            value={passwordForm.confirmPassword}
+            onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+            margin="normal"
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setChangePasswordDialog(false)}>
+          <Button 
+            onClick={() => setPasswordDialog(false)}
+            disabled={saving}
+          >
             Cancelar
           </Button>
           <Button 
-            onClick={handleChangePassword}
+            onClick={handlePasswordChange}
             variant="contained"
-            disabled={loading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+            disabled={saving || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
           >
-            {loading ? <CircularProgress size={20} /> : 'Alterar Senha'}
+            {saving ? 'Alterando...' : 'Alterar Senha'}
           </Button>
         </DialogActions>
       </Dialog>

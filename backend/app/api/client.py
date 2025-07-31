@@ -248,3 +248,85 @@ async def get_client_appointments(current_user: Dict[str, Any] = Depends(get_cur
     except Exception as e:
         logger.error(f"Erro ao buscar agendamentos do cliente: {str(e)}")
         raise HTTPException(status_code=500, detail="Erro interno ao buscar agendamentos")
+
+@router.get("/animal")
+async def get_my_animal(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
+    """
+    Obtém os dados do animal principal do cliente (tutor) atualmente logado.
+    Retorna o primeiro animal encontrado para o tutor.
+    """
+    try:
+        user_id = current_user.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+        # Buscar o primeiro animal do tutor
+        query = f"/rest/v1/animals?tutor_user_id=eq.{user_id}&select=*&limit=1"
+        response_data = await supabase_admin._request("GET", query)
+        animals_data = supabase_admin.process_response(response_data)
+
+        if not animals_data:
+            raise HTTPException(status_code=404, detail="Nenhum animal encontrado para este tutor")
+
+        return animals_data[0]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao buscar animal do cliente: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno ao buscar animal")
+
+@router.patch("/animal")
+async def update_my_animal(
+    animal_update: AnimalUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Atualiza os dados do animal principal do cliente (tutor) atualmente logado.
+    """
+    try:
+        user_id = current_user.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+        update_data = animal_update.model_dump(exclude_unset=True)
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="Nenhum dado fornecido para atualização")
+
+        # Buscar o primeiro animal do tutor para obter o ID
+        query = f"/rest/v1/animals?tutor_user_id=eq.{user_id}&select=id&limit=1"
+        response_data = await supabase_admin._request("GET", query)
+        animals_data = supabase_admin.process_response(response_data)
+
+        if not animals_data:
+            raise HTTPException(status_code=404, detail="Nenhum animal encontrado para este tutor")
+
+        animal_id = animals_data[0]["id"]
+
+        # Atualizar o animal
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+
+        patch_response = await supabase_admin._request(
+            "PATCH",
+            f"/rest/v1/animals?id=eq.{animal_id}&tutor_user_id=eq.{user_id}",
+            json=update_data,
+            headers=headers
+        )
+
+        updated_animals = supabase_admin.process_response(patch_response)
+
+        if not updated_animals:
+            raise HTTPException(status_code=500, detail="Erro ao atualizar animal")
+
+        return {
+            **updated_animals[0],
+            "message": "Animal atualizado com sucesso"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao atualizar animal: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno ao atualizar animal")
