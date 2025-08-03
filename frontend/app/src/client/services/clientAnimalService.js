@@ -9,17 +9,7 @@ export const clientAnimalService = {
    */
   async getMyAnimal() {
     try {
-      const token = localStorage.getItem('client_token');
-      if (!token) {
-        throw new Error('Token de autenticação não encontrado');
-      }
-
-      const response = await api.get(`${API_BASE_URL}/animal`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      const response = await api.get(`${API_BASE_URL}/animal`);
       return response.data;
     } catch (error) {
       console.error('Erro ao obter dados do animal:', error);
@@ -33,18 +23,7 @@ export const clientAnimalService = {
    */
   async updateMyAnimal(animalData) {
     try {
-      const token = localStorage.getItem('client_token');
-      if (!token) {
-        throw new Error('Token de autenticação não encontrado');
-      }
-
-      const response = await api.patch(`${API_BASE_URL}/animal`, animalData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      const response = await api.patch(`${API_BASE_URL}/animal`, animalData);
       return response.data;
     } catch (error) {
       console.error('Erro ao atualizar dados do animal:', error);
@@ -53,25 +32,11 @@ export const clientAnimalService = {
   },
 
   /**
-   * Altera a senha do tutor
+   * Altera a senha do cliente
    */
-  async changePassword(currentPassword, newPassword) {
+  async changePassword(passwordData) {
     try {
-      const token = localStorage.getItem('client_token');
-      if (!token) {
-        throw new Error('Token de autenticação não encontrado');
-      }
-
-      // Atualizar apenas o campo senha
-      const response = await api.patch(`${API_BASE_URL}/animal`, {
-        senha: newPassword
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      const response = await api.patch(`${API_BASE_URL}/change-password`, passwordData);
       return response.data;
     } catch (error) {
       console.error('Erro ao alterar senha:', error);

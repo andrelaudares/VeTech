@@ -130,11 +130,14 @@ const ClientProfilePage = () => {
       setSaving(true);
       setError('');
       
-      await clientAnimalService.updateMyAnimal({
+      // Enviar apenas os campos que podem ser alterados
+      const updateData = {
         tutor_name: tutorForm.tutor_name,
         phone: tutorForm.phone
-        // email não pode ser alterado
-      });
+        // email não pode ser alterado, então não enviamos
+      };
+      
+      await clientAnimalService.updateMyAnimal(updateData);
       
       setSuccess('Dados do tutor atualizados com sucesso!');
       setEditingTutor(false);
@@ -320,7 +323,14 @@ const ClientProfilePage = () => {
               <Divider sx={{ mb: 2 }} />
 
               {editingTutor ? (
-                <Box component="form" noValidate>
+                <Box 
+                  component="form" 
+                  noValidate
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleTutorSave();
+                  }}
+                >
                   <TextField
                     fullWidth
                     label="Nome"
@@ -430,7 +440,14 @@ const ClientProfilePage = () => {
               <Divider sx={{ mb: 2 }} />
 
               {editingAnimal ? (
-                <Box component="form" noValidate>
+                <Box 
+                  component="form" 
+                  noValidate
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAnimalSave();
+                  }}
+                >
                   <TextField
                     fullWidth
                     label="Nome do Pet"

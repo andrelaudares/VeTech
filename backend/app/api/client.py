@@ -5,7 +5,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List
 import logging
 
-from ..models.client import ClientProfileUpdate, AnimalUpdate
+from ..models.client import ClientProfileUpdate
+from ..models.animal import AnimalUpdate
 from ..db.supabase import supabase_admin
 from .auth import get_current_user
 
@@ -289,7 +290,11 @@ async def update_my_animal(
         if not user_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
 
-        update_data = animal_update.model_dump(exclude_unset=True)
+        # Converter para dict e filtrar apenas campos não None
+        update_data = {}
+        for field, value in animal_update.model_dump().items():
+            if value is not None:
+                update_data[field] = value
         
         if not update_data:
             raise HTTPException(status_code=400, detail="Nenhum dado fornecido para atualização")

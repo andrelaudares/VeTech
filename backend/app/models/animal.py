@@ -26,6 +26,9 @@ class AnimalUpdate(BaseModel):
     tutor_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    
+    class Config:
+        from_attributes = True  # Pydantic v2 - substitui orm_mode
 
 class AnimalResponse(BaseModel):
     id: UUID4

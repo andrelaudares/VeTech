@@ -7,14 +7,29 @@ const api = axios.create({
 // Adiciona um interceptor de requisição
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('viteToken');
-    console.log(`Axios Interceptor: Token lido ('viteToken'): ${token}`);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log(`Axios Interceptor: Header Authorization configurado: ${config.headers.Authorization}`);
-    } else {
-      console.log(`Axios Interceptor: Token ('viteToken') não encontrado no localStorage.`);
+    // Verificar se já existe um header Authorization na requisição
+    if (config.headers.Authorization) {
+      console.log(`Axios Interceptor: Header Authorization já definido: ${config.headers.Authorization}`);
+      return config;
     }
+    
+    // Primeiro, tentar o token de cliente
+    const clientToken = localStorage.getItem('client_token');
+    if (clientToken) {
+      config.headers.Authorization = `Bearer ${clientToken}`;
+      console.log(`Axios Interceptor: Token de cliente ('client_token') usado: ${clientToken}`);
+      return config;
+    }
+    
+    // Se não houver token de cliente, usar o token de clínica
+    const clinicToken = localStorage.getItem('viteToken');
+    if (clinicToken) {
+      config.headers.Authorization = `Bearer ${clinicToken}`;
+      console.log(`Axios Interceptor: Token de clínica ('viteToken') usado: ${clinicToken}`);
+    } else {
+      console.log(`Axios Interceptor: Nenhum token encontrado no localStorage.`);
+    }
+    
     return config;
   },
   (error) => {
@@ -27,4 +42,4 @@ api.interceptors.request.use(
 // Você pode adicionar interceptors aqui se precisar (ex: para refresh token)
 // api.interceptors.response.use(...);
 
-export default api; 
+export default api;
