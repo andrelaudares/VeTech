@@ -1,17 +1,91 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Box,
+  Typography,
+  Container,
+  Button,
+  Paper,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  CircularProgress,
+  TextField,
+  TablePagination,
+  IconButton,
+  Tooltip,
+  Grid,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  Snackbar,
+  Alert,
+  Badge
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import PhoneIcon from '@mui/icons-material/Phone';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import PetsIcon from '@mui/icons-material/Pets';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import { clientAuthService } from '../services/clientAuthService';
 
 const ClientAppointmentsPage = () => {
-  const { client } = useClientAuth();
+  // Estados principais
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { client, isAuthenticated, loading: authLoading } = useClientAuth();
+
+  // Estados para filtros e paginação
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  // Estados para modais
+  const [openRequestModal, setOpenRequestModal] = useState(false);
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+
+  // Estados para formulário de solicitação
   const [requestForm, setRequestForm] = useState({
     date: '',
     time: '',
     description: '',
     notes: ''
+  });
+
+  // Estado para snackbar
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  // Estados para estatísticas do dashboard
+  const [stats, setStats] = useState({
+    total_agendamentos: 0,
+    agendamentos_proximos: 0,
+    solicitacoes_pendentes: 0,
+    consultas_concluidas: 0
   });
 
   // Dados mockados para demonstração
@@ -62,88 +136,95 @@ const ClientAppointmentsPage = () => {
     }
   ];
 
-  useEffect(() => {
-    const loadAppointments = async () => {
-      try {
-        // Simulando carregamento da API
-        setTimeout(() => {
-          setAppointments(mockAppointments);
-          setLoading(false);
-        }, 1000);
-        
-        // Código real da API (comentado para usar dados mockados)
-        // const appointmentsData = await clientAuthService.getAppointments();
-        // setAppointments(appointmentsData);
-      } catch (error) {
-        console.error('Erro ao carregar agendamentos:', error);
-        setLoading(false);
+  const fetchAppointments = useCallback(async () => {
+    if (authLoading || !isAuthenticated) {
+      if (!authLoading && !isAuthenticated) {
+        setError("Você precisa estar logado para ver os agendamentos.");
+        setAppointments([]);
       }
-    };
-
-    loadAppointments();
-  }, []);
-
-  const getStatusColor = (appointment) => {
-    // Se foi solicitado pelo cliente, usar status da solicitação
-    if (appointment.solicitado_por_cliente) {
-      switch (appointment.status_solicitacao) {
-        case 'aguardando_aprovacao':
-          return 'bg-orange-100 text-orange-800';
-        case 'pendente':
-          return 'bg-yellow-100 text-yellow-800';
-        case 'aprovado':
-          return 'bg-green-100 text-green-800';
-        case 'rejeitado':
-          return 'bg-red-100 text-red-800';
-        default:
-          return 'bg-gray-100 text-gray-800';
-      }
+      setLoading(false);
+      return;
     }
-    
-    // Status normal do agendamento
-    switch (appointment.status) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+
+    setLoading(true);
+    setError(null);
+    try {
+      // Simulando carregamento da API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setAppointments(mockAppointments);
+      
+      // Calcular estatísticas
+      const today = new Date().toISOString().split('T')[0];
+      const futureAppointments = mockAppointments.filter(apt => apt.date >= today && apt.status !== 'completed');
+      const pendingRequests = mockAppointments.filter(apt => apt.solicitado_por_cliente && apt.status_solicitacao === 'aguardando_aprovacao');
+      const completedAppointments = mockAppointments.filter(apt => apt.status === 'completed');
+      
+      setStats({
+        total_agendamentos: mockAppointments.length,
+        agendamentos_proximos: futureAppointments.length,
+        solicitacoes_pendentes: pendingRequests.length,
+        consultas_concluidas: completedAppointments.length
+      });
+      
+    } catch (err) {
+      console.error("Erro ao buscar agendamentos:", err);
+      setError("Não foi possível carregar os agendamentos.");
+      setAppointments([]);
+    }
+    setLoading(false);
+  }, [isAuthenticated, authLoading]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      fetchAppointments();
+    } else if (!authLoading && !isAuthenticated) {
+      setAppointments([]);
+      setError("Você precisa estar logado para ver os agendamentos.");
+    }
+  }, [fetchAppointments, authLoading, isAuthenticated]);
+
+  // Formatar data para exibição
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('pt-BR');
+    } catch (error) {
+      return dateString;
     }
   };
 
-  const getStatusText = (appointment) => {
+  // Formatar status para exibição
+  const getStatusChip = (appointment) => {
     // Se foi solicitado pelo cliente, usar status da solicitação
     if (appointment.solicitado_por_cliente) {
       switch (appointment.status_solicitacao) {
         case 'aguardando_aprovacao':
-          return 'Aguardando Aprovação';
+          return <Chip label="Aguardando Aprovação" color="warning" size="small" />;
         case 'pendente':
-          return 'Solicitação Pendente';
+          return <Chip label="Solicitação Pendente" color="info" size="small" />;
         case 'aprovado':
-          return 'Solicitação Aprovada';
+          return <Chip label="Solicitação Aprovada" color="success" size="small" />;
         case 'rejeitado':
-          return 'Solicitação Rejeitada';
+          return <Chip label="Solicitação Rejeitada" color="error" size="small" />;
         default:
-          return 'Solicitação';
+          return <Chip label="Solicitação" color="default" size="small" />;
       }
     }
     
     // Status normal do agendamento
     switch (appointment.status) {
       case 'confirmed':
-        return 'Confirmado';
+        return <Chip label="Confirmado" color="success" size="small" />;
       case 'pending':
-        return 'Pendente';
+        return <Chip label="Pendente" color="warning" size="small" />;
       case 'cancelled':
-        return 'Cancelado';
+        return <Chip label="Cancelado" color="error" size="small" />;
       case 'completed':
-        return 'Concluído';
+        return <Chip label="Concluído" color="primary" size="small" />;
       default:
-        return appointment.status;
+        return <Chip label={appointment.status || 'Agendado'} color="default" size="small" />;
     }
   };
 
@@ -158,7 +239,11 @@ const ClientAppointmentsPage = () => {
     try {
       // Validação básica
       if (!requestForm.date || !requestForm.time || !requestForm.description) {
-        alert('Por favor, preencha todos os campos obrigatórios.');
+        setSnackbar({
+          open: true,
+          message: 'Por favor, preencha todos os campos obrigatórios.',
+          severity: 'error'
+        });
         return;
       }
 
@@ -176,280 +261,459 @@ const ClientAppointmentsPage = () => {
       };
 
       setAppointments(prev => [...prev, newRequest]);
-      setShowRequestModal(false);
+      setOpenRequestModal(false);
       setRequestForm({ date: '', time: '', description: '', notes: '' });
       
-      alert('Solicitação enviada com sucesso! A clínica analisará sua solicitação.');
+      setSnackbar({
+        open: true,
+        message: 'Solicitação enviada com sucesso! A clínica analisará sua solicitação.',
+        severity: 'success'
+      });
       
-      // Aqui seria feita a chamada real para a API
-      // await clientAuthService.requestAppointment(requestForm);
     } catch (error) {
       console.error('Erro ao enviar solicitação:', error);
-      alert('Erro ao enviar solicitação. Tente novamente.');
+      setSnackbar({
+        open: true,
+        message: 'Erro ao enviar solicitação. Tente novamente.',
+        severity: 'error'
+      });
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  if (loading) {
+  // Estados de carregamento e erro
+  if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-      </div>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Carregando agendamentos...</Typography>
+      </Container>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Meus Agendamentos</h1>
-              <p className="text-gray-600">Acompanhe suas consultas e procedimentos</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowRequestModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Solicitar Agendamento
-              </button>
-              <span className="text-sm text-gray-500">{client?.name || 'Tutor'}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  if (!isAuthenticated) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="warning">Você precisa estar logado para acessar os agendamentos.</Alert>
+      </Container>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {appointments.length > 0 ? (
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <ul className="divide-y divide-gray-200">
-              {appointments.map((appointment) => (
-                <li key={appointment.id}>
-                  <div className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="flex items-center">
-                            <p className="text-sm font-medium text-gray-900">
-                              {appointment.service_type}
-                            </p>
-                            <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(appointment)}`}>
-                              {getStatusText(appointment)}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex items-center text-sm text-gray-500">
-                            <svg className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <p>
-                              {formatDate(appointment.date)} às {appointment.time}
-                            </p>
-                          </div>
-                          {appointment.animal_name && (
-                            <div className="mt-1 flex items-center text-sm text-gray-500">
-                              <svg className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                              </svg>
-                              <p>Pet: {appointment.animal_name}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center">
-                        {appointment.status === 'pending' && (
-                          <button className="ml-2 inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Confirmar
-                          </button>
-                        )}
-                        <svg className="ml-2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                    {appointment.notes && (
-                      <div className="mt-3">
-                        <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                          <strong>Observações:</strong> {appointment.notes}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="mx-auto h-24 w-24 text-gray-400">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">Nenhum agendamento encontrado</h3>
-            <p className="mt-2 text-gray-500">
-              Você ainda não possui agendamentos no sistema.
-            </p>
-            <div className="mt-6">
-              <button className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Agendar Consulta
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="error" action={
+          <Button color="inherit" size="small" onClick={fetchAppointments}>
+            Tentar Novamente
+          </Button>
+        }>
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  // Definir cards de estatísticas
+  const statCards = [
+    { 
+      label: 'Total de Agendamentos', 
+      value: stats.total_agendamentos || 0, 
+      icon: <CalendarTodayIcon />,
+      color: '#2196f3'
+    },
+    { 
+      label: 'Próximos Agendamentos', 
+      value: stats.agendamentos_proximos || 0, 
+      icon: <CalendarTodayIcon />,
+      color: '#4caf50'
+    },
+    { 
+      label: 'Solicitações Pendentes', 
+      value: stats.solicitacoes_pendentes || 0, 
+      icon: <NotificationsIcon />,
+      color: '#ff9800'
+    },
+    { 
+      label: 'Consultas Concluídas', 
+      value: stats.consultas_concluidas || 0, 
+      icon: <PetsIcon />,
+      color: '#9c27b0'
+    }
+  ];
+
+  // Filtrar agendamentos
+  const filteredAppointments = appointments.filter(appointment => {
+    const matchesSearch = !searchTerm || 
+      appointment.service_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.animal_name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = !statusFilter || appointment.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: '#333' }}>
+            Meus Agendamentos
+          </Typography>
+          <Typography variant="body1" color="textSecondary">
+            Acompanhe suas consultas e procedimentos
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <IconButton 
+            onClick={fetchAppointments}
+            color="primary"
+            title="Atualizar"
+          >
+            <RefreshIcon />
+          </IconButton>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenRequestModal(true)}
+            sx={{ backgroundColor: '#4caf50', '&:hover': { backgroundColor: '#45a049' } }}
+          >
+            Solicitar Agendamento
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Cards de Estatísticas */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        {statCards.map((card, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Card sx={{ 
+              height: '100%',
+              background: `linear-gradient(135deg, ${card.color}20, ${card.color}10)`,
+              border: `1px solid ${card.color}30`,
+              '&:hover': { 
+                transform: 'translateY(-2px)',
+                boxShadow: 3,
+                transition: 'all 0.3s ease'
+              }
+            }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography color="textSecondary" gutterBottom variant="body2">
+                      {card.label}
+                    </Typography>
+                    <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', color: card.color }}>
+                      {card.value}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ color: card.color, opacity: 0.7 }}>
+                    {card.icon}
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Filtros */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Buscar por serviço ou animal"
+              variant="outlined"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              size="small"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="confirmed">Confirmado</MenuItem>
+                <MenuItem value="pending">Pendente</MenuItem>
+                <MenuItem value="completed">Concluído</MenuItem>
+                <MenuItem value="cancelled">Cancelado</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('');
+              }}
+            >
+              Limpar Filtros
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Tabela de Agendamentos */}
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <TableContainer>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell>Data</TableCell>
+                <TableCell>Horário</TableCell>
+                <TableCell>Animal</TableCell>
+                <TableCell>Serviço</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="center">Ações</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredAppointments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <Typography color="textSecondary">
+                      Nenhum agendamento encontrado
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredAppointments
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((appointment) => (
+                    <TableRow key={appointment.id} hover>
+                      <TableCell>{formatDate(appointment.date)}</TableCell>
+                      <TableCell>{appointment.time}</TableCell>
+                      <TableCell>{appointment.animal_name}</TableCell>
+                      <TableCell>{appointment.service_type}</TableCell>
+                      <TableCell>{getStatusChip(appointment)}</TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Ver detalhes">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setOpenDetailsModal(true);
+                            }}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={filteredAppointments.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(event, newPage) => setPage(newPage)}
+          onRowsPerPageChange={(event) => {
+            setRowsPerPage(parseInt(event.target.value, 10));
+            setPage(0);
+          }}
+        />
+      </Paper>
 
       {/* Modal de Solicitação de Agendamento */}
-      {showRequestModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Solicitar Agendamento</h3>
-                <button
-                  onClick={() => setShowRequestModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+      <Dialog
+        open={openRequestModal}
+        onClose={() => setOpenRequestModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          backgroundColor: '#4caf50', 
+          color: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <AddIcon />
+          Solicitar Agendamento
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 3 }}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Data Preferida"
+                type="date"
+                value={requestForm.date}
+                onChange={(e) => handleRequestFormChange('date', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: new Date().toISOString().split('T')[0] }}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Horário Preferido</InputLabel>
+                <Select
+                  value={requestForm.time}
+                  label="Horário Preferido"
+                  onChange={(e) => handleRequestFormChange('time', e.target.value)}
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <form className="space-y-4">
-                <div>
-                  <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-                    Data Preferida *
-                  </label>
-                  <input
-                    type="date"
-                    id="date"
-                    value={requestForm.date}
-                    onChange={(e) => handleRequestFormChange('date', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
-                  />
-                </div>
+                  <MenuItem value="08:00">08:00</MenuItem>
+                  <MenuItem value="09:00">09:00</MenuItem>
+                  <MenuItem value="10:00">10:00</MenuItem>
+                  <MenuItem value="11:00">11:00</MenuItem>
+                  <MenuItem value="14:00">14:00</MenuItem>
+                  <MenuItem value="15:00">15:00</MenuItem>
+                  <MenuItem value="16:00">16:00</MenuItem>
+                  <MenuItem value="17:00">17:00</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Tipo de Serviço</InputLabel>
+                <Select
+                  value={requestForm.description}
+                  label="Tipo de Serviço"
+                  onChange={(e) => handleRequestFormChange('description', e.target.value)}
+                >
+                  <MenuItem value="Consulta Veterinária">Consulta Veterinária</MenuItem>
+                  <MenuItem value="Vacinação">Vacinação</MenuItem>
+                  <MenuItem value="Exame de Rotina">Exame de Rotina</MenuItem>
+                  <MenuItem value="Cirurgia">Cirurgia</MenuItem>
+                  <MenuItem value="Emergência">Emergência</MenuItem>
+                  <MenuItem value="Banho e Tosa">Banho e Tosa</MenuItem>
+                  <MenuItem value="Outros">Outros</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Observações"
+                multiline
+                rows={3}
+                value={requestForm.notes}
+                onChange={(e) => handleRequestFormChange('notes', e.target.value)}
+                placeholder="Descreva detalhes sobre o atendimento ou observações importantes..."
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Alert severity="info">
+                Esta é uma solicitação de agendamento. A clínica analisará sua solicitação e entrará em contato para confirmar.
+              </Alert>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={() => setOpenRequestModal(false)}
+            sx={{ color: '#666' }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmitRequest}
+            variant="contained"
+            sx={{ backgroundColor: '#4caf50', '&:hover': { backgroundColor: '#45a049' } }}
+          >
+            Enviar Solicitação
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-                <div>
-                  <label htmlFor="time" className="block text-sm font-medium text-gray-700">
-                    Horário Preferido *
-                  </label>
-                  <select
-                    id="time"
-                    value={requestForm.time}
-                    onChange={(e) => handleRequestFormChange('time', e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
-                  >
-                    <option value="">Selecione um horário</option>
-                    <option value="08:00">08:00</option>
-                    <option value="09:00">09:00</option>
-                    <option value="10:00">10:00</option>
-                    <option value="11:00">11:00</option>
-                    <option value="14:00">14:00</option>
-                    <option value="15:00">15:00</option>
-                    <option value="16:00">16:00</option>
-                    <option value="17:00">17:00</option>
-                  </select>
-                </div>
+      {/* Modal de Detalhes do Agendamento */}
+      <Dialog
+        open={openDetailsModal}
+        onClose={() => setOpenDetailsModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          backgroundColor: '#2196f3', 
+          color: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <VisibilityIcon />
+          Detalhes do Agendamento
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 3 }}>
+          {selectedAppointment && (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="textSecondary">
+                  <strong>Data:</strong> {formatDate(selectedAppointment.date)}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="textSecondary">
+                  <strong>Horário:</strong> {selectedAppointment.time}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="textSecondary">
+                  <strong>Animal:</strong> {selectedAppointment.animal_name}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="textSecondary">
+                  <strong>Serviço:</strong> {selectedAppointment.service_type}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="body2" color="textSecondary">
+                  <strong>Status:</strong> {getStatusChip(selectedAppointment)}
+                </Typography>
+              </Grid>
+              {selectedAppointment.notes && (
+                <Grid item xs={12}>
+                  <Typography variant="body2" color="textSecondary">
+                    <strong>Observações:</strong> {selectedAppointment.notes}
+                  </Typography>
+                </Grid>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={() => setOpenDetailsModal(false)}
+            sx={{ color: '#666' }}
+          >
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                    Tipo de Serviço *
-                  </label>
-                  <select
-                    id="description"
-                    value={requestForm.description}
-                    onChange={(e) => handleRequestFormChange('description', e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
-                  >
-                    <option value="">Selecione o serviço</option>
-                    <option value="Consulta Veterinária">Consulta Veterinária</option>
-                    <option value="Vacinação">Vacinação</option>
-                    <option value="Exame de Rotina">Exame de Rotina</option>
-                    <option value="Cirurgia">Cirurgia</option>
-                    <option value="Emergência">Emergência</option>
-                    <option value="Banho e Tosa">Banho e Tosa</option>
-                    <option value="Outros">Outros</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                    Observações
-                  </label>
-                  <textarea
-                    id="notes"
-                    rows={3}
-                    value={requestForm.notes}
-                    onChange={(e) => handleRequestFormChange('notes', e.target.value)}
-                    placeholder="Descreva detalhes sobre o atendimento ou observações importantes..."
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-yellow-700">
-                        Esta é uma solicitação de agendamento. A clínica analisará sua solicitação e entrará em contato para confirmar.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowRequestModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmitRequest}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Enviar Solicitação
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Container>
   );
 };
 
