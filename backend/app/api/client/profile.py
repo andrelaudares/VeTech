@@ -1,19 +1,19 @@
 """
-Rotas de API para clientes (tutores)
+Rotas de API para perfil e dados dos tutores
 """
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List
 import logging
 
-from ..models.client import ClientProfileUpdate
-from ..models.animal import AnimalUpdate
-from ..db.supabase import supabase_admin
-from .auth import get_current_user
+from ...models.tutor import ClientProfileUpdate
+from ...models.animal import AnimalUpdate
+from ...db.supabase import supabase_admin
+from ..auth import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/profile")
+@router.get("/")
 async def get_client_profile(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Obtém os dados de perfil do cliente (tutor) atualmente logado.
@@ -47,7 +47,7 @@ async def get_client_profile(current_user: Dict[str, Any] = Depends(get_current_
         logger.error(f"Erro ao buscar perfil do cliente: {str(e)}")
         raise HTTPException(status_code=500, detail="Erro interno ao buscar dados do perfil")
 
-@router.put("/profile")
+@router.put("/")
 async def update_client_profile(
     profile_update: ClientProfileUpdate,
     current_user: Dict[str, Any] = Depends(get_current_user)

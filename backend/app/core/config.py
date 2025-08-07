@@ -14,4 +14,4 @@ print(f"Chave do Supabase está presente: {'Sim' if SUPABASE_KEY else 'Não'}")
 print(f"Chave de serviço do Supabase está presente: {'Sim' if SUPABASE_SERVICE_KEY else 'Não'}")
 
 # Configurações da API
-API_V1_STR = "/api/v1" 
+API_V1_STR = "/api"

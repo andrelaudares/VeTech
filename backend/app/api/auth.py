@@ -6,7 +6,7 @@ from datetime import datetime
 import logging
 
 from ..models.user import UserCreate, UserResponse, ClinicProfileUpdate
-from ..models.client import DualLoginData, UserTypeResponse, ClientAuthResponse
+from ..models.tutor import DualLoginData, UserTypeResponse, ClientAuthResponse
 from ..db.supabase import supabase_admin
 
 router = APIRouter()

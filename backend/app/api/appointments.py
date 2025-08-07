@@ -386,4 +386,81 @@ async def update_appointment(
         raise http_exc
     except Exception as e:
         logger.error(f"Erro ao atualizar agendamento {appointment_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Erro interno ao atualizar agendamento: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Erro interno ao atualizar agendamento: {str(e)}")
+
+@router.get("/tutor/{tutor_id}", response_model=List[AppointmentResponse])
+async def get_tutor_appointments(
+    tutor_id: int = Path(..., description="ID do tutor"),
+    status: Optional[str] = Query(None, description="Filtrar por status"),
+    date_from: Optional[date] = Query(None, description="Filtrar a partir desta data"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """
+    Lista agendamentos de um tutor específico.
+    Endpoint para área do tutor visualizar seus próprios agendamentos.
+    """
+    # Verificar se o usuário atual é o próprio tutor ou uma clínica
+    user_id = current_user.get("id")
+    user_type = current_user.get("user_type", "clinic")  # Default para clínica
+    
+    # Se for tutor, só pode ver seus próprios agendamentos
+    if user_type == "tutor" and user_id != tutor_id:
+        raise HTTPException(status_code=403, detail="Acesso negado: você só pode ver seus próprios agendamentos")
+    
+    logger.info(f"Listando agendamentos para tutor_id: {tutor_id} com filtros status={status}, date_from={date_from}")
+
+    try:
+        # Primeiro, buscar os animais do tutor para obter os IDs
+        animals_query = f"/rest/v1/animals?tutor_user_id=eq.{tutor_id}&select=id,name,species,breed"
+        animals_response = await supabase_admin._request("GET", animals_query)
+        animals_data = supabase_admin.process_response(animals_response)
+        
+        if not animals_data:
+            logger.info(f"Nenhum animal encontrado para tutor_id: {tutor_id}")
+            return []
+        
+        # Extrair IDs dos animais
+        animal_ids = [animal["id"] for animal in animals_data]
+        animal_names = {animal["id"]: animal["name"] for animal in animals_data}
+        
+        # Construir query para buscar agendamentos dos animais do tutor
+        appointments_query = f"/rest/v1/appointments?animal_id=in.({','.join(map(str, animal_ids))})"
+        
+        # Adicionar filtros opcionais
+        if status:
+            appointments_query += f"&status=eq.{status}"
+        if date_from:
+            appointments_query += f"&date=gte.{date_from.isoformat()}"
+            
+        # Adicionar ordenação e seleção de campos
+        appointments_query += "&order=date.desc,start_time.desc"
+        appointments_query += "&select=*"
+        
+        logger.debug(f"Executando query de agendamentos: {appointments_query}")
+        
+        appointments_response = await supabase_admin._request("GET", appointments_query)
+        appointments_data = supabase_admin.process_response(appointments_response)
+        
+        # Enriquecer dados com informações dos animais
+        for appointment in appointments_data:
+            animal_id = appointment.get("animal_id")
+            if animal_id in animal_names:
+                appointment["animal_name"] = animal_names[animal_id]
+            
+            # Buscar dados do tutor (nome e telefone) se necessário
+            if not appointment.get("tutor_name"):
+                tutor_query = f"/rest/v1/animals?id=eq.{animal_id}&select=tutor_name,phone"
+                tutor_response = await supabase_admin._request("GET", tutor_query)
+                tutor_data = supabase_admin.process_response(tutor_response)
+                if tutor_data:
+                    appointment["tutor_name"] = tutor_data[0].get("tutor_name")
+                    appointment["tutor_phone"] = tutor_data[0].get("phone")
+        
+        logger.info(f"Encontrados {len(appointments_data)} agendamentos para tutor_id: {tutor_id}")
+        return appointments_data
+        
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Erro ao buscar agendamentos do tutor {tutor_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar agendamentos do tutor: {str(e)}")

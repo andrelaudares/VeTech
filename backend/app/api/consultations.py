@@ -181,4 +181,204 @@ async def delete_consultation(
         raise http_exc
     except Exception as e:
         logger.error(f"Erro ao deletar consulta {consultation_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+@router.get("/tutor/{tutor_id}", response_model=List[ConsultationResponse])
+async def get_tutor_consultations(
+    tutor_id: int = Path(..., description="ID do tutor"),
+    animal_id: Optional[UUID] = Query(None, description="Filtrar por animal específico"),
+    limit: Optional[int] = Query(10, description="Número máximo de consultas"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """
+    Lista consultas dos animais de um tutor específico.
+    Endpoint para área do tutor visualizar histórico de consultas.
+    """
+    user_id = current_user.get("id")
+    user_type = current_user.get("user_type", "clinic")
+    
+    # Verificar se o usuário atual é o próprio tutor ou uma clínica
+    if user_type == "tutor" and user_id != tutor_id:
+        raise HTTPException(status_code=403, detail="Acesso negado: você só pode ver suas próprias consultas")
+    
+    logger.info(f"Listando consultas para tutor_id: {tutor_id}, animal_id: {animal_id}")
+
+    try:
+        # Primeiro, buscar os animais do tutor
+        animals_query = f"/rest/v1/animals?tutor_user_id=eq.{tutor_id}&select=id,name,species,breed"
+        animals_response = await supabase_admin._request("GET", animals_query)
+        animals_data = supabase_admin.process_response(animals_response)
+        
+        if not animals_data:
+            logger.info(f"Nenhum animal encontrado para tutor_id: {tutor_id}")
+            return []
+        
+        # Filtrar por animal específico se fornecido
+        if animal_id:
+            animals_data = [animal for animal in animals_data if animal["id"] == str(animal_id)]
+            if not animals_data:
+                logger.info(f"Animal {animal_id} não encontrado para tutor_id: {tutor_id}")
+                return []
+        
+        # Extrair IDs dos animais
+        animal_ids = [animal["id"] for animal in animals_data]
+        animal_names = {animal["id"]: animal["name"] for animal in animals_data}
+        
+        # Buscar consultas dos animais do tutor
+        consultations_query = f"/rest/v1/consultations?animal_id=in.({','.join(animal_ids)})"
+        consultations_query += "&order=date.desc"
+        
+        if limit:
+            consultations_query += f"&limit={limit}"
+        
+        logger.debug(f"Executando query de consultas: {consultations_query}")
+        
+        consultations_response = await supabase_admin._request("GET", consultations_query)
+        consultations_data = supabase_admin.process_response(consultations_response)
+        
+        # Enriquecer dados com informações dos animais
+        for consultation in consultations_data:
+            animal_id = consultation.get("animal_id")
+            if animal_id in animal_names:
+                consultation["animal_name"] = animal_names[animal_id]
+        
+        logger.info(f"Encontradas {len(consultations_data)} consultas para tutor_id: {tutor_id}")
+        return consultations_data
+        
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Erro ao buscar consultas do tutor {tutor_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar consultas do tutor: {str(e)}")
+
+@router.get("/tutor/{tutor_id}/animal/{animal_id}", response_model=List[ConsultationResponse])
+async def get_tutor_animal_consultations(
+    tutor_id: int = Path(..., description="ID do tutor"),
+    animal_id: UUID = Path(..., description="ID do animal"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """
+    Lista consultas de um animal específico do tutor.
+    Endpoint detalhado para histórico de um animal.
+    """
+    user_id = current_user.get("id")
+    user_type = current_user.get("user_type", "clinic")
+    
+    # Verificar se o usuário atual é o próprio tutor ou uma clínica
+    if user_type == "tutor" and user_id != tutor_id:
+        raise HTTPException(status_code=403, detail="Acesso negado: você só pode ver consultas de seus próprios animais")
+    
+    logger.info(f"Listando consultas para tutor_id: {tutor_id}, animal_id: {animal_id}")
+
+    try:
+        # Verificar se o animal pertence ao tutor
+        animal_query = f"/rest/v1/animals?id=eq.{animal_id}&tutor_user_id=eq.{tutor_id}&select=id,name,species,breed"
+        animal_response = await supabase_admin._request("GET", animal_query)
+        animal_data = supabase_admin.process_response(animal_response)
+        
+        if not animal_data:
+            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence ao tutor")
+        
+        animal_info = animal_data[0]
+        
+        # Buscar consultas do animal
+        consultations_query = f"/rest/v1/consultations?animal_id=eq.{animal_id}&order=date.desc"
+        consultations_response = await supabase_admin._request("GET", consultations_query)
+        consultations_data = supabase_admin.process_response(consultations_response)
+        
+        # Enriquecer dados com informações do animal
+        for consultation in consultations_data:
+            consultation["animal_name"] = animal_info["name"]
+            consultation["animal_species"] = animal_info["species"]
+            consultation["animal_breed"] = animal_info["breed"]
+        
+        logger.info(f"Encontradas {len(consultations_data)} consultas para animal {animal_id}")
+        return consultations_data
+        
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Erro ao buscar consultas do animal {animal_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar consultas do animal: {str(e)}")
+
+@router.get("/tutor/{tutor_id}/summary")
+async def get_tutor_consultations_summary(
+    tutor_id: int = Path(..., description="ID do tutor"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Retorna um resumo das consultas do tutor.
+    Inclui estatísticas e últimas consultas.
+    """
+    user_id = current_user.get("id")
+    user_type = current_user.get("user_type", "clinic")
+    
+    # Verificar se o usuário atual é o próprio tutor ou uma clínica
+    if user_type == "tutor" and user_id != tutor_id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    logger.info(f"Gerando resumo de consultas para tutor_id: {tutor_id}")
+
+    try:
+        # Buscar animais do tutor
+        animals_query = f"/rest/v1/animals?tutor_user_id=eq.{tutor_id}&select=id,name,species"
+        animals_response = await supabase_admin._request("GET", animals_query)
+        animals_data = supabase_admin.process_response(animals_response)
+        
+        if not animals_data:
+            return {
+                "total_animals": 0,
+                "total_consultations": 0,
+                "recent_consultations": [],
+                "animals_summary": []
+            }
+        
+        animal_ids = [animal["id"] for animal in animals_data]
+        
+        # Buscar todas as consultas dos animais
+        consultations_query = f"/rest/v1/consultations?animal_id=in.({','.join(animal_ids)})"
+        consultations_response = await supabase_admin._request("GET", consultations_query)
+        consultations_data = supabase_admin.process_response(consultations_response)
+        
+        # Buscar últimas 5 consultas
+        recent_query = f"/rest/v1/consultations?animal_id=in.({','.join(animal_ids)})"
+        recent_query += "&order=date.desc&limit=5"
+        recent_response = await supabase_admin._request("GET", recent_query)
+        recent_consultations = supabase_admin.process_response(recent_response)
+        
+        # Criar mapa de nomes dos animais
+        animal_names = {animal["id"]: animal["name"] for animal in animals_data}
+        
+        # Enriquecer consultas recentes
+        for consultation in recent_consultations:
+            animal_id = consultation.get("animal_id")
+            if animal_id in animal_names:
+                consultation["animal_name"] = animal_names[animal_id]
+        
+        # Calcular estatísticas por animal
+        animals_summary = []
+        for animal in animals_data:
+            animal_consultations = [c for c in consultations_data if c["animal_id"] == animal["id"]]
+            animals_summary.append({
+                "animal_id": animal["id"],
+                "animal_name": animal["name"],
+                "species": animal["species"],
+                "total_consultations": len(animal_consultations),
+                "last_consultation": max([c["date"] for c in animal_consultations]) if animal_consultations else None
+            })
+        
+        summary = {
+            "total_animals": len(animals_data),
+            "total_consultations": len(consultations_data),
+            "recent_consultations": recent_consultations,
+            "animals_summary": animals_summary
+        }
+        
+        logger.info(f"Resumo gerado para tutor_id: {tutor_id}")
+        return summary
+        
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Erro ao gerar resumo para tutor {tutor_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar resumo: {str(e)}")

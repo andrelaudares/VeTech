@@ -178,6 +178,31 @@ class SupabaseClient:
         }
         result = await self._request("GET", f"/rest/v1/{table}", params=params)
         return self.process_response(result)
+
+    async def update(self, table, data, filters):
+        """
+        Atualiza registros em uma tabela
+        
+        Args:
+            table (str): Nome da tabela
+            data (dict): Dados para atualizar
+            filters (dict): Filtros para identificar os registros
+            
+        Returns:
+            dict/list: Dados atualizados
+        """
+        try:
+            params = {}
+            for key, value in filters.items():
+                params[key] = value
+            
+            print(f"Atualizando na tabela {table}: {data} com filtros {filters}")
+            result = await self._request("PATCH", f"/rest/v1/{table}", json=data, params=params)
+            print(f"Resultado da atualização: {result}")
+            return self.process_response(result, single_item=True)
+        except Exception as e:
+            print(f"Erro ao atualizar dados na tabela {table}: {str(e)}")
+            raise
         
     async def list_tables(self):
         """Lista todas as tabelas disponíveis no banco de dados."""
@@ -207,4 +232,4 @@ class SupabaseClient:
 
 # Instância do cliente para uso em toda a aplicação
 supabase_client = SupabaseClient(SUPABASE_URL, SUPABASE_KEY)
-supabase_admin = SupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) 
+supabase_admin = SupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
