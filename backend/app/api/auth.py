@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 async def get_current_user(authorization: str = Header(...)) -> Dict[str, Any]:
     """
     Dependência para obter o usuário atual a partir do token JWT.
+    Identifica se o usuário é uma clínica ou tutor.
     """
     logger.debug(f"Recebido header Authorization: {authorization}")
     try:
@@ -49,10 +50,41 @@ async def get_current_user(authorization: str = Header(...)) -> Dict[str, Any]:
                 logger.error(f"Resposta inesperada do Supabase /auth/v1/user: {user_data}")
                 raise HTTPException(status_code=500, detail="Resposta inesperada do serviço de autenticação")
             
+            user_id = user_data.get("id")
+            user_email = user_data.get("email")
+            
+            # Verificar se é uma clínica
+            clinic_result = await supabase_admin.get_by_eq("clinics", "id", user_id)
+            if clinic_result:
+                logger.debug(f"Usuário {user_email} identificado como clínica")
+                return {
+                    "id": user_id,
+                    "email": user_email,
+                    "user_metadata": user_data.get("user_metadata", {}),
+                    "user_type": "clinic",
+                    "clinic_id": user_id,  # O clinic_id é o próprio user_id
+                    "clinic_data": clinic_result[0]
+                }
+            
+            # Verificar se é um tutor (animal com este email)
+            animal_result = await supabase_admin.get_by_eq("animals", "email", user_email)
+            if animal_result:
+                logger.debug(f"Usuário {user_email} identificado como tutor")
+                return {
+                    "id": user_id,
+                    "email": user_email,
+                    "user_metadata": user_data.get("user_metadata", {}),
+                    "user_type": "tutor",
+                    "animals": animal_result
+                }
+            
+            # Se não encontrou nem clínica nem tutor, retorna como usuário genérico
+            logger.warning(f"Usuário {user_email} não encontrado nas tabelas clinics ou animals")
             return {
-                "id": user_data.get("id"),
-                "email": user_data.get("email"),
-                "user_metadata": user_data.get("user_metadata", {})
+                "id": user_id,
+                "email": user_email,
+                "user_metadata": user_data.get("user_metadata", {}),
+                "user_type": "unknown"
             }
     
     except httpx.HTTPStatusError as exc:

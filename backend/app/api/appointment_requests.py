@@ -172,7 +172,7 @@ async def list_appointment_requests(
         query = "/rest/v1/appointments?solicitado_por_cliente=eq.true"
         query += "&select=*"
         
-        # Se for tutor, filtrar apenas seus animais
+        # Filtrar baseado no tipo de usuário
         if user_type == "tutor":
             # Buscar animais do tutor
             animals_query = f"/rest/v1/animals?email=eq.{user_email}&select=id"
@@ -184,6 +184,15 @@ async def list_appointment_requests(
             
             animal_ids = [str(animal["id"]) for animal in animals_data]
             query += f"&animal_id=in.({','.join(animal_ids)})"
+            
+        elif user_type == "clinic":
+            # Para clínicas, buscar pelo clinic_id
+            clinic_id = current_user.get("clinic_id")
+            if not clinic_id:
+                logger.warning(f"Clínica {user_email} não possui clinic_id")
+                return []
+            
+            query += f"&clinic_id=eq.{clinic_id}"
         
         # Aplicar filtros
         if status:
@@ -285,9 +294,21 @@ async def get_appointment_request(
         
         animal = animal_data[0]
         
-        # Verificar permissões para tutores
-        if user_type == "tutor" and animal.get("email") != user_email:
-            raise HTTPException(status_code=403, detail="Acesso negado a esta solicitação")
+        # Verificar permissões baseado no tipo de usuário
+        if user_type == "tutor":
+            # Verificar se o animal pertence ao tutor
+            animal_query = f"/rest/v1/animals?id=eq.{appointment['animal_id']}&email=eq.{user_email}"
+            animal_response = await supabase_admin._request("GET", animal_query)
+            animal_data = supabase_admin.process_response(animal_response)
+            
+            if not animal_data:
+                raise HTTPException(status_code=403, detail="Acesso negado a esta solicitação")
+                
+        elif user_type == "clinic":
+            # Verificar se o agendamento pertence à clínica
+            clinic_id = current_user.get("clinic_id")
+            if not clinic_id or appointment.get("clinic_id") != clinic_id:
+                raise HTTPException(status_code=403, detail="Acesso negado a esta solicitação")
         
         # Criar resposta formatada
         response = AppointmentRequestResponse(
@@ -343,7 +364,7 @@ async def update_appointment_request(
         
         appointment = appointment_data[0]
         
-        # Verificar permissões
+        # Verificar permissões baseado no tipo de usuário
         if user_type == "tutor":
             # Verificar se o animal pertence ao tutor
             animal_query = f"/rest/v1/animals?id=eq.{appointment['animal_id']}&email=eq.{user_email}"
@@ -360,6 +381,12 @@ async def update_appointment_request(
             # Tutores não podem alterar status
             if update_data.status is not None:
                 raise HTTPException(status_code=403, detail="Tutores não podem alterar o status da solicitação")
+                
+        elif user_type == "clinic":
+            # Verificar se o agendamento pertence à clínica
+            clinic_id = current_user.get("clinic_id")
+            if not clinic_id or appointment.get("clinic_id") != clinic_id:
+                raise HTTPException(status_code=403, detail="Acesso negado")
         
         # Preparar dados para atualização
         update_fields = {}
@@ -435,11 +462,15 @@ async def approve_appointment_request(
     Apenas clínicas podem aprovar solicitações.
     """
     user_type = current_user.get("user_type", "tutor")
+    clinic_id = current_user.get("clinic_id")
     
     if user_type != "clinic":
         raise HTTPException(status_code=403, detail="Apenas clínicas podem aprovar solicitações")
     
-    logger.info(f"Aprovando solicitação {request_id}")
+    if not clinic_id:
+        raise HTTPException(status_code=403, detail="Clínica não identificada")
+    
+    logger.info(f"Aprovando solicitação {request_id} pela clínica {clinic_id}")
 
     try:
         # Buscar solicitação
@@ -451,6 +482,10 @@ async def approve_appointment_request(
             raise HTTPException(status_code=404, detail="Solicitação não encontrada")
         
         appointment = appointment_data[0]
+        
+        # Verificar se a solicitação pertence à clínica
+        if appointment.get("clinic_id") != clinic_id:
+            raise HTTPException(status_code=403, detail="Esta solicitação não pertence à sua clínica")
         
         if appointment.get("status_solicitacao") != "aguardando_aprovacao":
             raise HTTPException(status_code=400, detail="Apenas solicitações aguardando aprovação podem ser aprovadas")
@@ -507,11 +542,15 @@ async def reject_appointment_request(
     Apenas clínicas podem rejeitar solicitações.
     """
     user_type = current_user.get("user_type", "tutor")
+    clinic_id = current_user.get("clinic_id")
     
     if user_type != "clinic":
         raise HTTPException(status_code=403, detail="Apenas clínicas podem rejeitar solicitações")
     
-    logger.info(f"Rejeitando solicitação {request_id}")
+    if not clinic_id:
+        raise HTTPException(status_code=403, detail="Clínica não identificada")
+    
+    logger.info(f"Rejeitando solicitação {request_id} pela clínica {clinic_id}")
 
     try:
         # Buscar solicitação
@@ -523,6 +562,10 @@ async def reject_appointment_request(
             raise HTTPException(status_code=404, detail="Solicitação não encontrada")
         
         appointment = appointment_data[0]
+        
+        # Verificar se a solicitação pertence à clínica
+        if appointment.get("clinic_id") != clinic_id:
+            raise HTTPException(status_code=403, detail="Esta solicitação não pertence à sua clínica")
         
         if appointment.get("status_solicitacao") != "aguardando_aprovacao":
             raise HTTPException(status_code=400, detail="Apenas solicitações aguardando aprovação podem ser rejeitadas")
