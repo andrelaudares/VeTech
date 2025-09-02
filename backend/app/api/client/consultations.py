@@ -3,27 +3,66 @@ Rotas de consultas específicas para clientes/tutores
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
-from datetime import date, datetime as DateTime
+from datetime import date, datetime
 from pydantic import BaseModel
 from ..auth import get_current_user
 from ...db.supabase import supabase_admin as supabase
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+@router.get("/debug/user-info")
+async def debug_user_info(current_user: dict = Depends(get_current_user)):
+    """
+    Endpoint de debug para verificar informações do usuário logado
+    """
+    try:
+        # Buscar informações do usuário na tabela animals
+        animals_result = await supabase.select(
+            "animals", 
+            columns="*",
+            filters={"tutor_user_id": f"eq.{current_user['id']}"}
+        )
+        
+        # Buscar informações do usuário na tabela auth.users via email
+        auth_user_info = None
+        if current_user.get('email'):
+            try:
+                # Verificar se existe na tabela animals por email
+                animals_by_email = await supabase.select(
+                    "animals", 
+                    columns="*",
+                    filters={"email": f"eq.{current_user['email']}"}
+                )
+            except Exception as e:
+                animals_by_email = None
+        
+        return {
+            "current_user_from_jwt": current_user,
+            "animals_by_tutor_user_id": animals_result,
+            "animals_by_email": animals_by_email if 'animals_by_email' in locals() else None,
+            "debug_info": {
+                "user_id_exists_in_animals": len(animals_result) > 0 if animals_result else False,
+                "total_animals_found": len(animals_result) if animals_result else 0
+            }
+        }
+    except Exception as e:
+        logger.error(f"Erro no debug: {str(e)}")
+        return {
+            "error": str(e),
+            "current_user_from_jwt": current_user
+        }
+
 class ConsultationResponse(BaseModel):
     """Modelo de resposta para consultas do cliente"""
-    id: int
-    animal_id: int
+    id: str
+    animal_id: str
     animal_name: str
-    veterinarian_name: str
+    clinic_name: Optional[str] = None
     date: str
-    time: str
-    reason: str
-    diagnosis: Optional[str] = None
-    treatment: Optional[str] = None
-    observations: Optional[str] = None
-    next_appointment: Optional[str] = None
-    status: str
+    description: str
     created_at: str
     updated_at: str
 
@@ -46,61 +85,94 @@ async def get_client_consultations(
     Lista todas as consultas dos animais do cliente/tutor
     """
     try:
-        query = supabase.table("consultations").select("""
-            id,
-            animal_id,
-            veterinarian_name,
-            date,
-            time,
-            reason,
-            diagnosis,
-            treatment,
-            observations,
-            next_appointment,
-            status,
-            created_at,
-            updated_at,
-            animals!inner(
-                id,
-                name,
-                tutor_id
-            )
-        """).eq("animals.tutor_id", current_user["id"])
+        # Log de debug para identificar o usuário
+        logger.info(f"Buscando consultas para usuário: {current_user['id']} - Email: {current_user.get('email', 'N/A')}")
         
-        # Aplicar filtros
+        # Primeiro, buscar os animais do tutor
+        # Para tutores, o current_user['id'] é o user_id do Supabase Auth
+        # Precisamos buscar pelos animais que têm tutor_user_id igual ao current_user['id']
+        animals_result = await supabase.select(
+            "animals", 
+            columns="id,name",
+            filters={"tutor_user_id": f"eq.{current_user['id']}"}
+        )
+        
+        logger.info(f"Animais encontrados: {len(animals_result) if animals_result else 0}")
+        if animals_result:
+            logger.info(f"IDs dos animais: {[animal['id'] for animal in animals_result]}")
+        
+        if not animals_result:
+            return []
+        
+        # Extrair IDs dos animais
+        animal_ids = [animal["id"] for animal in animals_result]
+        
+        # Construir filtros para consultas
+        filters = {}
+        
+        # Filtrar por animal específico se fornecido
         if animal_id:
-            query = query.eq("animal_id", animal_id)
-            
+            if animal_id not in animal_ids:
+                return []  # Animal não pertence ao tutor
+            filters["animal_id"] = f"eq.{animal_id}"
+        else:
+            # Filtrar por todos os animais do tutor
+            if len(animal_ids) == 1:
+                filters["animal_id"] = f"eq.{animal_ids[0]}"
+            else:
+                filters["animal_id"] = f"in.({','.join(map(str, animal_ids))})"
+        
+        # Filtros de data
         if date_from:
-            query = query.gte("date", date_from.isoformat())
+            filters["date"] = f"gte.{date_from.isoformat()}"
             
         if date_to:
-            query = query.lte("date", date_to.isoformat())
+            if "date" in filters:
+                # Combinar filtros de data (precisa usar AND)
+                filters["date"] = f"gte.{date_from.isoformat()}"
+                filters["date"] = f"lte.{date_to.isoformat()}"
+            else:
+                filters["date"] = f"lte.{date_to.isoformat()}"
         
-        # Ordenar por data (mais recentes primeiro)
-        query = query.order("date", desc=True).order("time", desc=True)
+        # Buscar consultas com informações da clínica
+        consultations_result = await supabase.select(
+            "consultations",
+            columns="id,animal_id,date,description,created_at,updated_at,clinic_id",
+            filters=filters
+        )
         
-        # Aplicar limite
-        query = query.limit(limit)
+        if not consultations_result:
+            return []
         
-        result = query.execute()
+        # Buscar informações das clínicas
+        clinic_ids = list(set([c["clinic_id"] for c in consultations_result if c.get("clinic_id")]))
+        clinics_map = {}
+        
+        if clinic_ids:
+            clinics_result = await supabase.select(
+                "clinics",
+                columns="id,name",
+                filters={"id": f"in.({','.join(clinic_ids)})"}  
+            )
+            if clinics_result:
+                clinics_map = {clinic["id"]: clinic["name"] for clinic in clinics_result}
+        
+        # Criar mapa de animais para facilitar o lookup
+        animals_map = {animal["id"]: animal["name"] for animal in animals_result}
         
         # Formatar resposta
         consultations = []
-        for consultation in result.data:
+        for consultation in consultations_result:
+            animal_name = animals_map.get(consultation["animal_id"], "Animal não encontrado")
+            clinic_name = clinics_map.get(consultation.get("clinic_id"), None)
+            
             consultations.append(ConsultationResponse(
                 id=consultation["id"],
                 animal_id=consultation["animal_id"],
-                animal_name=consultation["animals"]["name"],
-                veterinarian_name=consultation["veterinarian_name"],
+                animal_name=animal_name,
+                clinic_name=clinic_name,
                 date=consultation["date"],
-                time=consultation["time"],
-                reason=consultation["reason"],
-                diagnosis=consultation.get("diagnosis"),
-                treatment=consultation.get("treatment"),
-                observations=consultation.get("observations"),
-                next_appointment=consultation.get("next_appointment"),
-                status=consultation["status"],
+                description=consultation["description"],
                 created_at=consultation["created_at"],
                 updated_at=consultation["updated_at"]
             ))
@@ -112,52 +184,60 @@ async def get_client_consultations(
 
 @router.get("/{consultation_id}", response_model=ConsultationResponse)
 async def get_consultation_details(
-    consultation_id: int,
+    consultation_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """
     Obtém detalhes de uma consulta específica
     """
     try:
-        result = supabase.table("consultations").select("""
-            id,
-            animal_id,
-            veterinarian_name,
-            date,
-            time,
-            reason,
-            diagnosis,
-            treatment,
-            observations,
-            next_appointment,
-            status,
-            created_at,
-            updated_at,
-            animals!inner(
-                id,
-                name,
-                tutor_id
-            )
-        """).eq("id", consultation_id).eq("animals.tutor_id", current_user["id"]).execute()
+        # Buscar a consulta específica
+        consultation_result = await supabase.select(
+            "consultations",
+            columns="id,animal_id,date,description,created_at,updated_at,clinic_id",
+            filters={"id": f"eq.{consultation_id}"}
+        )
         
-        if not result.data:
+        if not consultation_result:
             raise HTTPException(status_code=404, detail="Consulta não encontrada")
         
-        consultation = result.data[0]
+        consultation = consultation_result[0] if isinstance(consultation_result, list) else consultation_result
+        
+        # Verificar se o animal da consulta pertence ao tutor
+        animal_result = await supabase.get_by_eq(
+            "animals",
+            "id",
+            consultation["animal_id"]
+        )
+        
+        if not animal_result:
+            raise HTTPException(status_code=404, detail="Animal não encontrado")
+        
+        animal = animal_result[0] if isinstance(animal_result, list) else animal_result
+        
+        # Verificar se o animal pertence ao tutor atual
+        if animal["tutor_user_id"] != current_user["id"]:
+            raise HTTPException(status_code=404, detail="Consulta não encontrada")
+        
+        # Buscar informações da clínica se disponível
+        clinic_name = None
+        if consultation.get("clinic_id"):
+            clinic_result = await supabase.get_by_eq(
+                "clinics",
+                "id",
+                consultation["clinic_id"]
+            )
+            if clinic_result:
+                clinic = clinic_result[0] if isinstance(clinic_result, list) else clinic_result
+                clinic_name = clinic.get("name")
         
         return ConsultationResponse(
             id=consultation["id"],
             animal_id=consultation["animal_id"],
-            animal_name=consultation["animals"]["name"],
-            veterinarian_name=consultation["veterinarian_name"],
+            animal_name=animal["name"],
+            clinic_name=clinic_name,
             date=consultation["date"],
-            time=consultation["time"],
-            reason=consultation["reason"],
-            diagnosis=consultation.get("diagnosis"),
-            treatment=consultation.get("treatment"),
-            observations=consultation.get("observations"),
-            next_appointment=consultation.get("next_appointment"),
-            status=consultation["status"],
+            description=consultation["description"],
             created_at=consultation["created_at"],
             updated_at=consultation["updated_at"]
         )
@@ -169,7 +249,7 @@ async def get_consultation_details(
 
 @router.get("/animal/{animal_id}", response_model=List[ConsultationResponse])
 async def get_animal_consultations(
-    animal_id: int,
+    animal_id: str,
     current_user: dict = Depends(get_current_user),
     limit: int = Query(20, description="Limite de resultados")
 ):
@@ -178,55 +258,65 @@ async def get_animal_consultations(
     """
     try:
         # Verificar se o animal pertence ao tutor
-        animal_check = supabase.table("animals").select("id").eq(
-            "id", animal_id
-        ).eq("tutor_id", current_user["id"]).execute()
+        animal_result = await supabase.get_by_eq(
+            "animals",
+            "id",
+            animal_id
+        )
         
-        if not animal_check.data:
+        if not animal_result:
             raise HTTPException(status_code=404, detail="Animal não encontrado")
         
-        result = supabase.table("consultations").select("""
-            id,
-            animal_id,
-            veterinarian_name,
-            date,
-            time,
-            reason,
-            diagnosis,
-            treatment,
-            observations,
-            next_appointment,
-            status,
-            created_at,
-            updated_at,
-            animals!inner(
-                id,
-                name,
-                tutor_id
+        animal = animal_result[0] if isinstance(animal_result, list) else animal_result
+        
+        # Verificar se o animal pertence ao tutor atual
+        if animal["tutor_user_id"] != current_user["id"]:
+            raise HTTPException(status_code=404, detail="Animal não encontrado")
+        
+        # Buscar consultas do animal
+        consultations_result = await supabase.select(
+            "consultations",
+            columns="id,animal_id,date,description,created_at,updated_at,clinic_id",
+            filters={"animal_id": f"eq.{animal_id}"}
+        )
+        
+        if not consultations_result:
+            return []
+        
+        # Buscar informações das clínicas
+        clinic_ids = list(set([c["clinic_id"] for c in consultations_result if c.get("clinic_id")]))
+        clinics_map = {}
+        
+        if clinic_ids:
+            clinics_result = await supabase.select(
+                "clinics",
+                columns="id,name",
+                filters={"id": f"in.({','.join(clinic_ids)})"}
             )
-        """).eq("animal_id", animal_id).order("date", desc=True).limit(limit).execute()
+            if clinics_result:
+                clinics_map = {clinic["id"]: clinic["name"] for clinic in clinics_result}
         
         # Formatar resposta
         consultations = []
-        for consultation in result.data:
+        for consultation in consultations_result:
+            clinic_name = clinics_map.get(consultation.get("clinic_id"), None)
+            
             consultations.append(ConsultationResponse(
                 id=consultation["id"],
                 animal_id=consultation["animal_id"],
-                animal_name=consultation["animals"]["name"],
-                veterinarian_name=consultation["veterinarian_name"],
+                animal_name=animal["name"],
+                clinic_name=clinic_name,
                 date=consultation["date"],
-                time=consultation["time"],
-                reason=consultation["reason"],
-                diagnosis=consultation.get("diagnosis"),
-                treatment=consultation.get("treatment"),
-                observations=consultation.get("observations"),
-                next_appointment=consultation.get("next_appointment"),
-                status=consultation["status"],
+                description=consultation["description"],
                 created_at=consultation["created_at"],
                 updated_at=consultation["updated_at"]
             ))
         
-        return consultations
+        # Ordenar por data (mais recentes primeiro)
+        consultations.sort(key=lambda x: x.date, reverse=True)
+        
+        # Aplicar limite
+        return consultations[:limit]
         
     except HTTPException:
         raise
@@ -241,73 +331,95 @@ async def get_consultations_summary(
     Retorna um resumo das consultas do cliente
     """
     try:
-        # Contar total de consultas
-        total_result = supabase.table("consultations").select("id", count="exact").eq(
-            "animals.tutor_id", current_user["id"]
-        ).execute()
+        # Primeiro, buscar os animais do tutor
+        # Para tutores, o current_user['id'] é o user_id do Supabase Auth
+        # Precisamos buscar pelos animais que têm tutor_user_id igual ao current_user['id']
+        animals_result = await supabase.select(
+            "animals", 
+            columns="id,name",
+            filters={"tutor_user_id": f"eq.{current_user['id']}"}
+        )
         
-        # Buscar consultas recentes (últimas 5)
-        recent_result = supabase.table("consultations").select("""
-            id,
-            animal_id,
-            veterinarian_name,
-            date,
-            time,
-            reason,
-            diagnosis,
-            treatment,
-            observations,
-            next_appointment,
-            status,
-            created_at,
-            updated_at,
-            animals!inner(
-                id,
-                name,
-                tutor_id
+        if not animals_result:
+            return ConsultationSummary(
+                total_consultations=0,
+                recent_consultations=[],
+                animals_with_consultations=0,
+                last_consultation_date=None
             )
-        """).eq("animals.tutor_id", current_user["id"]).order(
-            "date", desc=True
-        ).limit(5).execute()
         
-        # Contar animais com consultas
-        animals_result = supabase.table("consultations").select(
-            "animal_id", count="exact"
-        ).eq("animals.tutor_id", current_user["id"]).execute()
+        # Extrair IDs dos animais
+        animal_ids = [animal["id"] for animal in animals_result]
+        animals_map = {animal["id"]: animal["name"] for animal in animals_result}
         
-        # Última consulta
-        last_consultation = None
-        if recent_result.data:
-            last_consultation = recent_result.data[0]["date"]
+        # Buscar todas as consultas dos animais do tutor
+        filters = {}
+        if len(animal_ids) == 1:
+            filters["animal_id"] = f"eq.{animal_ids[0]}"
+        else:
+            filters["animal_id"] = f"in.({','.join(map(str, animal_ids))})"
+        
+        consultations_result = await supabase.select(
+            "consultations",
+            columns="id,animal_id,date,description,created_at,updated_at,clinic_id",
+            filters=filters
+        )
+        
+        if not consultations_result:
+            return ConsultationSummary(
+                total_consultations=0,
+                recent_consultations=[],
+                animals_with_consultations=0,
+                last_consultation_date=None
+            )
+        
+        # Buscar informações das clínicas
+        clinic_ids = list(set([c["clinic_id"] for c in consultations_result if c.get("clinic_id")]))
+        clinics_map = {}
+        
+        if clinic_ids:
+            clinics_result = await supabase.select(
+                "clinics",
+                columns="id,name",
+                filters={"id": f"in.({','.join(clinic_ids)})"}
+            )
+            if clinics_result:
+                clinics_map = {clinic["id"]: clinic["name"] for clinic in clinics_result}
+        
+        # Ordenar consultas por data (mais recentes primeiro)
+        consultations_result.sort(key=lambda x: x["date"], reverse=True)
+        
+        # Pegar as 5 consultas mais recentes
+        recent_consultations_data = consultations_result[:5]
         
         # Formatar consultas recentes
         recent_consultations = []
-        for consultation in recent_result.data:
+        for consultation in recent_consultations_data:
+            animal_name = animals_map.get(consultation["animal_id"], "Animal não encontrado")
+            clinic_name = clinics_map.get(consultation.get("clinic_id"), None)
+            
             recent_consultations.append(ConsultationResponse(
-                id=consultation["id"],
-                animal_id=consultation["animal_id"],
-                animal_name=consultation["animals"]["name"],
-                veterinarian_name=consultation["veterinarian_name"],
-                date=consultation["date"],
-                time=consultation["time"],
-                reason=consultation["reason"],
-                diagnosis=consultation.get("diagnosis"),
-                treatment=consultation.get("treatment"),
-                observations=consultation.get("observations"),
-                next_appointment=consultation.get("next_appointment"),
-                status=consultation["status"],
-                created_at=consultation["created_at"],
-                updated_at=consultation["updated_at"]
-            ))
+                    id=consultation["id"],
+                    animal_id=consultation["animal_id"],
+                    animal_name=animal_name,
+                    clinic_name=clinic_name,
+                    date=consultation["date"],
+                    description=consultation["description"],
+                    created_at=consultation["created_at"],
+                    updated_at=consultation["updated_at"]
+                ))
         
         # Contar animais únicos com consultas
-        unique_animals = len(set(c.animal_id for c in recent_consultations))
+        unique_animals = len(set(consultation["animal_id"] for consultation in consultations_result))
+        
+        # Última consulta
+        last_consultation_date = consultations_result[0]["date"] if consultations_result else None
         
         return ConsultationSummary(
-            total_consultations=total_result.count or 0,
+            total_consultations=len(consultations_result),
             recent_consultations=recent_consultations,
             animals_with_consultations=unique_animals,
-            last_consultation_date=last_consultation
+            last_consultation_date=last_consultation_date
         )
         
     except Exception as e:

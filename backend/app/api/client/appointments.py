@@ -50,9 +50,9 @@ async def get_client_appointments(
             animals!inner(
                 id,
                 name,
-                tutor_id
+                tutor_user_id
             )
-        """).eq("animals.tutor_id", current_user["id"])
+        """).eq("animals.tutor_user_id", current_user["id"])
         
         # Aplicar filtros
         if animal_id:
@@ -119,9 +119,9 @@ async def get_appointment_details(
             animals!inner(
                 id,
                 name,
-                tutor_id
+                tutor_user_id
             )
-        """).eq("id", appointment_id).eq("animals.tutor_id", current_user["id"]).execute()
+        """).eq("id", appointment_id).eq("animals.tutor_user_id", current_user["id"]).execute()
         
         if not result.data:
             raise HTTPException(status_code=404, detail="Agendamento não encontrado")
@@ -157,7 +157,7 @@ async def get_upcoming_appointments_count(
         today = DateTime.now().date().isoformat()
         
         result = supabase.table("appointments").select("id", count="exact").eq(
-            "animals.tutor_id", current_user["id"]
+            "animals.tutor_user_id", current_user["id"]
         ).gte("date", today).eq("status", "scheduled").execute()
         
         return {"count": result.count}
