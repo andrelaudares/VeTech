@@ -45,6 +45,8 @@ async def create_animal(
             "breed": animal.breed,
             "age": animal.age,
             "weight": animal.weight,
+            "altura": animal.altura,
+            "sexo": animal.sexo,
             "medical_history": animal.medical_history,
             "date_birth": animal.date_birth.isoformat() if animal.date_birth else None,
             "tutor_name": animal.tutor_name,

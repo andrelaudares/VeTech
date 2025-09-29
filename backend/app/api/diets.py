@@ -5,10 +5,9 @@ import logging
 
 from ..models.diet import (
     DietCreate, DietUpdate, DietResponse,
-    DietOptionCreate, DietOptionUpdate, DietOptionResponse,
-    DietFoodCreate, DietFoodUpdate, DietFoodResponse,
     RestrictedFoodCreate, RestrictedFoodUpdate, RestrictedFoodResponse,
-    SnackCreate, SnackUpdate, SnackResponse
+    DietProgressCreate, DietProgressUpdate, DietProgressResponse,
+    AlimentoBaseCreate, AlimentoBaseUpdate, AlimentoBaseResponse
 )
 from ..db.supabase import supabase_admin
 from ..api.auth import get_current_user
@@ -48,13 +47,19 @@ async def create_diet(
         # Criar a dieta
         diet_data = {
             "animal_id": str(animal_id),
-            "clinic_id": clinic_id,
+            "clinic_id": current_user["clinic_id"],
+            "nome": diet.nome,
             "tipo": diet.tipo,
             "objetivo": diet.objetivo,
-            "observacoes": diet.observacoes,
             "data_inicio": diet.data_inicio.isoformat(),
             "data_fim": diet.data_fim.isoformat() if diet.data_fim else None,
-            "status": diet.status
+            "status": diet.status,
+            "refeicoes_por_dia": diet.refeicoes_por_dia,
+            "calorias_totais_dia": diet.calorias_totais_dia,
+            "valor_mensal_estimado": diet.valor_mensal_estimado,
+            "alimento_id": diet.alimento_id,
+            "quantidade_gramas": diet.quantidade_gramas,
+            "horario": diet.horario
         }
         
         # Adicionando cabeçalho Prefer para retornar representação
@@ -71,9 +76,6 @@ async def create_diet(
         created_diet = supabase_admin.process_response(diet_response, single_item=True)
         if not created_diet:
             raise HTTPException(status_code=500, detail="Erro ao criar dieta: dados não retornados")
-            
-        # Adicionar lista vazia de opções de dieta
-        created_diet["opcoes_dieta"] = []
         
         return created_diet
         
@@ -116,27 +118,6 @@ async def list_diets(
             # Se não houver dietas, retornar uma lista vazia
             return []
         
-        # Para cada dieta, buscar as opções de dieta
-        for diet in diets:
-            diet_id = diet.get("id")
-            options_response = await supabase_admin._request(
-                "GET",
-                f"/rest/v1/opcoes_dieta?dieta_id=eq.{diet_id}"
-            )
-            
-            options = supabase_admin.process_response(options_response)
-            if options:
-                # Para cada opção, buscar os alimentos
-                for option in options:
-                    foods_response = await supabase_admin._request(
-                        "GET",
-                        f"/rest/v1/alimentos_dieta?opcao_dieta_id=eq.{option['id']}"
-                    )
-                    foods = supabase_admin.process_response(foods_response)
-                    option["alimentos"] = foods if foods else []
-            
-            diet["opcoes_dieta"] = options if options else []
-            
         return diets
         
     except Exception as e:
@@ -168,26 +149,6 @@ async def get_diet(
             raise HTTPException(status_code=404, detail="Dieta não encontrada ou não pertence a esta clínica")
             
         diet = diets[0]
-        
-        # Buscar opções de dieta
-        options_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/opcoes_dieta?dieta_id=eq.{diet_id}"
-        )
-        
-        options = supabase_admin.process_response(options_response)
-        if options:
-            # Para cada opção, buscar os alimentos
-            for option in options:
-                foods_response = await supabase_admin._request(
-                    "GET",
-                    f"/rest/v1/alimentos_dieta?opcao_dieta_id=eq.{option['id']}"
-                )
-                foods = supabase_admin.process_response(foods_response)
-                option["alimentos"] = foods if foods else []
-        
-        diet["opcoes_dieta"] = options if options else []
-        
         return diet
         
     except Exception as e:
@@ -257,25 +218,6 @@ async def update_diet(
             updated_diet = supabase_admin.process_response(updated_diet_response, single_item=True)
             if not updated_diet:
                 raise HTTPException(status_code=404, detail="Dieta não encontrada após atualização")
-            
-        # Buscar opções de dieta
-        options_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/opcoes_dieta?dieta_id=eq.{diet_id}"
-        )
-        
-        options = supabase_admin.process_response(options_response)
-        if options:
-            # Para cada opção, buscar os alimentos
-            for option in options:
-                foods_response = await supabase_admin._request(
-                    "GET",
-                    f"/rest/v1/alimentos_dieta?opcao_dieta_id=eq.{option['id']}"
-                )
-                foods = supabase_admin.process_response(foods_response)
-                option["alimentos"] = foods if foods else []
-        
-        updated_diet["opcoes_dieta"] = options if options else []
         
         return updated_diet
         
@@ -307,12 +249,6 @@ async def delete_diet(
         if not diets:
             raise HTTPException(status_code=404, detail="Dieta não encontrada ou não pertence a esta clínica")
             
-        # Remover opções de dieta associadas
-        await supabase_admin._request(
-            "DELETE",
-            f"/rest/v1/opcoes_dieta?dieta_id=eq.{diet_id}"
-        )
-        
         # Remover a dieta
         await supabase_admin._request(
             "DELETE",
@@ -325,166 +261,11 @@ async def delete_diet(
         print(f"Erro ao remover dieta: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao remover dieta: {str(e)}")
 
-# Rotas para Opções de Dieta
-@router.post("/diets/{diet_id}/options", response_model=DietOptionResponse)
-async def create_diet_option(
-    diet_id: UUID,
-    option: DietOptionCreate,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Cria uma opção de dieta para uma dieta existente.
-    """
-    try:
-        # Verificar se o usuário está autenticado
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se a dieta existe e pertence à clínica
-        diet_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/dietas?id=eq.{diet_id}&clinic_id=eq.{clinic_id}"
-        )
-        
-        diet_data = supabase_admin.process_response(diet_response)
-        if not diet_data:
-            raise HTTPException(status_code=404, detail="Dieta não encontrada ou não pertence a esta clínica")
-            
-        # Criar a opção de dieta
-        option_data = {
-            "dieta_id": str(diet_id),
-            "nome": option.nome,
-            "valor_mensal_estimado": option.valor_mensal_estimado,
-            "calorias_totais_dia": option.calorias_totais_dia,
-            "porcao_refeicao": option.porcao_refeicao,
-            "refeicoes_por_dia": option.refeicoes_por_dia,
-            "indicacao": option.indicacao
-        }
-        
-        option_response = await supabase_admin._request(
-            "POST",
-            "/rest/v1/opcoes_dieta",
-            json=option_data
-        )
-        
-        created_option = supabase_admin.process_response(option_response, single_item=True)
-        if not created_option:
-            raise HTTPException(status_code=500, detail="Erro ao criar opção de dieta")
-            
-        return created_option
-        
-    except Exception as e:
-        print(f"Erro ao criar opção de dieta: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao criar opção de dieta: {str(e)}")
+# Fim das rotas de dietas
 
-@router.put("/diet-options/{option_id}", response_model=DietOptionResponse)
-async def update_diet_option(
-    option_id: UUID,
-    option_update: DietOptionUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Atualiza uma opção de dieta existente.
-    """
-    try:
-        # Verificar se o usuário está autenticado
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se a opção de dieta existe
-        option_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}"
-        )
-        
-        option_data = supabase_admin.process_response(option_response)
-        if not option_data:
-            raise HTTPException(status_code=404, detail="Opção de dieta não encontrada")
-            
-        # Verificar se a dieta pertence à clínica
-        diet_id = option_data[0].get("dieta_id") if isinstance(option_data, list) else option_data.get("dieta_id")
-        diet_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/dietas?id=eq.{diet_id}&clinic_id=eq.{clinic_id}"
-        )
-        
-        diet_data = supabase_admin.process_response(diet_response)
-        if not diet_data:
-            raise HTTPException(status_code=403, detail="Acesso negado: dieta não pertence a esta clínica")
-            
-        # Preparar dados para atualização
-        update_data = option_update.dict(exclude_unset=True)
-        
-        # Atualizar a opção de dieta
-        updated_response = await supabase_admin._request(
-            "PATCH",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}",
-            json=update_data
-        )
-        
-        # Buscar a opção atualizada
-        result_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}"
-        )
-        
-        updated_option = supabase_admin.process_response(result_response, single_item=True)
-        if not updated_option:
-            raise HTTPException(status_code=404, detail="Opção de dieta não encontrada após atualização")
-            
-        return updated_option
-        
-    except Exception as e:
-        print(f"Erro ao atualizar opção de dieta: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar opção de dieta: {str(e)}")
 
-@router.delete("/diet-options/{option_id}", status_code=204)
-async def delete_diet_option(
-    option_id: UUID,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> None:
-    """
-    Remove uma opção de dieta.
-    """
-    try:
-        # Verificar autenticação
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se a opção existe
-        option_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}"
-        )
-        
-        options = supabase_admin.process_response(option_response)
-        if not options:
-            raise HTTPException(status_code=404, detail="Opção de dieta não encontrada")
-            
-        # Verificar se a dieta associada pertence à clínica
-        diet_id = options[0].get("dieta_id")
-        diet_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/dietas?id=eq.{diet_id}&clinic_id=eq.{clinic_id}"
-        )
-        
-        diets = supabase_admin.process_response(diet_response)
-        if not diets:
-            raise HTTPException(status_code=403, detail="Acesso negado a esta opção de dieta")
-            
-        # Remover a opção de dieta (e alimentos associados, se o cascade estiver configurado no DB)
-        await supabase_admin._request(
-            "DELETE",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}"
-        )
-        return None # FastAPI retornará 204 No Content automaticamente
-        
-    except Exception as e:
-        print(f"Erro ao remover opção de dieta: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao remover opção de dieta: {str(e)}")
+
+
 
 # Rotas para Alimentos a Evitar
 @router.post("/animals/{animal_id}/restricted-foods", response_model=RestrictedFoodResponse)
@@ -750,22 +531,328 @@ async def delete_restricted_food(
             detail=f"Erro ao excluir alimento a evitar: {str(e)}"
         )
 
-# Rotas para Snacks
-@router.post("/animals/{animal_id}/snacks", response_model=SnackResponse)
-async def create_snack(
-    animal_id: UUID,
-    snack: SnackCreate,
+# Rotas para Alimentos Base
+# CRUD para Alimentos Base
+@router.post("/alimentos-base", response_model=AlimentoBaseResponse, status_code=201)
+async def create_alimento_base(
+    alimento: AlimentoBaseCreate,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Cria um registro de lanche entre refeições para um animal.
+    Cria um novo alimento base.
     """
     try:
-        # Verificar se o animal pertence à clínica
+        # Verificar se o usuário está autenticado
         clinic_id = current_user.get("id")
         if not clinic_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Verificar se o usuário tem permissão (apenas administradores ou agentes de IA)
+        user_role = current_user.get("role")
+        if user_role not in ["admin", "ai_agent"]:
+            raise HTTPException(status_code=403, detail="Sem permissão para criar alimentos base")
+            
+        # Preparar dados para criação
+        alimento_data = alimento.dict()
+        
+        # Adicionando cabeçalho Prefer para retornar representação
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+        
+        # Criar o alimento base
+        alimento_response = await supabase_admin._request(
+            "POST",
+            "/rest/v1/alimentos_base",
+            json=alimento_data,
+            headers=headers
+        )
+        
+        created_alimento = supabase_admin.process_response(alimento_response, single_item=True)
+        if not created_alimento:
+            raise HTTPException(status_code=500, detail="Erro ao criar alimento base: dados não retornados")
+        
+        return created_alimento
+        
+    except Exception as e:
+        print(f"Erro ao criar alimento base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar alimento base: {str(e)}")
 
+@router.get("/alimentos-base", response_model=List[AlimentoBaseResponse])
+async def get_alimentos_base(
+    nome: Optional[str] = None,
+    tipo: Optional[str] = None,
+    especie_destino: Optional[str] = None,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """
+    Lista todos os alimentos base disponíveis para dietas.
+    Permite filtrar por nome, tipo e espécie destino.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Construir a query com os filtros
+        query = "/rest/v1/alimentos_base?"
+        filters = []
+        
+        if nome:
+            filters.append(f"nome=ilike.%{nome}%")
+        if tipo:
+            filters.append(f"tipo=eq.{tipo}")
+        if especie_destino:
+            filters.append(f"especie_destino=eq.{especie_destino}")
+            
+        if filters:
+            query += "&".join(filters)
+            
+        # Adicionar ordenação
+        if query.endswith("?"):
+            query += "order=nome.asc"
+        else:
+            query += "&order=nome.asc"
+        
+        # Buscar os alimentos base
+        alimentos_response = await supabase_admin._request(
+            "GET",
+            query
+        )
+        
+        alimentos_data = supabase_admin.process_response(alimentos_response)
+        return alimentos_data or []
+        
+    except Exception as e:
+        print(f"Erro ao listar alimentos base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao listar alimentos base: {str(e)}")
+
+@router.get("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
+async def get_alimento_base(
+    alimento_id: UUID,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Obtém detalhes de um alimento base específico.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Buscar o alimento base
+        alimento_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
+        )
+        
+        alimento_data = supabase_admin.process_response(alimento_response)
+        if not alimento_data:
+            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
+            
+        return alimento_data[0]
+        
+    except Exception as e:
+        print(f"Erro ao obter alimento base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao obter alimento base: {str(e)}")
+
+@router.put("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
+async def update_alimento_base(
+    alimento_id: UUID,
+    alimento: AlimentoBaseUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Atualiza um alimento base existente.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Verificar se o usuário tem permissão (apenas administradores ou agentes de IA)
+        user_role = current_user.get("role")
+        if user_role not in ["admin", "ai_agent"]:
+            raise HTTPException(status_code=403, detail="Sem permissão para atualizar alimentos base")
+            
+        # Verificar se o alimento base existe
+        alimento_check = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
+        )
+        
+        existing_alimento = supabase_admin.process_response(alimento_check)
+        if not existing_alimento:
+            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
+            
+        # Preparar dados para atualização
+        update_data = {k: v for k, v in alimento.dict().items() if v is not None}
+        
+        # Adicionando cabeçalho Prefer para retornar representação
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+        
+        # Atualizar o alimento base
+        alimento_response = await supabase_admin._request(
+            "PATCH",
+            f"/rest/v1/alimentos_base?id=eq.{alimento_id}",
+            json=update_data,
+            headers=headers
+        )
+        
+        updated_alimento = supabase_admin.process_response(alimento_response, single_item=True)
+        if not updated_alimento:
+            # Verificar se o registro ainda existe após a tentativa de atualização
+            check_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
+            )
+            
+            updated_alimento = supabase_admin.process_response(check_response, single_item=True)
+            if not updated_alimento:
+                raise HTTPException(status_code=500, detail="Erro ao atualizar alimento base")
+                
+        return updated_alimento
+        
+    except Exception as e:
+        print(f"Erro ao atualizar alimento base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar alimento base: {str(e)}")
+
+@router.delete("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
+async def delete_alimento_base(
+    alimento_id: UUID,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Remove um alimento base existente.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Verificar se o usuário tem permissão (apenas administradores ou agentes de IA)
+        user_role = current_user.get("role")
+        if user_role not in ["admin", "ai_agent"]:
+            raise HTTPException(status_code=403, detail="Sem permissão para excluir alimentos base")
+            
+        # Verificar se o alimento base existe
+        alimento_check = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
+        )
+        
+        existing_alimento = supabase_admin.process_response(alimento_check)
+        if not existing_alimento:
+            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
+            
+        # Excluir o alimento base
+        headers = supabase_admin.admin_headers.copy()
+        
+        alimento_response = await supabase_admin._request(
+            "DELETE",
+            f"/rest/v1/alimentos_base?id=eq.{alimento_id}",
+            headers=headers
+        )
+        
+        if not alimento_response:
+            # Verificar se o registro ainda existe após a tentativa de exclusão
+            check_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
+            )
+            
+            if supabase_admin.process_response(check_response):
+                raise HTTPException(status_code=500, detail="Falha ao excluir o alimento base")
+        
+        # Retornar os dados do alimento que foi excluído
+        return existing_alimento[0]
+        
+    except Exception as e:
+        print(f"Erro ao excluir alimento base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao excluir alimento base: {str(e)}")
+
+@router.get("/alimentos-base/tipos", response_model=List[str])
+async def get_alimentos_tipos(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> List[str]:
+    """
+    Obtém a lista de tipos de alimentos disponíveis.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Buscar tipos distintos
+        tipos_response = await supabase_admin._request(
+            "GET",
+            "/rest/v1/alimentos_base?select=tipo&distinct=true"
+        )
+        
+        tipos_data = supabase_admin.process_response(tipos_response)
+        if not tipos_data:
+            return []
+            
+        # Extrair apenas os valores de tipo
+        tipos = [item.get("tipo") for item in tipos_data if item.get("tipo")]
+        return tipos
+        
+    except Exception as e:
+        print(f"Erro ao obter tipos de alimentos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao obter tipos de alimentos: {str(e)}")
+
+@router.get("/alimentos-base/especies", response_model=List[str])
+async def get_alimentos_especies(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> List[str]:
+    """
+    Obtém a lista de espécies destino disponíveis nos alimentos.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Buscar espécies distintas
+        especies_response = await supabase_admin._request(
+            "GET",
+            "/rest/v1/alimentos_base?select=especie_destino&distinct=true"
+        )
+        
+        especies_data = supabase_admin.process_response(especies_response)
+        if not especies_data:
+            return []
+            
+        # Extrair apenas os valores de espécie
+        especies = [item.get("especie_destino") for item in especies_data if item.get("especie_destino")]
+        return especies
+        
+    except Exception as e:
+        print(f"Erro ao obter espécies de alimentos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao obter espécies de alimentos: {str(e)}")
+
+# Rota para atualizar informações de dieta no animal
+@router.put("/animals/{animal_id}/dieta-atual", response_model=Dict[str, Any])
+async def update_animal_dieta(
+    animal_id: UUID,
+    dieta_data: Dict[str, Any],
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Atualiza as informações de dieta atual no registro do animal.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
         # Verificar se o animal existe e pertence à clínica
         animal_response = await supabase_admin._request(
             "GET",
@@ -774,46 +861,118 @@ async def create_snack(
         
         animal_data = supabase_admin.process_response(animal_response)
         if not animal_data:
-            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence a esta clínica")
+            raise HTTPException(status_code=404, detail="Animal não encontrado")
+            
+        # Preparar dados para atualização
+        update_data = {}
+        if "dieta_atual_id" in dieta_data:
+            update_data["dieta_atual_id"] = dieta_data["dieta_atual_id"]
+        if "dieta_atual_nome" in dieta_data:
+            update_data["dieta_atual_nome"] = dieta_data["dieta_atual_nome"]
+        if "dieta_atual_status" in dieta_data:
+            update_data["dieta_atual_status"] = dieta_data["dieta_atual_status"]
+        if "dieta_atual_data_inicio" in dieta_data:
+            update_data["dieta_atual_data_inicio"] = dieta_data["dieta_atual_data_inicio"]
+        if "dieta_atual_data_fim" in dieta_data:
+            update_data["dieta_atual_data_fim"] = dieta_data["dieta_atual_data_fim"]
+            
+        # Atualizar o animal
+        update_response = await supabase_admin._request(
+            "PATCH",
+            f"/rest/v1/animals?id=eq.{animal_id}",
+            json=update_data
+        )
         
-        # Criar o lanche
-        snack_data = {
-            "animal_id": str(animal_id),
-            "clinic_id": clinic_id,
-            "nome": snack.nome,
-            "frequencia_semanal": snack.frequencia_semanal,
-            "quantidade": snack.quantidade,
-            "observacoes": snack.observacoes
+        # Verificar se a atualização foi bem-sucedida
+        if update_response.status_code not in (200, 201, 204):
+            raise HTTPException(
+                status_code=update_response.status_code,
+                detail=f"Erro ao atualizar informações de dieta: {update_response.text}"
+            )
+            
+        # Buscar o animal atualizado
+        updated_animal_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/animals?id=eq.{animal_id}"
+        )
+        
+        updated_animal_data = supabase_admin.process_response(updated_animal_response)
+        if not updated_animal_data:
+            raise HTTPException(status_code=404, detail="Animal não encontrado após atualização")
+            
+        return updated_animal_data[0]
+        
+    except Exception as e:
+        print(f"Erro ao atualizar informações de dieta no animal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar informações de dieta: {str(e)}")
+
+# Rotas para Progresso da Dieta
+@router.post("/diets/{diet_id}/progress", response_model=DietProgressResponse)
+async def create_diet_progress(
+    diet_id: UUID,
+    progress: DietProgressCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Registra o progresso de uma dieta.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+        # Verificar se a dieta existe e pertence à clínica
+        diet_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/dietas?id=eq.{diet_id}&clinic_id=eq.{clinic_id}"
+        )
+        
+        diet_data = supabase_admin.process_response(diet_response)
+        if not diet_data:
+            raise HTTPException(status_code=404, detail="Dieta não encontrada ou não pertence a esta clínica")
+        
+        # Criar o registro de progresso
+        progress_data = {
+            "animal_id": progress.animal_id,
+            "dieta_id": progress.dieta_id,
+            "opcao_dieta_id": progress.opcao_dieta_id,
+            "data": progress.data.isoformat(),
+            "refeicao_completa": progress.refeicao_completa,
+            "horario_realizado": progress.horario_realizado.isoformat() if progress.horario_realizado else None,
+            "quantidade_consumida": progress.quantidade_consumida,
+            "observacoes_tutor": progress.observacoes_tutor,
+            "pontos_ganhos": progress.pontos_ganhos
         }
         
         # Adicionando cabeçalho Prefer para retornar representação
         headers = supabase_admin.admin_headers.copy()
         headers["Prefer"] = "return=representation"
         
-        snack_response = await supabase_admin._request(
+        progress_response = await supabase_admin._request(
             "POST",
-            "/rest/v1/snacks_entre_refeicoes",
-            json=snack_data,
+            "/rest/v1/dieta_progresso",
+            json=progress_data,
             headers=headers
         )
         
-        created_snack = supabase_admin.process_response(snack_response, single_item=True)
-        if not created_snack:
-            raise HTTPException(status_code=500, detail="Erro ao criar registro de lanche")
-            
-        return created_snack
+        created_progress = supabase_admin.process_response(progress_response, single_item=True)
+        if not created_progress:
+            raise HTTPException(status_code=500, detail="Erro ao registrar progresso: dados não retornados")
+        
+        return created_progress
         
     except Exception as e:
-        print(f"Erro ao criar lanche: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao criar lanche: {str(e)}")
+        print(f"Erro ao registrar progresso da dieta: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao registrar progresso da dieta: {str(e)}")
 
-@router.get("/animals/{animal_id}/snacks", response_model=List[SnackResponse])
-async def list_snacks(
-    animal_id: UUID,
+@router.get("/diets/{diet_id}/progress", response_model=List[DietProgressResponse])
+async def list_diet_progress(
+    diet_id: UUID,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
     """
-    Lista todos os snacks permitidos para um animal.
+    Lista todos os registros de progresso de uma dieta.
     """
     try:
         # Verificar se o usuário está autenticado
@@ -821,213 +980,37 @@ async def list_snacks(
         if not clinic_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
             
-        # Verificar se o animal existe e pertence à clínica
-        animal_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}"
-        )
-        
-        animals = supabase_admin.process_response(animal_response)
-        if not animals:
-            raise HTTPException(status_code=404, detail="Animal não encontrado ou não pertence a esta clínica")
-            
-        # Buscar snacks do animal
-        snacks_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/snacks_entre_refeicoes?animal_id=eq.{animal_id}"
-        )
-        
-        snacks = supabase_admin.process_response(snacks_response)
-        return snacks
-        
-    except Exception as e:
-        print(f"Erro ao listar snacks: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao listar snacks: {str(e)}")
-
-@router.put("/animals/{animal_id}/snacks/{snack_id}", response_model=SnackResponse)
-async def update_snack(
-    animal_id: UUID,
-    snack_id: UUID,
-    snack_update: SnackUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Atualiza um registro de lanche entre refeições.
-    """
-    try:
-        # Verificar se o usuário está autenticado
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se o lanche existe
-        snack_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/snacks_entre_refeicoes?id=eq.{snack_id}"
-        )
-        
-        snack_data = supabase_admin.process_response(snack_response)
-        if not snack_data:
-            raise HTTPException(status_code=404, detail="Lanche não encontrado")
-            
-        # Verificar se o animal pertence à clínica
-        animal_id = snack_data[0].get("animal_id") if isinstance(snack_data, list) else snack_data.get("animal_id")
-        animal_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}"
-        )
-        
-        animal_data = supabase_admin.process_response(animal_response)
-        if not animal_data:
-            raise HTTPException(status_code=403, detail="Acesso negado: animal não pertence a esta clínica")
-            
-        # Preparar dados para atualização
-        update_data = snack_update.dict(exclude_unset=True)
-        
-        # Atualizar o lanche
-        updated_response = await supabase_admin._request(
-            "PATCH",
-            f"/rest/v1/snacks_entre_refeicoes?id=eq.{snack_id}",
-            json=update_data
-        )
-        
-        # Buscar o lanche atualizado
-        result_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/snacks_entre_refeicoes?id=eq.{snack_id}"
-        )
-        
-        updated_snack = supabase_admin.process_response(result_response, single_item=True)
-        if not updated_snack:
-            raise HTTPException(status_code=404, detail="Lanche não encontrado após atualização")
-            
-        return updated_snack
-        
-    except Exception as e:
-        print(f"Erro ao atualizar lanche: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar lanche: {str(e)}")
-
-@router.delete("/animals/{animal_id}/snacks/{snack_id}", status_code=204)
-async def delete_snack(
-    animal_id: UUID,
-    snack_id: UUID,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> None:
-    """
-    Remove um snack.
-    """
-    try:
-        # Verificar autenticação
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se o snack existe
-        snack_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/snacks_entre_refeicoes?id=eq.{snack_id}"
-        )
-        
-        snacks = supabase_admin.process_response(snack_response)
-        if not snacks:
-            raise HTTPException(status_code=404, detail="Snack não encontrado")
-            
-        # Verificar se o animal pertence à clínica
-        animal_id = snacks[0].get("animal_id")
-        animal_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/animals?id=eq.{animal_id}&clinic_id=eq.{clinic_id}"
-        )
-        
-        animals = supabase_admin.process_response(animal_response)
-        if not animals:
-            raise HTTPException(status_code=403, detail="Acesso negado a este snack")
-            
-        # Remover o snack
-        await supabase_admin._request(
-            "DELETE",
-            f"/rest/v1/snacks_entre_refeicoes?id=eq.{snack_id}"
-        )
-        return None
-        
-    except Exception as e:
-        print(f"Erro ao remover snack: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao remover snack: {str(e)}")
-
-# Rotas para Alimentos da Dieta
-@router.post("/diet-options/{option_id}/foods", response_model=DietFoodResponse)
-async def create_diet_food(
-    option_id: UUID,
-    food: DietFoodCreate,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Adiciona um alimento a uma opção de dieta.
-    """
-    try:
-        # Verificar se o usuário está autenticado
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se a opção de dieta existe
-        option_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}"
-        )
-        
-        option_data = supabase_admin.process_response(option_response)
-        if not option_data:
-            raise HTTPException(status_code=404, detail="Opção de dieta não encontrada")
-            
-        # Verificar se a dieta pertence à clínica
-        diet_id = option_data[0].get("dieta_id") if isinstance(option_data, list) else option_data.get("dieta_id")
+        # Verificar se a dieta existe e pertence à clínica
         diet_response = await supabase_admin._request(
             "GET",
-            f"/rest/v1/dietas?id=eq.{diet_id}"
+            f"/rest/v1/dietas?id=eq.{diet_id}&clinic_id=eq.{clinic_id}"
         )
         
         diet_data = supabase_admin.process_response(diet_response)
         if not diet_data:
-            raise HTTPException(status_code=404, detail="Dieta não encontrada")
-            
-        diet = diet_data[0] if isinstance(diet_data, list) else diet_data
-        if diet.get("clinic_id") != clinic_id:
-            raise HTTPException(status_code=403, detail="Acesso negado: dieta não pertence a esta clínica")
-            
-        # Criar o alimento
-        food_data = {
-            "opcao_dieta_id": str(option_id),
-            "nome": food.nome,
-            "tipo": food.tipo,
-            "quantidade": food.quantidade,
-            "calorias": food.calorias,
-            "horario": food.horario
-        }
+            raise HTTPException(status_code=404, detail="Dieta não encontrada ou não pertence a esta clínica")
         
-        food_response = await supabase_admin._request(
-            "POST",
-            "/rest/v1/alimentos_dieta",
-            json=food_data
+        # Buscar os registros de progresso
+        progress_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/dieta_progresso?dieta_id=eq.{diet_id}&order=data.desc"
         )
         
-        created_food = supabase_admin.process_response(food_response, single_item=True)
-        if not created_food:
-            raise HTTPException(status_code=500, detail="Erro ao adicionar alimento à dieta")
-            
-        return created_food
+        progress_data = supabase_admin.process_response(progress_response)
+        return progress_data
         
     except Exception as e:
-        print(f"Erro ao adicionar alimento à dieta: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao adicionar alimento à dieta: {str(e)}")
+        print(f"Erro ao listar progresso da dieta: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao listar progresso da dieta: {str(e)}")
 
-@router.get("/diet-options/{option_id}/foods", response_model=List[DietFoodResponse])
-async def list_diet_foods(
-    option_id: UUID,
+@router.put("/diet-progress/{progress_id}", response_model=DietProgressResponse)
+async def update_diet_progress(
+    progress_id: UUID,
+    progress: DietProgressUpdate,
     current_user: Dict[str, Any] = Depends(get_current_user)
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """
-    Lista todos os alimentos de uma opção de dieta.
+    Atualiza um registro de progresso de dieta.
     """
     try:
         # Verificar se o usuário está autenticado
@@ -1035,77 +1018,18 @@ async def list_diet_foods(
         if not clinic_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
             
-        # Verificar se a opção de dieta existe
-        option_response = await supabase_admin._request(
+        # Verificar se o registro de progresso existe
+        progress_check = await supabase_admin._request(
             "GET",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}"
+            f"/rest/v1/dieta_progresso?id=eq.{progress_id}"
         )
         
-        options = supabase_admin.process_response(option_response)
-        if not options:
-            raise HTTPException(status_code=404, detail="Opção de dieta não encontrada")
+        existing_progress = supabase_admin.process_response(progress_check)
+        if not existing_progress:
+            raise HTTPException(status_code=404, detail="Registro de progresso não encontrado")
             
         # Verificar se a dieta associada pertence à clínica
-        diet_id = options[0].get("dieta_id")
-        diet_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/dietas?id=eq.{diet_id}&clinic_id=eq.{clinic_id}"
-        )
-        
-        diets = supabase_admin.process_response(diet_response)
-        if not diets:
-            raise HTTPException(status_code=404, detail="Dieta não encontrada ou não pertence a esta clínica")
-            
-        # Buscar alimentos da opção de dieta
-        foods_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_dieta?opcao_dieta_id=eq.{option_id}"
-        )
-        
-        foods = supabase_admin.process_response(foods_response)
-        return foods
-        
-    except Exception as e:
-        print(f"Erro ao listar alimentos: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao listar alimentos: {str(e)}")
-
-@router.put("/diet-foods/{food_id}", response_model=DietFoodResponse)
-async def update_diet_food(
-    food_id: UUID,
-    food_update: DietFoodUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Atualiza um alimento de uma opção de dieta.
-    """
-    try:
-        # Verificar se o usuário está autenticado
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se o alimento existe
-        food_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_dieta?id=eq.{food_id}"
-        )
-        
-        food_data = supabase_admin.process_response(food_response)
-        if not food_data:
-            raise HTTPException(status_code=404, detail="Alimento não encontrado")
-            
-        # Verificar se a opção de dieta pertence à clínica
-        option_id = food_data[0].get("opcao_dieta_id") if isinstance(food_data, list) else food_data.get("opcao_dieta_id")
-        option_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}"
-        )
-        
-        option_data = supabase_admin.process_response(option_response)
-        if not option_data:
-            raise HTTPException(status_code=404, detail="Opção de dieta não encontrada")
-            
-        diet_id = option_data[0].get("dieta_id") if isinstance(option_data, list) else option_data.get("dieta_id")
+        diet_id = existing_progress[0]["dieta_id"]
         diet_response = await supabase_admin._request(
             "GET",
             f"/rest/v1/dietas?id=eq.{diet_id}&clinic_id=eq.{clinic_id}"
@@ -1113,86 +1037,109 @@ async def update_diet_food(
         
         diet_data = supabase_admin.process_response(diet_response)
         if not diet_data:
-            raise HTTPException(status_code=403, detail="Acesso negado: dieta não pertence a esta clínica")
+            raise HTTPException(status_code=403, detail="Sem permissão para atualizar este registro de progresso")
             
         # Preparar dados para atualização
-        update_data = food_update.dict(exclude_unset=True)
-        
-        # Atualizar o alimento
-        updated_response = await supabase_admin._request(
-            "PATCH",
-            f"/rest/v1/alimentos_dieta?id=eq.{food_id}",
-            json=update_data
-        )
-        
-        # Buscar o alimento atualizado
-        result_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_dieta?id=eq.{food_id}"
-        )
-        
-        updated_food = supabase_admin.process_response(result_response, single_item=True)
-        if not updated_food:
-            raise HTTPException(status_code=404, detail="Alimento não encontrado após atualização")
+        update_data = {}
+        if progress.data is not None:
+            update_data["data"] = progress.data.isoformat()
+        if progress.refeicao_completa is not None:
+            update_data["refeicao_completa"] = progress.refeicao_completa
+        if progress.horario_realizado is not None:
+            update_data["horario_realizado"] = progress.horario_realizado
+        if progress.quantidade_consumida is not None:
+            update_data["quantidade_consumida"] = progress.quantidade_consumida
+        if progress.observacoes_tutor is not None:
+            update_data["observacoes_tutor"] = progress.observacoes_tutor
+        if progress.pontos_ganhos is not None:
+            update_data["pontos_ganhos"] = progress.pontos_ganhos
             
-        return updated_food
+        # Atualizar o registro de progresso
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+        
+        progress_response = await supabase_admin._request(
+            "PATCH",
+            f"/rest/v1/dieta_progresso?id=eq.{progress_id}",
+            json=update_data,
+            headers=headers
+        )
+        
+        updated_progress = supabase_admin.process_response(progress_response, single_item=True)
+        if not updated_progress:
+            # Verificar se o registro ainda existe após a tentativa de atualização
+            check_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/dieta_progresso?id=eq.{progress_id}"
+            )
+            
+            updated_progress = supabase_admin.process_response(check_response, single_item=True)
+            if not updated_progress:
+                raise HTTPException(status_code=500, detail="Erro ao atualizar registro de progresso")
+                
+        return updated_progress
         
     except Exception as e:
-        print(f"Erro ao atualizar alimento: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar alimento: {str(e)}")
+        print(f"Erro ao atualizar progresso da dieta: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar progresso da dieta: {str(e)}")
 
-@router.delete("/diet-foods/{food_id}", status_code=204)
-async def delete_diet_food(
-    food_id: UUID,
+@router.delete("/diet-progress/{progress_id}", response_model=DietProgressResponse)
+async def delete_diet_progress(
+    progress_id: UUID,
     current_user: Dict[str, Any] = Depends(get_current_user)
-) -> None:
+) -> Dict[str, Any]:
     """
-    Remove um alimento de uma opção de dieta.
+    Remove um registro de progresso de dieta.
     """
     try:
-        # Verificar autenticação
+        # Verificar se o usuário está autenticado
         clinic_id = current_user.get("id")
         if not clinic_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
             
-        # Verificar se o alimento existe
-        food_response = await supabase_admin._request(
+        # Verificar se o registro de progresso existe
+        progress_check = await supabase_admin._request(
             "GET",
-            f"/rest/v1/alimentos_dieta?id=eq.{food_id}"
+            f"/rest/v1/dieta_progresso?id=eq.{progress_id}"
         )
         
-        foods = supabase_admin.process_response(food_response)
-        if not foods:
-            raise HTTPException(status_code=404, detail="Alimento não encontrado")
+        existing_progress = supabase_admin.process_response(progress_check)
+        if not existing_progress:
+            raise HTTPException(status_code=404, detail="Registro de progresso não encontrado")
             
-        # Verificar se a opção de dieta pertence à clínica (via dieta)
-        option_id = foods[0].get("opcao_dieta_id")
-        option_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/opcoes_dieta?id=eq.{option_id}"
-        )
-        
-        options = supabase_admin.process_response(option_response)
-        if not options:
-            raise HTTPException(status_code=404, detail="Opção de dieta não encontrada")
-            
-        diet_id = options[0].get("dieta_id")
+        # Verificar se a dieta associada pertence à clínica
+        diet_id = existing_progress[0]["dieta_id"]
         diet_response = await supabase_admin._request(
             "GET",
             f"/rest/v1/dietas?id=eq.{diet_id}&clinic_id=eq.{clinic_id}"
         )
         
-        diets = supabase_admin.process_response(diet_response)
-        if not diets:
-            raise HTTPException(status_code=403, detail="Acesso negado a este alimento")
+        diet_data = supabase_admin.process_response(diet_response)
+        if not diet_data:
+            raise HTTPException(status_code=403, detail="Sem permissão para excluir este registro de progresso")
             
-        # Remover o alimento
-        await supabase_admin._request(
+        # Excluir o registro de progresso
+        headers = supabase_admin.admin_headers.copy()
+        
+        progress_response = await supabase_admin._request(
             "DELETE",
-            f"/rest/v1/alimentos_dieta?id=eq.{food_id}"
+            f"/rest/v1/dieta_progresso?id=eq.{progress_id}",
+            headers=headers
         )
-        return None
+        
+        if not progress_response:
+            # Verificar se o registro ainda existe após a tentativa de exclusão
+            check_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/dieta_progresso?id=eq.{progress_id}"
+            )
+            
+            if supabase_admin.process_response(check_response):
+                raise HTTPException(status_code=500, detail="Falha ao excluir o registro de progresso")
+        
+        # Retornar os dados do registro que foi excluído
+        return existing_progress[0]
         
     except Exception as e:
-        print(f"Erro ao remover alimento da dieta: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao remover alimento da dieta: {str(e)}") 
+        print(f"Erro ao excluir progresso da dieta: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao excluir progresso da dieta: {str(e)}")

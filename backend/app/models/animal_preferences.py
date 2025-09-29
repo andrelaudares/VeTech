@@ -6,11 +6,15 @@ class PetPreferencesCreate(BaseModel):
     """Modelo para criação de preferências alimentares"""
     gosta_de: Optional[str] = None
     nao_gosta_de: Optional[str] = None
+    objetivo: Optional[str] = None
+    tipo_alimento_preferencia: Optional[str] = None
 
 class PetPreferencesUpdate(BaseModel):
     """Modelo para atualização de preferências alimentares"""
     gosta_de: Optional[str] = None
     nao_gosta_de: Optional[str] = None
+    objetivo: Optional[str] = None
+    tipo_alimento_preferencia: Optional[str] = None
 
 class PetPreferencesResponse(BaseModel):
     """Modelo para resposta de preferências alimentares"""
@@ -18,5 +22,7 @@ class PetPreferencesResponse(BaseModel):
     animal_id: UUID4
     gosta_de: Optional[str] = None
     nao_gosta_de: Optional[str] = None
+    objetivo: Optional[str] = None
+    tipo_alimento_preferencia: Optional[str] = None
     created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None 
+    updated_at: Optional[datetime] = None

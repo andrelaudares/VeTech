@@ -1,5 +1,5 @@
-from pydantic import BaseModel, UUID4
-from typing import Optional
+from pydantic import BaseModel, UUID4, Field
+from typing import Optional, List
 from datetime import datetime, date
 
 class AnimalCreate(BaseModel):
@@ -8,12 +8,14 @@ class AnimalCreate(BaseModel):
     breed: Optional[str] = None
     age: Optional[int] = None
     weight: Optional[float] = None
+    altura: Optional[float] = None
+    sexo: Optional[str] = None
     medical_history: Optional[str] = None
     date_birth: Optional[date] = None
     tutor_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
-
+    tutor_user_id: Optional[str] = None
 # Novo modelo para atualização, permitindo campos opcionais
 class AnimalUpdate(BaseModel):
     name: Optional[str] = None
@@ -21,6 +23,8 @@ class AnimalUpdate(BaseModel):
     breed: Optional[str] = None
     age: Optional[int] = None
     weight: Optional[float] = None
+    altura: Optional[float] = None
+    sexo: Optional[str] = None
     medical_history: Optional[str] = None
     date_birth: Optional[date] = None
     tutor_name: Optional[str] = None
@@ -38,6 +42,8 @@ class AnimalResponse(BaseModel):
     breed: Optional[str] = None
     age: Optional[int] = None
     weight: Optional[float] = None
+    altura: Optional[float] = None
+    sexo: Optional[str] = None
     medical_history: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
