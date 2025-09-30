@@ -9,6 +9,8 @@ from .activities import router as activities_router
 from .gamification import router as gamification_router
 from .dashboard import router as dashboard_router
 from .client import client_router
+from .health_check import router as health_router
+from .diets_ai import router as diets_ai_router
 
 api_router = APIRouter()
 
@@ -26,6 +28,8 @@ api_router.include_router(client_router, prefix="/client", tags=["client"])
 
 # Outras rotas
 api_router.include_router(diets_router, tags=["diets"])
+api_router.include_router(diets_ai_router, tags=["diets_ai"])
 api_router.include_router(activities_router, prefix="", tags=["activities"])
 api_router.include_router(gamification_router, prefix="", tags=["gamification"])
 api_router.include_router(dashboard_router, prefix="", tags=["dashboard"])
+api_router.include_router(health_router, tags=["health"])

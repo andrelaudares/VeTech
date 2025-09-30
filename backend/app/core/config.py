@@ -15,3 +15,11 @@ print(f"Chave de serviço do Supabase está presente: {'Sim' if SUPABASE_SERVICE
 
 # Configurações da API
 API_V1_STR = "/api/v1"
+
+# Configurações da OpenAI (não imprimir chaves)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+
+# Configurações do Google Gemini
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
