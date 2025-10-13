@@ -16,15 +16,25 @@ logger = logging.getLogger(__name__)
 @router.get("/")
 async def get_client_profile(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
     """
-    Obtém os dados de perfil do cliente (tutor) atualmente logado.
+    Obtém os dados de perfil do cliente (tutor) atualmente logado,
+    retornando informações completas do tutor e do animal principal
+    associados na tabela `public.animals`.
     """
     try:
         user_id = current_user.get("id")
         if not user_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
 
-        # Buscar dados do tutor na tabela animals
-        query = f"/rest/v1/animals?tutor_user_id=eq.{user_id}&select=tutor_name,email,phone,tutor_user_id"
+        # Buscar dados completos do tutor e do seu animal principal na tabela animals
+        # Importante: excluímos o campo sensível `senha` do SELECT
+        query = (
+            f"/rest/v1/animals?tutor_user_id=eq.{user_id}"
+            "&select="
+            "id,clinic_id,name,species,breed,age,weight,medical_history,created_at,updated_at,"
+            "date_birth,tutor_name,email,gamification_level,total_points,phone,client_active,"
+            "client_activated_at,client_last_login,gamification_points,tutor_user_id,altura,sexo"
+            "&limit=1"
+        )
         response_data = await supabase_admin._request("GET", query)
         animals_data = supabase_admin.process_response(response_data)
 
@@ -33,12 +43,43 @@ async def get_client_profile(current_user: Dict[str, Any] = Depends(get_current_
 
         # Pegar os dados do primeiro animal (todos devem ter os mesmos dados do tutor)
         client_data = animals_data[0]
-        
+
+        # Estrutura de resposta expandida com praticamente todos os campos relevantes
         return {
+            # Campos no topo para compatibilidade com clientes existentes
             "id": client_data.get("tutor_user_id"),
             "name": client_data.get("tutor_name"),
             "email": client_data.get("email"),
-            "phone": client_data.get("phone")
+            "phone": client_data.get("phone"),
+            # Bloco detalhado do tutor
+            "tutor": {
+                "id": client_data.get("tutor_user_id"),
+                "name": client_data.get("tutor_name"),
+                "email": client_data.get("email"),
+                "phone": client_data.get("phone"),
+                "client_active": client_data.get("client_active"),
+                "client_activated_at": client_data.get("client_activated_at"),
+                "client_last_login": client_data.get("client_last_login"),
+                "gamification_level": client_data.get("gamification_level"),
+                "gamification_points": client_data.get("gamification_points"),
+                "total_points": client_data.get("total_points"),
+            },
+            # Bloco detalhado do animal principal
+            "animal": {
+                "id": client_data.get("id"),
+                "clinic_id": client_data.get("clinic_id"),
+                "name": client_data.get("name"),
+                "species": client_data.get("species"),
+                "breed": client_data.get("breed"),
+                "age": client_data.get("age"),
+                "weight": client_data.get("weight"),
+                "altura": client_data.get("altura"),
+                "sexo": client_data.get("sexo"),
+                "date_birth": client_data.get("date_birth"),
+                "medical_history": client_data.get("medical_history"),
+                "created_at": client_data.get("created_at"),
+                "updated_at": client_data.get("updated_at"),
+            },
         }
 
     except HTTPException:
