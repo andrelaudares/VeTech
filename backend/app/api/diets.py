@@ -590,6 +590,9 @@ async def get_alimentos_base(
     """
     try:
         # Verificar se o usuário está autenticado
+        # Guardar contra current_user None/malformado para evitar 500
+        if not isinstance(current_user, dict):
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
         clinic_id = current_user.get("id")
         if not clinic_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
@@ -627,154 +630,6 @@ async def get_alimentos_base(
         print(f"Erro ao listar alimentos base: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao listar alimentos base: {str(e)}")
 
-@router.get("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
-async def get_alimento_base(
-    alimento_id: UUID,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Obtém detalhes de um alimento base específico.
-    """
-    try:
-        # Verificar se o usuário está autenticado
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Buscar o alimento base
-        alimento_response = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
-        )
-        
-        alimento_data = supabase_admin.process_response(alimento_response)
-        if not alimento_data:
-            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
-            
-        return alimento_data[0]
-        
-    except Exception as e:
-        print(f"Erro ao obter alimento base: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao obter alimento base: {str(e)}")
-
-@router.put("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
-async def update_alimento_base(
-    alimento_id: UUID,
-    alimento: AlimentoBaseUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Atualiza um alimento base existente.
-    """
-    try:
-        # Verificar se o usuário está autenticado
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se o usuário tem permissão (apenas administradores ou agentes de IA)
-        user_role = current_user.get("role")
-        if user_role not in ["admin", "ai_agent"]:
-            raise HTTPException(status_code=403, detail="Sem permissão para atualizar alimentos base")
-            
-        # Verificar se o alimento base existe
-        alimento_check = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
-        )
-        
-        existing_alimento = supabase_admin.process_response(alimento_check)
-        if not existing_alimento:
-            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
-            
-        # Preparar dados para atualização
-        update_data = {k: v for k, v in alimento.dict().items() if v is not None}
-        
-        # Adicionando cabeçalho Prefer para retornar representação
-        headers = supabase_admin.admin_headers.copy()
-        headers["Prefer"] = "return=representation"
-        
-        # Atualizar o alimento base
-        alimento_response = await supabase_admin._request(
-            "PATCH",
-            f"/rest/v1/alimentos_base?id=eq.{alimento_id}",
-            json=update_data,
-            headers=headers
-        )
-        
-        updated_alimento = supabase_admin.process_response(alimento_response, single_item=True)
-        if not updated_alimento:
-            # Verificar se o registro ainda existe após a tentativa de atualização
-            check_response = await supabase_admin._request(
-                "GET",
-                f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
-            )
-            
-            updated_alimento = supabase_admin.process_response(check_response, single_item=True)
-            if not updated_alimento:
-                raise HTTPException(status_code=500, detail="Erro ao atualizar alimento base")
-                
-        return updated_alimento
-        
-    except Exception as e:
-        print(f"Erro ao atualizar alimento base: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar alimento base: {str(e)}")
-
-@router.delete("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
-async def delete_alimento_base(
-    alimento_id: UUID,
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Remove um alimento base existente.
-    """
-    try:
-        # Verificar se o usuário está autenticado
-        clinic_id = current_user.get("id")
-        if not clinic_id:
-            raise HTTPException(status_code=401, detail="Usuário não autenticado")
-            
-        # Verificar se o usuário tem permissão (apenas administradores ou agentes de IA)
-        user_role = current_user.get("role")
-        if user_role not in ["admin", "ai_agent"]:
-            raise HTTPException(status_code=403, detail="Sem permissão para excluir alimentos base")
-            
-        # Verificar se o alimento base existe
-        alimento_check = await supabase_admin._request(
-            "GET",
-            f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
-        )
-        
-        existing_alimento = supabase_admin.process_response(alimento_check)
-        if not existing_alimento:
-            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
-            
-        # Excluir o alimento base
-        headers = supabase_admin.admin_headers.copy()
-        
-        alimento_response = await supabase_admin._request(
-            "DELETE",
-            f"/rest/v1/alimentos_base?id=eq.{alimento_id}",
-            headers=headers
-        )
-        
-        if not alimento_response:
-            # Verificar se o registro ainda existe após a tentativa de exclusão
-            check_response = await supabase_admin._request(
-                "GET",
-                f"/rest/v1/alimentos_base?id=eq.{alimento_id}"
-            )
-            
-            if supabase_admin.process_response(check_response):
-                raise HTTPException(status_code=500, detail="Falha ao excluir o alimento base")
-        
-        # Retornar os dados do alimento que foi excluído
-        return existing_alimento[0]
-        
-    except Exception as e:
-        print(f"Erro ao excluir alimento base: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao excluir alimento base: {str(e)}")
-
 @router.get("/alimentos-base/tipos", response_model=List[str])
 async def get_alimentos_tipos(
     current_user: Dict[str, Any] = Depends(get_current_user)
@@ -784,6 +639,8 @@ async def get_alimentos_tipos(
     """
     try:
         # Verificar se o usuário está autenticado
+        if not isinstance(current_user, dict):
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
         clinic_id = current_user.get("id")
         if not clinic_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
@@ -815,6 +672,8 @@ async def get_alimentos_especies(
     """
     try:
         # Verificar se o usuário está autenticado
+        if not isinstance(current_user, dict):
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
         clinic_id = current_user.get("id")
         if not clinic_id:
             raise HTTPException(status_code=401, detail="Usuário não autenticado")
@@ -836,6 +695,155 @@ async def get_alimentos_especies(
     except Exception as e:
         print(f"Erro ao obter espécies de alimentos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao obter espécies de alimentos: {str(e)}")
+
+@router.get("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
+async def get_alimento_base(
+    alimento_id: int,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Obtém detalhes de um alimento base específico.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Buscar o alimento base
+        alimento_response = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}"
+        )
+        
+        alimento_data = supabase_admin.process_response(alimento_response)
+        if not alimento_data:
+            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
+            
+        return alimento_data[0]
+        
+    except Exception as e:
+        print(f"Erro ao obter alimento base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao obter alimento base: {str(e)}")
+
+@router.put("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
+async def update_alimento_base(
+    alimento_id: int,
+    alimento: AlimentoBaseUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Atualiza um alimento base existente.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Verificar se o usuário tem permissão (apenas administradores ou agentes de IA)
+        user_role = current_user.get("role")
+        if user_role not in ["admin", "ai_agent"]:
+            raise HTTPException(status_code=403, detail="Sem permissão para atualizar alimentos base")
+            
+        # Verificar se o alimento base existe
+        alimento_check = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}"
+        )
+        
+        existing_alimento = supabase_admin.process_response(alimento_check)
+        if not existing_alimento:
+            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
+            
+        # Preparar dados para atualização
+        update_data = {k: v for k, v in alimento.dict().items() if v is not None}
+        
+        # Adicionando cabeçalho Prefer para retornar representação
+        headers = supabase_admin.admin_headers.copy()
+        headers["Prefer"] = "return=representation"
+        
+        # Atualizar o alimento base
+        alimento_response = await supabase_admin._request(
+            "PATCH",
+            f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}",
+            json=update_data,
+            headers=headers
+        )
+        
+        updated_alimento = supabase_admin.process_response(alimento_response, single_item=True)
+        if not updated_alimento:
+            # Verificar se o registro ainda existe após a tentativa de atualização
+            check_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}"
+            )
+            
+            updated_alimento = supabase_admin.process_response(check_response, single_item=True)
+            if not updated_alimento:
+                raise HTTPException(status_code=500, detail="Erro ao atualizar alimento base")
+                
+        return updated_alimento
+        
+    except Exception as e:
+        print(f"Erro ao atualizar alimento base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar alimento base: {str(e)}")
+
+@router.delete("/alimentos-base/{alimento_id}", response_model=AlimentoBaseResponse)
+async def delete_alimento_base(
+    alimento_id: int,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Remove um alimento base existente.
+    """
+    try:
+        # Verificar se o usuário está autenticado
+        clinic_id = current_user.get("id")
+        if not clinic_id:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+            
+        # Verificar se o usuário tem permissão (apenas administradores ou agentes de IA)
+        user_role = current_user.get("role")
+        if user_role not in ["admin", "ai_agent"]:
+            raise HTTPException(status_code=403, detail="Sem permissão para excluir alimentos base")
+            
+        # Verificar se o alimento base existe
+        alimento_check = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}"
+        )
+        
+        existing_alimento = supabase_admin.process_response(alimento_check)
+        if not existing_alimento:
+            raise HTTPException(status_code=404, detail="Alimento base não encontrado")
+            
+        # Excluir o alimento base
+        headers = supabase_admin.admin_headers.copy()
+        
+        alimento_response = await supabase_admin._request(
+            "DELETE",
+            f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}",
+            headers=headers
+        )
+        
+        if not alimento_response:
+            # Verificar se o registro ainda existe após a tentativa de exclusão
+            check_response = await supabase_admin._request(
+                "GET",
+                f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}"
+            )
+            
+            if supabase_admin.process_response(check_response):
+                raise HTTPException(status_code=500, detail="Falha ao excluir o alimento base")
+        
+        # Retornar os dados do alimento que foi excluído
+        return existing_alimento[0]
+        
+    except Exception as e:
+        print(f"Erro ao excluir alimento base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao excluir alimento base: {str(e)}")
+
 
 # Rota para atualizar informações de dieta no animal
 @router.put("/animals/{animal_id}/dieta-atual", response_model=Dict[str, Any])

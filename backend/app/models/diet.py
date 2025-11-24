@@ -152,17 +152,28 @@ class AlimentoBaseUpdate(BaseModel):
 
 class AlimentoBaseResponse(BaseModel):
     """Modelo para resposta de alimentos base"""
-    id: UUID4
+    id: Optional[UUID4] = None
+    alimento_id: Optional[int] = None
     nome: str
     tipo: str
     especie_destino: str
-    calorias_por_100g: float
+    # Alinhar com colunas existentes na tabela (kcal_por_*). Tornar opcional para evitar 500.
+    calorias_por_100g: Optional[float] = None
+    kcal_por_100g: Optional[float] = None
+    kcal_por_50g: Optional[float] = None
+    kcal_por_kg: Optional[float] = None
     proteinas_por_100g: Optional[float] = None
     gorduras_por_100g: Optional[float] = None
     carboidratos_por_100g: Optional[float] = None
     fibras_por_100g: Optional[float] = None
     minerais: Optional[Dict[str, float]] = None
     vitaminas: Optional[Dict[str, float]] = None
+    marca: Optional[str] = None
+    linha: Optional[str] = None
+    subtipo: Optional[str] = None
+    origem_caloria: Optional[str] = None
+    fonte: Optional[str] = None
+    fonte_url: Optional[str] = None
     observacoes: Optional[str] = None
     contraindicacoes: Optional[str] = None
     created_at: Optional[datetime] = None
