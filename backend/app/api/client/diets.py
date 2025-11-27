@@ -17,6 +17,33 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+# Helper: obter nome do alimento base pelo alimento_id (ou id como fallback)
+async def _get_alimento_nome(alimento_id: Optional[int]) -> Optional[str]:
+    if not alimento_id:
+        return None
+    try:
+        # Tenta por coluna 'alimento_id'
+        resp = await supabase._request(
+            "GET",
+            f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}&select=nome"
+        )
+        data = supabase.process_response(resp)
+        if isinstance(data, list) and len(data) > 0:
+            return data[0].get("nome")
+
+        # Fallback: tenta por coluna 'id'
+        resp2 = await supabase._request(
+            "GET",
+            f"/rest/v1/alimentos_base?id=eq.{alimento_id}&select=nome"
+        )
+        data2 = supabase.process_response(resp2)
+        if isinstance(data2, list) and len(data2) > 0:
+            return data2[0].get("nome")
+    except Exception:
+        pass
+    return None
+
+
 @router.get("/diets", response_model=List[Dict[str, Any]])
 async def get_tutor_diets(
     status: Optional[str] = Query(None, description="Filtrar por status da dieta"),
@@ -58,7 +85,18 @@ async def get_tutor_diets(
 
         diets_resp = await supabase._request("GET", query)
         diets = supabase.process_response(diets_resp) or []
-        return diets
+
+        # Enriquecer cada dieta com o nome do alimento
+        enriched: List[Dict[str, Any]] = []
+        for d in diets:
+            try:
+                aid = d.get("alimento_id")
+                d["alimento_nome"] = await _get_alimento_nome(aid)
+            except Exception:
+                d["alimento_nome"] = None
+            enriched.append(d)
+
+        return enriched
 
     except HTTPException:
         raise

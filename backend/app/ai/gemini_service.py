@@ -21,17 +21,22 @@ def _build_prompt(animal: Dict[str, Any], preferences: Optional[Dict[str, Any]],
     species = animal.get("species") or "cão"
     name = animal.get("name") or "Pet"
     weight = animal.get("weight")
+    breed = animal.get("breed")
 
     objetivo = user_input.get("objetivo") or (preferences or {}).get("objetivo") or "Nutrição"
     refeicoes_por_dia = user_input.get("refeicoes_por_dia") or 2
     tipo = user_input.get("tipo_alimento_preferencia") or (preferences or {}).get("tipo_alimento_preferencia") or "ração"
     valor_mensal_estimado = user_input.get("valor_mensal_estimado")
     horario = user_input.get("horario")
+    condicao_peso = user_input.get("condicao_peso")  # acima/abaixo/saudavel/indefinido
+    breed_weight_range = user_input.get("breed_weight_range")
+    calorias_alvo_estimadas = user_input.get("calorias_alvo_estimadas")
 
     context = {
         "animal": {
             "name": name,
             "species": species,
+            "breed": breed,
             "weight": weight,
         },
         "preferences": preferences or {},
@@ -42,6 +47,9 @@ def _build_prompt(animal: Dict[str, Any], preferences: Optional[Dict[str, Any]],
             "valor_mensal_estimado": valor_mensal_estimado,
             "horario": horario,
             "data_inicio": str(date.today()),
+            "condicao_peso": condicao_peso,
+            "breed_weight_range": breed_weight_range,
+            "calorias_alvo_estimadas": calorias_alvo_estimadas,
         },
         "expected_output_fields": [
             "nome", "tipo", "objetivo", "data_inicio", "data_fim", "status",
@@ -55,8 +63,12 @@ def _build_prompt(animal: Dict[str, Any], preferences: Optional[Dict[str, Any]],
         "em JSON puro (application/json) e SEM explicações. Regras:\n"
         "- Linguagem neutra.\n"
         "- Evitar alimentos proibidos.\n"
+        "- Considere a condição de peso (acima/abaixo/saudável) e a faixa saudável da raça, se fornecida.\n"
         "- Se faltar peso, não estimar gramas.\n"
-        "- Respeitar objetivo e preferências quando disponíveis.\n"
+        "- Respeitar objetivo e preferências quando disponíveis (ex.: tipo do alimento).\n"
+        "- Se 'calorias_alvo_estimadas' for fornecida, priorize essa meta diária.\n"
+        "- Estruture horários compatíveis com o número de refeições, evitando valores idênticos para todos os pets.\n"
+        "- Não fixar sempre o mesmo 'alimento_id'; escolher conforme espécie/objetivo e calorias.\n"
         "- A saída deve ser um ÚNICO objeto JSON com os campos especificados."
     )
 
@@ -170,11 +182,15 @@ async def generate_diet_proposal(animal: Dict[str, Any], preferences: Optional[D
     status = data.get("status") or "ativa"
 
     refeicoes_por_dia = data.get("refeicoes_por_dia") or user_input.get("refeicoes_por_dia") or 2
-    calorias_totais_dia = data.get("calorias_totais_dia") or _estimate_calories(animal.get("species"), animal.get("weight"))
+    calorias_totais_dia = (
+        data.get("calorias_totais_dia")
+        or user_input.get("calorias_alvo_estimadas")
+        or _estimate_calories(animal.get("species"), animal.get("weight"))
+    )
     valor_mensal_estimado = data.get("valor_mensal_estimado") or user_input.get("valor_mensal_estimado")
     alimento_id = data.get("alimento_id")
     quantidade_gramas = data.get("quantidade_gramas")
-    horario = data.get("horario") or user_input.get("horario")
+    horario = _normalize_horario(data.get("horario") or user_input.get("horario"))
 
     proposal = {
         "nome": nome,
@@ -207,3 +223,35 @@ async def generate_diet_proposal(animal: Dict[str, Any], preferences: Optional[D
         justificativa = " ".join(parts)
 
     return proposal, justificativa
+def _normalize_horario(value: Any) -> Optional[str]:
+    """Converte diferentes formatos de horário para string esperada pelo modelo DietCreate.
+    - Lista de strings → "HH:MM,HH:MM,..."
+    - Dict com chaves comuns → usa 'hora'/'time'/'value' se string
+    - Número/str → str direta
+    """
+    if value is None:
+        return None
+    try:
+        # Lista de horários
+        if isinstance(value, list):
+            items = []
+            for item in value:
+                if isinstance(item, str):
+                    items.append(item)
+                elif isinstance(item, (int, float)):
+                    items.append(str(item))
+                elif isinstance(item, dict):
+                    s = item.get("hora") or item.get("time") or item.get("value")
+                    if isinstance(s, str):
+                        items.append(s)
+            return ",".join(items) if items else None
+        # Dicionário único
+        if isinstance(value, dict):
+            s = value.get("hora") or value.get("time") or value.get("value")
+            return s if isinstance(s, str) else None
+        # Número ou string
+        if isinstance(value, (int, float, str)):
+            return str(value)
+        return None
+    except Exception:
+        return None

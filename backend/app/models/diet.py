@@ -69,6 +69,7 @@ class DietResponse(BaseModel):
     calorias_totais_dia: Optional[int] = None
     valor_mensal_estimado: Optional[float] = None
     alimento_id: Optional[int] = None
+    alimento_nome: Optional[str] = None
     quantidade_gramas: Optional[int] = None
     horario: Optional[str] = None
     created_at: Optional[datetime] = None

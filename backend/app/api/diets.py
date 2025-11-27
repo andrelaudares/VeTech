@@ -18,6 +18,32 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Helper: obter nome do alimento base a partir de alimento_id (compatível com id)
+async def _get_alimento_nome(alimento_id: Optional[int]) -> Optional[str]:
+    if not alimento_id:
+        return None
+    try:
+        # Primeiro tenta por coluna 'alimento_id'
+        resp = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/alimentos_base?alimento_id=eq.{alimento_id}&select=nome"
+        )
+        data = supabase_admin.process_response(resp)
+        if isinstance(data, list) and len(data) > 0:
+            return data[0].get("nome")
+
+        # Fallback: tenta por coluna 'id'
+        resp2 = await supabase_admin._request(
+            "GET",
+            f"/rest/v1/alimentos_base?id=eq.{alimento_id}&select=nome"
+        )
+        data2 = supabase_admin.process_response(resp2)
+        if isinstance(data2, list) and len(data2) > 0:
+            return data2[0].get("nome")
+    except Exception:
+        pass
+    return None
+
 # Rotas para Dietas
 @router.post("/animals/{animal_id}/diets", response_model=DietResponse)
 async def create_diet(
@@ -117,8 +143,18 @@ async def list_diets(
         if not diets:
             # Se não houver dietas, retornar uma lista vazia
             return []
-        
-        return diets
+
+        # Enriquecer cada dieta com o nome do alimento (quando houver alimento_id)
+        enriched = []
+        for d in diets:
+            try:
+                aid = d.get("alimento_id")
+                d["alimento_nome"] = await _get_alimento_nome(aid)
+            except Exception:
+                d["alimento_nome"] = None
+            enriched.append(d)
+
+        return enriched
         
     except Exception as e:
         print(f"Erro ao listar dietas: {str(e)}")
@@ -149,6 +185,12 @@ async def get_diet(
             raise HTTPException(status_code=404, detail="Dieta não encontrada ou não pertence a esta clínica")
             
         diet = diets[0]
+        # Enriquecer com nome do alimento, se aplicável
+        try:
+            aid = diet.get("alimento_id")
+            diet["alimento_nome"] = await _get_alimento_nome(aid)
+        except Exception:
+            diet["alimento_nome"] = None
         return diet
         
     except Exception as e:
