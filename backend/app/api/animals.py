@@ -240,51 +240,78 @@ async def delete_animal(
             detail=f"Erro interno no servidor ao deletar animal: {error_detail}"
         )
 
-@router.get("", response_model=list[AnimalResponse])
+@router.get("", response_model=list[Dict[str, Any]])
 async def list_animals(
-    # Adicionar dependência do usuário autenticado
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> list[Dict[str, Any]]:
-    # Obter clinic_id do usuário autenticado
-    clinic_id = current_user.get("id")
-    if not clinic_id:
-        raise HTTPException(status_code=401, detail="Usuário não autenticado ou ID da clínica não encontrado no token")
+    user_type = current_user.get("user_type")
+    user_id = current_user.get("id")
+    user_email = current_user.get("email")
 
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado")
+
+    if user_type == "tutor":
+        logger.info(f"Listando IDs de animais do tutor_id: {user_id}")
+        try:
+            tutor_query = f"/rest/v1/animals?tutor_user_id=eq.{user_id}&select=id"
+            tutor_response = await supabase_admin._request("GET", tutor_query)
+
+            animals = []
+            if isinstance(tutor_response, list):
+                animals = tutor_response
+            elif isinstance(tutor_response, dict) and "data" in tutor_response and isinstance(tutor_response["data"], list):
+                animals = tutor_response["data"]
+
+            if not animals and user_email:
+                email_query = f"/rest/v1/animals?email=eq.{user_email}&select=id"
+                email_response = await supabase_admin._request("GET", email_query)
+                if isinstance(email_response, list):
+                    animals = email_response
+                elif isinstance(email_response, dict) and "data" in email_response and isinstance(email_response["data"], list):
+                    animals = email_response["data"]
+
+            if not animals:
+                logger.info("Nenhum animal encontrado para o tutor")
+                return []
+
+            logger.info(f"Encontrados {len(animals)} IDs de animais para o tutor")
+            return animals
+        except Exception as e:
+            logger.error(f"Erro ao buscar IDs de animais do tutor {user_id}: {e}", exc_info=True)
+            error_detail = str(e)
+            if hasattr(e, "response") and e.response is not None:
+                error_detail = f"{error_detail} - Response: {e.response.text}"
+            raise HTTPException(status_code=500, detail=f"Erro interno ao buscar animais do tutor: {error_detail}")
+
+    clinic_id = user_id
     logger.info(f"Requisição recebida para listar todos os animais da clinic_id: {clinic_id}")
 
     try:
-        # Buscar todos os animais **filtrando pela clinic_id do token**
         response = await supabase_admin._request(
             method="GET",
-            endpoint=f"/rest/v1/animals?clinic_id=eq.{clinic_id}&select=*" # Adicionar filtro clinic_id
+            endpoint=f"/rest/v1/animals?clinic_id=eq.{clinic_id}&select=*"
         )
 
-        # A resposta direta do _request pode ser a lista ou um dict {'data': [...]}
-        # Vamos garantir que retornamos a lista
         animals_list = []
         if isinstance(response, list):
             animals_list = response
-        elif isinstance(response, dict) and 'data' in response and isinstance(response['data'], list):
-            # Caso comum onde Supabase retorna {'data': [...]}
-            animals_list = response['data']
-        # Adicione outras verificações se a estrutura da resposta puder variar mais
+        elif isinstance(response, dict) and "data" in response and isinstance(response["data"], list):
+            animals_list = response["data"]
 
         if not animals_list:
-            logger.info(f"Nenhum animal encontrado no banco de dados.")
+            logger.info("Nenhum animal encontrado no banco de dados.")
             return []
 
         logger.info(f"Encontrados {len(animals_list)} animais.")
-        return animals_list # Retorna a lista diretamente
+        return animals_list
 
     except Exception as e:
         logger.error(f"Erro ao buscar animais: {e}", exc_info=True)
         error_detail = str(e)
-        if hasattr(e, 'response') and e.response is not None:
+        if hasattr(e, "response") and e.response is not None:
             error_detail = f"{error_detail} - Response: {e.response.text}"
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro interno no servidor ao buscar animais: {error_detail}"
-        )
+        raise HTTPException(status_code=500, detail=f"Erro interno no servidor ao buscar animais: {error_detail}")
 
 @router.get("/{animal_id}", response_model=AnimalResponse)
 async def get_animal(
