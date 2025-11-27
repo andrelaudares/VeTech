@@ -2,13 +2,13 @@ import api from './api';
 
 const appointmentService = {
   // Função para buscar todos os agendamentos, com filtro opcional por animal_id
-  getAppointments: (animalId = null) => {
+  getAppointments: (animalId = null, status = null) => {
     const token = localStorage.getItem('token');
-    console.log('AppointmentService: Token lido do localStorage para getAppointments:', token);
     let url = '/appointments';
-    if (animalId) {
-      url += `?animal_id=${animalId}`;
-    }
+    const params = [];
+    if (animalId) params.push(`animal_id=${animalId}`);
+    if (status) params.push(`status=${status}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
     return api.get(url, {
       headers: {
         Authorization: `Bearer ${token}`,

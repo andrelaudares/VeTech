@@ -20,13 +20,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { ptBR } from 'date-fns/locale';
 import appointmentService from '../../services/appointmentService';
-import { useAnimal } from '../../contexts/AnimalContext';
-
-const colors = {
-  buttonPrimary: '#9DB8B2', // Cinza-esverdeado
-  buttonPrimaryHover: '#82a8a0',
-  // ... outras cores se necessário
-};
 
 const AppointmentFormModal = ({
   open,
@@ -39,7 +32,10 @@ const AppointmentFormModal = ({
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const { animals, loadingAnimals } = useAnimal();
+  
+  // Usar allAnimals da prop ao invés do contexto que pode ter apenas o animal selecionado
+  const animalsToShow = allAnimals || [];
+  const loadingAnimals = false; // Não bloquear o dropdown, apenas mostrar mensagem apropriada
 
   useEffect(() => {
     if (open) {
@@ -49,6 +45,7 @@ const AppointmentFormModal = ({
           date: appointment.date ? new Date(appointment.date) : null,
           start_time: appointment.start_time ? `T${appointment.start_time}` : null, // Ajustar para formato que TimePicker espera se necessário
           description: appointment.description || '',
+          service_type: appointment.service_type || appointment.description || '',
           status: appointment.status || 'scheduled', // Padrão para "Agendado"
         });
       } else {
@@ -58,6 +55,7 @@ const AppointmentFormModal = ({
           date: null,
           start_time: null,
           description: '',
+          service_type: '',
           status: 'scheduled', // Padrão para "Agendado"
         });
       }
@@ -68,10 +66,6 @@ const AppointmentFormModal = ({
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleDateChange = (newDate) => {
-    setFormData(prev => ({ ...prev, date: newDate }));
   };
 
   const handleTimeChange = (newTime) => {
@@ -140,10 +134,10 @@ const AppointmentFormModal = ({
         <DialogTitle sx={{ backgroundColor: '#23e865', color: '#fff'}}>
           {isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ pt: 3 }}>
           {errors.form && <Typography color="error" sx={{ mb: 2 }}>{errors.form}</Typography>}
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth error={Boolean(errors.animal_id)} required sx={{ minWidth: 200 }}>
                 <InputLabel id="animal-select-label">Animal</InputLabel>
                 <Select
@@ -156,8 +150,10 @@ const AppointmentFormModal = ({
                 >
                   {loadingAnimals ? (
                     <MenuItem value="" disabled><em>Carregando animais...</em></MenuItem>
+                  ) : animalsToShow.length === 0 ? (
+                    <MenuItem value="" disabled><em>Nenhum animal cadastrado</em></MenuItem>
                   ) : (
-                    animals.map((animal) => (
+                    animalsToShow.map((animal) => (
                       <MenuItem key={animal.id} value={animal.id}>
                         {animal.name} ({animal.species})
                       </MenuItem>
@@ -177,9 +173,14 @@ const AppointmentFormModal = ({
                     setErrors(prev => ({ ...prev, date: null }));
                   }
                 }}
-                renderInput={(params) => 
-                  <TextField {...params} fullWidth required error={Boolean(errors.date)} helperText={errors.date} />
-                }
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    required: true,
+                    error: Boolean(errors.date),
+                    helperText: errors.date
+                  }
+                }}
                 disablePast
               />
             </Grid>
@@ -188,25 +189,17 @@ const AppointmentFormModal = ({
                 label="Hora *"
                 value={getStartTimeAsDateObject()}
                 onChange={handleTimeChange}
-                renderInput={(params) => 
-                  <TextField {...params} fullWidth required error={Boolean(errors.start_time)} helperText={errors.start_time} />
-                }
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    required: true,
+                    error: Boolean(errors.start_time),
+                    helperText: errors.start_time
+                  }
+                }}
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Descrição"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                multiline
-                rows={3}
-                fullWidth
-                error={Boolean(errors.description)}
-                helperText={errors.description}
-              />
-            </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth required error={Boolean(errors.status)} sx={{ minWidth: 200 }}>
                 <InputLabel id="status-select-label">Status</InputLabel>
                 <Select
@@ -223,6 +216,32 @@ const AppointmentFormModal = ({
                 </Select>
                 {errors.status && <FormHelperText>{errors.status}</FormHelperText>}
               </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Serviço"
+                name="service_type"
+                value={formData.service_type}
+                onChange={handleChange}
+                fullWidth
+                placeholder="Ex: Consulta, Vacina, Banho, etc."
+                error={Boolean(errors.service_type)}
+                helperText={errors.service_type}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Descrição"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                multiline
+                rows={3}
+                fullWidth
+                placeholder="Informações adicionais sobre o agendamento"
+                error={Boolean(errors.description)}
+                helperText={errors.description}
+              />
             </Grid>
             {errors.general && (
                 <Grid item xs={12}>
