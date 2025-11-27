@@ -16,7 +16,6 @@ import AnimalsPage from '../pages/AnimalsPage';
 import AppointmentsPage from '../pages/AppointmentsPage';
 import ConsultationsPage from '../pages/ConsultationsPage';
 import DietsPage from '../pages/DietsPage';
-import ActivitiesPage from '../pages/ActivitiesPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 // Importar rotas do cliente
@@ -84,7 +83,6 @@ const AppRoutes = () => {
         <Route path="/agendamentos" element={<AppointmentsPage />} />
         <Route path="/consultas" element={<ConsultationsPage />} />
         <Route path="/dietas" element={<DietsPage />} />
-        <Route path="/atividades" element={<ActivitiesPage />} />
       </Route>
 
       {/* Rota para páginas não encontradas */}

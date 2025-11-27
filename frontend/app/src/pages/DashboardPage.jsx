@@ -34,8 +34,7 @@ const DashboardPage = () => {
   const [stats, setStats] = useState({
     consultas_hoje: 0,
     animais_ativos: 0,
-    animais_sem_dietas: 0,
-    animais_sem_atividades: 0
+    animais_sem_dietas: 0
   });
   const [appointmentsToday, setAppointmentsToday] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -165,11 +164,6 @@ const DashboardPage = () => {
       label: 'Sem Dietas', 
       value: stats.animais_sem_dietas || 0, 
       icon: <RestaurantIcon /> 
-    },
-    { 
-      label: 'Sem Atividades', 
-      value: stats.animais_sem_atividades || 0, 
-      icon: <DirectionsRunIcon /> 
     },
   ];
 

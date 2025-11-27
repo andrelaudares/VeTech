@@ -36,7 +36,6 @@ import DashboardIcon from '@mui/icons-material/Home';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import MenuIcon from '@mui/icons-material/Menu';
 
 const AppHeader = () => {
@@ -121,10 +120,6 @@ const AppHeader = () => {
           <ListItemIcon><RestaurantMenuIcon /></ListItemIcon>
           <ListItemText primary="Dietas" />
         </ListItem>
-        <ListItem button component={RouterLink} to="/atividades">
-          <ListItemIcon><FitnessCenterIcon /></ListItemIcon>
-          <ListItemText primary="Atividades" />
-        </ListItem>
       </List>
 
       {/* Seletor de animal no drawer */}
@@ -202,11 +197,6 @@ const AppHeader = () => {
                 sx={{ textTransform: 'none', fontWeight: location.pathname === '/dietas' ? 'bold' : 'normal' }}
               >
                 Dietas
-              </Button>
-              <Button color="inherit" component={RouterLink} to="/atividades" startIcon={<FitnessCenterIcon />}
-                sx={{ textTransform: 'none', fontWeight: location.pathname === '/atividades' ? 'bold' : 'normal' }}
-              >
-                Atividades
               </Button>
             </Box>
           )}
