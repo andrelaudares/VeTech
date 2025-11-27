@@ -45,6 +45,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import PetsIcon from '@mui/icons-material/Pets';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import appointmentService from '../services/appointmentService';
+import { animalService } from '../services/animalService';
 import { useAnimal } from '../contexts/AnimalContext';
 import { useAuth } from '../contexts/AuthContext';
 import AppointmentFormModal from '../components/appointments/AppointmentFormModal';
@@ -55,7 +56,8 @@ const AppointmentsPage = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { selectedAnimal, animals: allAnimals } = useAnimal();
+  const [allAnimals, setAllAnimals] = useState([]); // Estado local para todos os animais
+  const { selectedAnimal } = useAnimal();
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   // Estados para filtros e paginação
@@ -89,6 +91,21 @@ const AppointmentsPage = () => {
     solicitacoes_pendentes: 0,
     animais_atendidos: 0
   });
+
+  // Buscar todos os animais ao carregar a página
+  useEffect(() => {
+    const loadAnimals = async () => {
+      if (!isAuthenticated) return;
+      try {
+        // Forçar uso do token de clínica
+        const animals = await animalService.getAllAnimals(true);
+        setAllAnimals(animals);
+      } catch (err) {
+        console.error('Erro ao carregar animais:', err);
+      }
+    };
+    loadAnimals();
+  }, [isAuthenticated]);
 
   const fetchAppointments = useCallback(async () => {
     if (authLoading || !isAuthenticated) {
@@ -368,7 +385,7 @@ const AppointmentsPage = () => {
             />
           </Grid>
           <Grid item xs={12} md={3}>
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={{ minWidth: 200 }}>
               <InputLabel>Status</InputLabel>
               <Select
                 value={statusFilter}
@@ -405,8 +422,6 @@ const AppointmentsPage = () => {
               <TableRow>
                 <TableCell>Data</TableCell>
                 <TableCell>Horário</TableCell>
-                <TableCell>Tutor</TableCell>
-                <TableCell>Animal</TableCell>
                 <TableCell>Serviço</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="center">Ações</TableCell>
@@ -415,7 +430,7 @@ const AppointmentsPage = () => {
             <TableBody>
               {appointments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                     <Typography color="textSecondary">
                       Nenhum agendamento encontrado
                     </Typography>
@@ -427,10 +442,8 @@ const AppointmentsPage = () => {
                   .map((appointment) => (
                     <TableRow key={appointment.id} hover>
                       <TableCell>{formatDate(appointment.date)}</TableCell>
-                      <TableCell>{appointment.time}</TableCell>
-                      <TableCell>{appointment.tutor_name}</TableCell>
-                      <TableCell>{appointment.animal_name}</TableCell>
-                      <TableCell>{appointment.service_type}</TableCell>
+                      <TableCell>{appointment.start_time || appointment.time || '-'}</TableCell>
+                      <TableCell>{appointment.service_type || appointment.description || '-'}</TableCell>
                       <TableCell>{getStatusChip(appointment.status)}</TableCell>
                       <TableCell align="center">
                         <Tooltip title="Ver detalhes">

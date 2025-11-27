@@ -7,8 +7,15 @@ export const animalService = {
     return response.data;
   },
 
-  async getAllAnimals() {
-    const response = await api.get('/animals');
+  async getAllAnimals(forceClinicToken = false) {
+    let config = {};
+    if (forceClinicToken) {
+      const clinicToken = localStorage.getItem('viteToken');
+      if (clinicToken) {
+        config.headers = { Authorization: `Bearer ${clinicToken}` };
+      }
+    }
+    const response = await api.get('/animals', config);
     return response.data;
   },
 
