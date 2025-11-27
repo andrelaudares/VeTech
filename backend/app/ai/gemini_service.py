@@ -9,8 +9,8 @@ except Exception:
 from ..core.config import GOOGLE_API_KEY, GEMINI_MODEL
 
 # Usar versão "-latest" por compatibilidade e permitir fallback automático
-DEFAULT_MODEL = "gemini-2.0-flash-exp"
-FALLBACK_MODEL = "gemini-1.5-pro-latest"
+DEFAULT_MODEL = "gemini-2.0-flash-lite"
+FALLBACK_MODEL = "gemini-2.0-flash-lite"
 
 
 class DietAIError(Exception):
@@ -46,7 +46,7 @@ def _build_prompt(animal: Dict[str, Any], preferences: Optional[Dict[str, Any]],
         "expected_output_fields": [
             "nome", "tipo", "objetivo", "data_inicio", "data_fim", "status",
             "refeicoes_por_dia", "calorias_totais_dia", "valor_mensal_estimado",
-            "alimento_id", "quantidade_gramas", "horario"
+            "alimento_id", "quantidade_gramas", "horario", "justificativa"
         ]
     }
 
@@ -62,7 +62,7 @@ def _build_prompt(animal: Dict[str, Any], preferences: Optional[Dict[str, Any]],
 
     prompt = (
         f"{system}\n\nContexto: {context}\n\n"
-        "Gere o objeto JSON final de DietCreate."
+        "Gere o objeto JSON final de DietCreate contendo também o campo 'justificativa' com 1-2 frases explicando o motivo e critérios da dieta."
     )
     return prompt
 
@@ -116,7 +116,7 @@ def _parse_json_response(content: str) -> Dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
-async def generate_diet_proposal(animal: Dict[str, Any], preferences: Optional[Dict[str, Any]], user_input: Dict[str, Any]) -> Dict[str, Any]:
+async def generate_diet_proposal(animal: Dict[str, Any], preferences: Optional[Dict[str, Any]], user_input: Dict[str, Any]) -> tuple[Dict[str, Any], str]:
     if not GOOGLE_API_KEY:
         raise DietAIError("GOOGLE_API_KEY não configurada no ambiente.")
     if genai is None:
@@ -190,5 +190,20 @@ async def generate_diet_proposal(animal: Dict[str, Any], preferences: Optional[D
         "quantidade_gramas": int(quantidade_gramas) if quantidade_gramas is not None else None,
         "horario": horario,
     }
+    justificativa = data.get("justificativa")
+    if not justificativa:
+        species = animal.get("species") or "pet"
+        weight = animal.get("weight")
+        prefs_obj = (preferences or {}).get("objetivo")
+        tipo_pref = (preferences or {}).get("tipo_alimento_preferencia")
+        parts = []
+        parts.append(f"Dieta focada em {objetivo.lower()} para {species}.")
+        if weight:
+            parts.append(f"Considera peso atual de {weight} kg.")
+        if tipo_pref:
+            parts.append(f"Preferência alimentar: {tipo_pref}.")
+        if prefs_obj and prefs_obj.lower() != objetivo.lower():
+            parts.append(f"Histórico de objetivo informado: {prefs_obj}.")
+        justificativa = " ".join(parts)
 
-    return proposal
+    return proposal, justificativa

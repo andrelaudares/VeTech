@@ -65,7 +65,7 @@ async def create_diet_ai(
 
     # Gerar proposta via IA (user_input é opcional e pode ser omitido)
     try:
-        proposal = await generate_diet_proposal(animal, preferences, user_input or {})
+        proposal, justificativa = await generate_diet_proposal(animal, preferences, user_input or {})
     except DietAIError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -159,4 +159,4 @@ async def create_diet_ai(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Falha ao criar dieta no Supabase: {str(e)}")
 
-    return {"diet": created, "proposal": proposal}
+    return {"diet": created, "proposal": proposal, "justificativa": justificativa}
